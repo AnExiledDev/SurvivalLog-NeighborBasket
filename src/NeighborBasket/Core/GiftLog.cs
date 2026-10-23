@@ -106,12 +106,15 @@ public sealed class GiftWatch
 /// <summary>The rescue's standing, for the top of the phone app.</summary>
 public sealed record Tracker(int Affinity, int EndingAt, int Progress, int ProgressMax, int Streak, int StreakDays, int StrugglesLeft);
 
-/// <summary>Builds the phone app's data: the tracker rows and the log grouped by day, newest first.</summary>
+/// <summary>
+/// Builds the phone app's data: her status (the basket card's rows plus the struggles left) and the log grouped by day,
+/// newest first. Without a live rescue line it falls back to the saved tracker alone.
+/// </summary>
 public static class AppView
 {
     public const int MaxEntries = 200;
 
-    public static string Json(Tracker? tracker, IReadOnlyList<LogEntry> entries, bool isChinese)
+    public static string Json(NeedState? need, Tracker? tracker, string? troubleName, int warnHours, IReadOnlyList<LogEntry> entries, bool isChinese)
     {
         var json = new StringBuilder("{");
 
@@ -119,7 +122,7 @@ public static class AppView
         json.Append(",\"back\":").Append(JsText.Literal(Texts.AppBack.Pick(isChinese)));
         json.Append(",\"empty\":").Append(JsText.Literal(Texts.AppEmpty.Pick(isChinese)));
         json.Append(",\"rows\":[");
-        json.Append(string.Join(",", Rows(tracker, isChinese).Select(row => "{\"label\":" + JsText.Literal(row.Label) + ",\"value\":" + JsText.Literal(row.Value) + "}")));
+        json.Append(string.Join(",", Rows(need, tracker, troubleName, warnHours, isChinese).Select(CardView.RowJson)));
         json.Append("],\"days\":[");
 
         var days = entries.Reverse().Take(MaxEntries).GroupBy(entry => entry.Day);
@@ -129,22 +132,34 @@ public static class AppView
         return json.Append("]}").ToString();
     }
 
-    private static IEnumerable<(string Label, string Value)> Rows(Tracker? tracker, bool isChinese)
+    private static IEnumerable<CardView.CardRow> Rows(NeedState? need, Tracker? tracker, string? troubleName, int warnHours, bool isChinese)
     {
-        if (tracker is not { } t)
+        if (need is { IsActive: true })
         {
-            yield return (Texts.AppNoRescue.Pick(isChinese), "");
+            foreach (var row in CardView.Rows(need, tracker, troubleName, warnHours, isChinese)) yield return row;
+
+            if (tracker is { } live) yield return StrugglesLeft(live, isChinese);
 
             yield break;
         }
 
-        yield return (Texts.AppAffinity.Pick(isChinese), Texts.AppAffinityValue.Say(isChinese, t.Affinity, t.EndingAt));
-        yield return (Texts.AppProgress.Pick(isChinese), t.Progress + " / " + t.ProgressMax);
+        if (tracker is not { } t)
+        {
+            yield return new CardView.CardRow(Texts.AppNoRescue.Pick(isChinese), "");
 
-        if (t.StreakDays > 0) yield return (Texts.AppStreak.Pick(isChinese), t.Streak + " / " + t.StreakDays);
+            yield break;
+        }
 
-        yield return (Texts.AppStrugglesLeft.Pick(isChinese), Math.Max(0, t.StrugglesLeft).ToString(CultureInfo.InvariantCulture));
+        yield return new CardView.CardRow(Texts.AppAffinity.Pick(isChinese), Texts.AppAffinityValue.Say(isChinese, t.Affinity, t.EndingAt));
+        yield return new CardView.CardRow(Texts.AppProgress.Pick(isChinese), t.Progress + " / " + t.ProgressMax);
+
+        if (t.StreakDays > 0) yield return new CardView.CardRow(Texts.AppStreak.Pick(isChinese), t.Streak + " / " + t.StreakDays);
+
+        yield return StrugglesLeft(t, isChinese);
     }
+
+    private static CardView.CardRow StrugglesLeft(Tracker tracker, bool isChinese) =>
+        new(Texts.AppStrugglesLeft.Pick(isChinese), Math.Max(0, tracker.StrugglesLeft).ToString(CultureInfo.InvariantCulture));
 
     private static string Entry(LogEntry entry, bool isChinese)
     {

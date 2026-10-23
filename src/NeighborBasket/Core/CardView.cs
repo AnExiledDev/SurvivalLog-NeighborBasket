@@ -22,7 +22,7 @@ public static class CardView
         json.Append("\"title\":").Append(JsText.Literal(Texts.AppTitle.Pick(isChinese)));
         json.Append(",\"day\":").Append(JsText.Literal(need is { IsActive: true } ? Texts.AppDay.Say(isChinese, need.Day) : ""));
         json.Append(",\"rows\":[");
-        json.Append(string.Join(",", Rows(need, tracker, troubleName, warnHours, isChinese).Select(Row)));
+        json.Append(string.Join(",", Rows(need, tracker, troubleName, warnHours, isChinese).Select(RowJson)));
         json.Append("],\"plan\":").Append(JsText.Literal(plan == null ? "" : PlanText(plan, isChinese)));
 
         var weight = plan == null || plan.Picks.Count == 0 || freeWeight <= 0 || float.IsInfinity(freeWeight) ? 0 : plan.Picks.Sum(pick => pick.Weight);
@@ -112,6 +112,6 @@ public static class CardView
         return Texts.CardFills.Say(isChinese, plan.Picks.Count - plan.Extras, plan.Extras);
     }
 
-    private static string Row(CardRow row) =>
+    internal static string RowJson(CardRow row) =>
         "{\"label\":" + JsText.Literal(row.Label) + ",\"value\":" + JsText.Literal(row.Value) + ",\"tone\":" + JsText.Literal(row.Tone) + ",\"tier\":" + JsText.Literal(row.Tier) + "}";
 }

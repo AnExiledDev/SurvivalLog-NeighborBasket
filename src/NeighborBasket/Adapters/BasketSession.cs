@@ -100,7 +100,7 @@ internal sealed class BasketSession
                 RunGuarded("put away", () => PutAway(isChinese), isChinese);
                 break;
             case PageCommand.App:
-                RunGuarded("phone app", () => _page.App(AppView.Json(ReadLine()?.Tracker, _journal.Entries, isChinese)), isChinese);
+                RunGuarded("phone app", () => AppJson(isChinese), isChinese);
                 break;
             case PageCommand.Card:
                 ShowCard(isChinese);
@@ -183,6 +183,14 @@ internal sealed class BasketSession
             _log("the basket card failed and is off until the next start: " + ex);
             _page.Card("null");
         }
+    }
+
+    // The phone has no basket screen open, so her trouble shows under its general name.
+    private void AppJson(bool isChinese)
+    {
+        var line = ReadLine();
+
+        _page.App(AppView.Json(line?.Need, line?.Tracker, null, WarnHours, _journal.Entries, isChinese));
     }
 
     private string CardJson(bool isChinese)

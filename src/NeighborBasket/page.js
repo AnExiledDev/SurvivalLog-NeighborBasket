@@ -336,6 +336,8 @@
     '.slnb-rows{margin-bottom:10px;border-bottom:1px solid rgba(251,176,52,.25);padding-bottom:6px}',
     '.slnb-row{display:flex;justify-content:space-between;gap:10px;padding:2px 0}',
     '.slnb-row-value{color:#fbb034;text-align:right}',
+    '.slnb-row-value.is-warn{color:#FFB74D;font-weight:600}',
+    '.slnb-row-value.is-bad{color:#FF6E6E;font-weight:600}',
     '.slnb-day{margin:10px 0 4px;color:#fbb034;font-weight:600}',
     '.slnb-entry{padding:3px 0 3px 8px;border-left:2px solid rgba(251,176,52,.3);margin-bottom:4px}',
     '.slnb-entry.is-said{border-left-color:rgba(160,200,255,.45);color:#c8d8ee}',
@@ -467,7 +469,7 @@
     send('app');
   }
 
-  // The plugin's answer to 'app': the tracker rows and the log, grouped by day, newest first.
+  // The plugin's answer to 'app': her status rows and the log, grouped by day, newest first.
   function app(data) {
     phone.data = data;
 
@@ -492,8 +494,10 @@
     (data.rows || []).forEach(function (row) {
       var line = make(doc, 'div', 'slnb-row');
 
+      var value = row.tier && row.value ? row.tier + ', ' + row.value : (row.tier || row.value);
+
       line.appendChild(make(doc, 'span', 'slnb-row-label', row.label));
-      line.appendChild(make(doc, 'span', 'slnb-row-value', row.value));
+      line.appendChild(make(doc, 'span', 'slnb-row-value' + (row.tone ? ' is-' + row.tone : ''), value));
       rows.appendChild(line);
     });
     body.appendChild(rows);

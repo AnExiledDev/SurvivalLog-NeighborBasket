@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1
+
+- The Neighbor phone app shows her status at the top, the same rows as the basket card, with close deadlines in orange or red, so you can check on her without opening the basket.
+
 ## 0.3.0
 
 - New card above the basket panel: her condition and how many hours until it drops, her trouble and its deadline, the send streak and whether today is sent, progress and affinity, the satiety she needs while she struggles, and what Fill would add right now. Close deadlines show in orange or red.

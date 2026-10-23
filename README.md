@@ -12,7 +12,7 @@ Keeping a neighbour alive means opening the basket, reading her wishes, then hun
 - **Never what you locked**: items the basket refuses are skipped, and nothing goes past the basket's cells or its weight limit.
 - **Food when she is dying**: while she is struggling or dying, Fill puts in food only, the most valuable first, until the cells are full.
 - **Warnings**: a message a few hours before her condition drops a step (or before she starts to struggle), before her trouble's deadline, late in the day when today's send would keep the send streak going, and once when she starts to struggle or is dying (with how filling the basket must be). Each warning shows once.
-- **Neighbor app on the phone**: her affinity and the good ending's mark, progress, send streak and struggles left, and a log by day of what you sent, what came back, what each send gained, and her thoughts.
+- **Neighbor app on the phone**: her status, the same rows as the basket card (condition and when it drops, her trouble's deadline, send streak, progress and affinity), plus struggles left, and a log by day of what you sent, what came back, what each send gained, and her thoughts.
 - **Put away button**: with Storage Hub installed, empties the basket into your home storage while it is home.
 - **Call back button**: off by default. When it is on, a **Call back** button shows while the basket is away and brings it home at once.
 - **Both neighbours**: works for whichever neighbour you are helping.
@@ -66,7 +66,7 @@ Settings live in `BepInEx\config\com.dev.survivallog.neighborbasket.cfg`, create
 
 ## Troubleshooting
 
-Check `BepInEx\LogOutput.log` for `===== Neighbor Basket 0.3.0 started`. The same line, plus every press and what it moved or why it moved nothing, is in `BepInEx\neighbor-basket.log`, which survives restarts.
+Check `BepInEx\LogOutput.log` for `===== Neighbor Basket 0.3.1 started`. The same line, plus every press and what it moved or why it moved nothing, is in `BepInEx\neighbor-basket.log`, which survives restarts.
 
 If the Fill button does not show, open the basket from the neighbour's gift basket at home and check that `FillButton` is `true`. If Fill says nothing is at hand for a kind, nothing of that kind is in your bag or the storages at home, or all of it is locked.
 

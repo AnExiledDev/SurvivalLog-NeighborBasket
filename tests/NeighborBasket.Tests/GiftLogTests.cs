@@ -74,7 +74,7 @@ public class GiftLogTests
             new LogEntry(LogKind.Said, 2, 7, "Thank you"),
         };
 
-        var json = AppView.Json(new Tracker(12, 50, 30, 100, 2, 3, 1), entries, false);
+        var json = AppView.Json(null, new Tracker(12, 50, 30, 100, 2, 3, 1), null, 12, entries, false);
 
         Assert.True(json.IndexOf("Day 2", StringComparison.Ordinal) < json.IndexOf("Day 1", StringComparison.Ordinal));
         Assert.True(json.IndexOf("Berries", StringComparison.Ordinal) < json.IndexOf("Rope", StringComparison.Ordinal));
@@ -88,11 +88,26 @@ public class GiftLogTests
     {
         var entries = Enumerable.Range(0, AppView.MaxEntries + 5).Select(i => new LogEntry(LogKind.Said, i, 0, "line" + i + ";")).ToList();
 
-        var json = AppView.Json(null, entries, false);
+        var json = AppView.Json(null, null, null, 12, entries, false);
 
         Assert.Contains("line" + (AppView.MaxEntries + 4) + ";", json);
         Assert.DoesNotContain("\"line4;\"", json);
         Assert.Contains("\"line5;\"", json);
         Assert.Contains("Nobody to help right now.", json);
+    }
+
+    [Fact]
+    public void With_a_live_rescue_the_app_shows_her_status_rows_with_their_tone_then_the_struggles_left()
+    {
+        // Day 2, 10:00. Tier 4 over a floor of 2, dropping at hour 68 (10 h away); a trouble due at the end of day 2.
+        var need = new NeedState(true, 4, 2, 20 * 3600, 48, 0, 0, false, -1, 58 * 3600, 2, 10) with { HasCrisis = true, CrisisDeadlineDay = 2 };
+
+        var json = AppView.Json(need, new Tracker(12, 50, 30, 100, 2, 3, 1), null, 12, new List<LogEntry>(), false);
+
+        Assert.Contains("{\"label\":\"Condition\",\"value\":\"drops in 10 h\",\"tone\":\"warn\",\"tier\":\"Tier 4\"}", json);
+        Assert.Contains("\"label\":\"Trouble\"", json);
+        Assert.Contains("\"tone\":\"bad\"", json);
+        Assert.True(json.IndexOf("Condition", StringComparison.Ordinal) < json.IndexOf("Struggles left", StringComparison.Ordinal));
+        Assert.DoesNotContain("\"label\":\"Affinity\"", json);
     }
 }
