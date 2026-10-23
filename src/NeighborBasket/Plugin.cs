@@ -14,19 +14,14 @@ namespace NeighborBasket;
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.neighborbasket";
-    private const string Version = "0.3.1";
+    private const string Version = "0.4.0";
     private const string StackingGuid = "com.dev.survivallog.stacking";
 
     public override void Load()
     {
         var fillButton = Config.Bind("Basket", "FillButton", true,
-            "Shows a Fill button on the neighbor's basket. It puts one cheap item for each thing she wants in the basket (the thing her trouble needs first), from your home storage and your bag, then adds more of what she wants (see FillExtra), and never more than the basket's weight limit. While she is dying it fills the basket with food instead. With Stacking installed it moves one item from a stack; without it, it moves the whole stack that costs you least.\n" +
-            "在邻居的篮子上显示「装篮」按钮。它会从家中储物和背包里，为她想要的每一类物品各放一件便宜的进篮子（她遇到麻烦时所需的类别优先），再多放一些她想要的物品（见 FillExtra），且不会超过篮子的承重。她濒死时改为装满食物。安装了 Stacking 时每次只从一组中移出一件；没有安装时，整组移动总价值最低的一组。");
-        var fillExtra = Config.Bind("Basket", "FillExtra", 5,
-            new ConfigDescription(
-                "After one item for each thing she wants, Fill adds up to this many more of the kinds she wants, the most value for their weight first, while the basket's weight allows. Items she wants count for more progress than others. 0 puts in only one of each.\n" +
-                "为她想要的每一类各放一件之后，「装篮」最多再多放这么多件她想要的类别的物品，按单位重量价值从高到低，直到篮子承重用完。她想要的物品比其他物品带来更多进度。设为 0 则每类只放一件。",
-                new AcceptableValueRange<int>(0, 20)));
+            "Shows a Fill button in the basket station. It packs the basket from your home storage as tightly as it goes for the most progress she gives: whole stacks, placed by their shapes on the basket's grid, within its weight limit. Every kind she wants that goes in earns a bonus, so those come first, and the space left takes whatever adds the most. Your bag is never touched. While she is dying it packs food only.\n" +
+            "在篮子工作台显示「装篮」按钮。它从家中储物里把篮子尽量装满，换取她给出的最多进度：按物品形状把整组摆进篮子的格子，且不超过篮子的承重。她想要的每一类放进去都有额外奖励，所以优先放这些，剩下的空间放进度最多的物品。不会动你背包里的东西。她濒死时只装食物。");
         var putAwayButton = Config.Bind("Basket", "PutAwayButton", true,
             "Shows a Put away button on the basket while it is home, which puts what the basket holds into your home storage the way Storage Hub puts the bag away. Needs Storage Hub; without it the button does not show.\n" +
             "篮子在家时显示「收纳」按钮，把篮子里的东西收进家中储物，方式和储物中心收纳背包相同。需要储物中心模组；没有安装时不显示此按钮。");
@@ -66,15 +61,14 @@ public sealed class Plugin : BasePlugin
             session.ShowFill = fillButton.Value;
             session.ShowCallBack = callBackButton.Value;
             session.ShowPutAway = putAwayButton.Value;
-            session.FillExtra = fillExtra.Value;
             session.ShowApp = phoneApp.Value;
             session.AreWarningsOn = warningsOn.Value;
             session.WarnStreak = warnStreak.Value;
             session.WarnHours = warnHours.Value;
             session.Resetup();
-            log.Write($"settings: fill {fillButton.Value} with {fillExtra.Value} extra, put away {putAwayButton.Value} (Storage Hub {(StorageHubLink.IsAvailable ? "found" : "not found")}), call back {callBackButton.Value}, " +
+            log.Write($"settings: fill {fillButton.Value}, put away {putAwayButton.Value} (Storage Hub {(StorageHubLink.IsAvailable ? "found" : "not found")}), call back {callBackButton.Value}, " +
                       $"warnings {warningsOn.Value} at {warnHours.Value} h, streak {warnStreak.Value}, phone app {phoneApp.Value}");
-        }, fillButton, fillExtra, putAwayButton, callBackButton, warningsOn, warnStreak, warnHours, phoneApp);
+        }, fillButton, putAwayButton, callBackButton, warningsOn, warnStreak, warnHours, phoneApp);
         BasketTicker.Session = session;
         BasketTicker.Log = log.Write;
         AddComponent<BasketTicker>();

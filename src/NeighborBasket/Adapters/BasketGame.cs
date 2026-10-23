@@ -12,15 +12,17 @@ namespace NeighborBasket.Adapters;
 internal sealed record BasketScreen(long BasketId, BasketWish Wish, Dictionary<int, string> Names);
 
 /// <summary>
-/// What the player holds that could go in the basket, what is already in it, and the cells and weight left. WeightNote
-/// says why the weight could not be read (the fill then ignores weight and the game refuses what does not fit).
+/// The station's data, with the categories already in the basket. WeightNote says why the weight could not be read
+/// (the fill then ignores weight and the game refuses what does not fit).
 /// </summary>
-internal sealed record BasketStock(List<Candidate> Sources, HashSet<int> CategoriesInBasket, int FreeCells, float FreeWeight, string? WeightNote);
+internal sealed record BasketStock(StationData Station, HashSet<int> CategoriesInBasket, string? WeightNote);
 
 /// <summary>The only code that reads or moves the game's items, or calls the basket back.</summary>
 internal sealed class BasketGame
 {
-    private const int DefaultMaxCells = 5;
+    // The basket's grid by its bag config (5 x 3), for when the game cannot say.
+    private const int DefaultCols = 5;
+    private const int DefaultRows = 3;
 
     /// <summary>The bag screen while it shows the neighbor's basket on its right side; null otherwise.</summary>
     public BasketScreen? OpenBasket()
@@ -42,7 +44,10 @@ internal sealed class BasketGame
         return new BasketScreen(screen.OwnerId_B, wish, names);
     }
 
-    /// <summary>Every stack in home storage and in the player's bag, with the basket's own contents and free cells.</summary>
+    /// <summary>
+    /// Every stack in the player's bag and in home storage, the basket's own contents with their cells, its grid and
+    /// weight, and each place by name: the bag first, then each storage. Values follow the game's own send scoring.
+    /// </summary>
     public BasketStock? ReadStock(long basketId)
     {
         var world = GameSingleton.Existing<BattleLogicWorld>();
@@ -52,13 +57,29 @@ internal sealed class BasketGame
 
         if (agents == null || items == null || config == null) return null;
 
-        var weigh = true;
         string? weightNote = null;
-        var freeWeight = float.PositiveInfinity;
+        var maxWeight = 0f;
+        var usedWeight = 0f;
+        var cols = DefaultCols;
+        var rows = DefaultRows;
+        var weigh = true;
 
         try
         {
-            freeWeight = FreeWeight(items, basketId);
+            if (items.TryGetTargetBagConfig(basketId, out var size, out var max, out var checkBurden))
+            {
+                if (size.x > 0 && size.y > 0)
+                {
+                    cols = size.x;
+                    rows = size.y;
+                }
+
+                if (checkBurden && max > 0)
+                {
+                    maxWeight = max;
+                    usedWeight = items.GetBagCurrentWeight(basketId);
+                }
+            }
         }
         catch (Exception ex)
         {
@@ -66,29 +87,35 @@ internal sealed class BasketGame
             weightNote = ex.Message;
         }
 
-        var sources = new List<Candidate>();
-        var owners = new List<long>();
+        var places = new List<Place>();
+        var sources = new List<StationItem>();
+        var bagId = 0L;
 
-        if (agents.GetLeadingRole() is { } player) owners.Add(player.InstanceId);
-
-        foreach (var furniture in HomeFurnitures(agents)) owners.Add(furniture.InstanceId);
-
-        foreach (var ownerId in owners)
+        if (agents.GetLeadingRole() is { } player)
         {
-            foreach (var item in Held(items, ownerId)) sources.Add(CandidateOf(config, item, ownerId, weigh ? items.GetItemActualWeight(item) : 0));
+            bagId = player.InstanceId;
+            places.Add(new Place(bagId, ""));
         }
 
-        var inBasket = new HashSet<int>();
-        var used = 0;
+        foreach (var furniture in HomeFurnitures(agents)) places.Add(new Place(furniture.InstanceId, FurnitureName(config, furniture)));
+
+        foreach (var place in places)
+        {
+            foreach (var item in Held(items, place.Id)) sources.Add(StationItemOf(config, items, item, place.Id, weigh));
+        }
+
+        var inBasket = new List<StationItem>();
+        var categories = new HashSet<int>();
 
         foreach (var item in Held(items, basketId))
         {
-            used++;
+            var station = StationItemOf(config, items, item, basketId, weigh);
 
-            if (config.Get_Config_Item(item.ItemConfigId) is { } row) inBasket.Add(row.Category);
+            inBasket.Add(station);
+            categories.Add(station.Category);
         }
 
-        return new BasketStock(sources, inBasket, MaxCells(config) - used, freeWeight, weightNote);
+        return new BasketStock(new StationData(cols, rows, maxWeight, usedWeight, inBasket, sources, places, bagId), categories, weightNote);
     }
 
     /// <summary>The satiety the game's rescue rule counts for what the basket holds now; null with no rescue going.</summary>
@@ -136,21 +163,50 @@ internal sealed class BasketGame
     }
 
     /// <summary>
-    /// Puts a pick in the basket with the game's own quick-move, which also redraws both bags. One unit needs
-    /// Stacking; when it skips a single item the whole (one-item) stack moves instead.
+    /// Puts a planned stack in the basket at its planned cell, with the same move the game makes when the player drags
+    /// an item there. The game runs it a moment later and checks room and weight itself, so the caller looks again
+    /// afterwards to see what went in.
     /// </summary>
-    public bool Move(Pick pick, long basketId)
+    public static void PlaceAt(Pick pick, long basketId) => Ac_Item_ChangePos.SendAction(pick.Item.ItemId, pick.Item.OwnerId, basketId, new UnityEngine.Vector2Int(pick.X, pick.Y));
+
+    /// <summary>The ids of the stacks the basket holds now.</summary>
+    public HashSet<long> BasketItemIds(long basketId)
     {
+        var ids = new HashSet<long>();
         var items = GameSingleton.Existing<BattleLogicWorld>()?._ItemManager;
 
-        if (items == null) return false;
+        if (items == null) return ids;
 
-        if (pick.IsOneUnit && pick.Item.Count > 1)
-        {
-            return StackingUnits.MoveOne(pick.Item.ItemId, pick.Item.OwnerId, basketId) == true;
-        }
+        foreach (var item in Held(items, basketId)) ids.Add(item.InstanceId);
 
-        return items.TryQuickMoveItem(pick.Item.ItemId, pick.Item.OwnerId, basketId, true, false);
+        return ids;
+    }
+
+    /// <summary>
+    /// Moves one item of a stack, or the whole stack, between two bags with the game's own quick-move, which finds the
+    /// free cells and redraws both bags. One item needs Stacking; without it the whole stack moves.
+    /// </summary>
+    public bool Move(long itemId, long fromOwnerId, long toOwnerId, bool isWholeStack)
+    {
+        var items = GameSingleton.Existing<BattleLogicWorld>()?._ItemManager;
+        var item = items?.GetItemData(itemId);
+
+        if (items == null || item == null || item.OwnerId != fromOwnerId) return false;
+
+        if (!isWholeStack && item.ItemCount > 1 && StackingUnits.MoveOne(itemId, fromOwnerId, toOwnerId) is { } moved) return moved;
+
+        return items.TryQuickMoveItem(itemId, fromOwnerId, toOwnerId, true, false);
+    }
+
+    /// <summary>The owner, config and name of a stack, by its id; null when it is gone.</summary>
+    public (long OwnerId, int ConfigId, string Name)? Find(long itemId)
+    {
+        var item = GameSingleton.Existing<BattleLogicWorld>()?._ItemManager?.GetItemData(itemId);
+        var config = GameSingleton.Existing<ConfigManager>();
+
+        if (item == null || config == null || item.ItemCount <= 0) return null;
+
+        return (item.OwnerId, item.ItemConfigId, ItemName(config, item.ItemConfigId));
     }
 
     /// <summary>Whether the basket is out with her now, by the game's own return schedule.</summary>
@@ -168,22 +224,28 @@ internal sealed class BasketGame
         return true;
     }
 
-    private static Candidate CandidateOf(ConfigManager config, ItemData item, long ownerId, int weight)
+    /// <summary>
+    /// A stack as the station and the fill see it. Its value is what the game counts when she scores the basket: count
+    /// times trade value times the uses it still has, with fuel scaled the way the neighbor rule scales it.
+    /// </summary>
+    private static StationItem StationItemOf(ConfigManager config, ItemManager items, ItemData item, long ownerId, bool weigh)
     {
         var row = config.Get_Config_Item(item.ItemConfigId);
+        var category = row?.Category ?? 0;
+        var value = 0;
 
-        return new Candidate(item.InstanceId, ownerId, item.ItemConfigId, row?.Category ?? 0, row?.TradeValue ?? 0, item.ItemCount, NeighborRules.IsBasketForbidItem(item.ItemConfigId), Math.Max(0, weight));
-    }
+        if (row != null)
+        {
+            var raw = item.ItemCount * row.TradeValue * ItemValueDisplayHelper.GetEffectiveTradeUses(item, row);
 
-    /// <summary>
-    /// The weight the basket still takes, by the same numbers the game's quick-move checks: its max weight less what it
-    /// holds. Infinite when the game does not weigh the basket.
-    /// </summary>
-    private static float FreeWeight(ItemManager items, long basketId)
-    {
-        if (!items.TryGetTargetBagConfig(basketId, out _, out var maxWeight, out var checkBurden) || !checkBurden) return float.PositiveInfinity;
+            value = NeighborRules.ApplyFuelValueScale(category, (int)Math.Round(raw));
+        }
 
-        return Math.Max(0f, maxWeight - items.GetBagCurrentWeight(basketId));
+        var size = item.ItemSize;
+        var pos = item.BagPos;
+
+        return new StationItem(item.InstanceId, ownerId, item.ItemConfigId, ItemName(config, item.ItemConfigId), row?.WebIcon ?? "", category, Math.Max(0, value), item.ItemCount,
+            weigh ? Math.Max(0, items.GetItemActualWeight(item)) : 0, Math.Max(1, size.x), Math.Max(1, size.y), NeighborRules.IsBasketForbidItem(item.ItemConfigId), pos.x, pos.y);
     }
 
     private static string ItemName(ConfigManager config, int configId)
@@ -201,8 +263,15 @@ internal sealed class BasketGame
         return string.IsNullOrEmpty(key) ? "#" + configId : key!;
     }
 
-    /// <summary>The game's own cell count for the basket, as its bag screen reads it.</summary>
-    private static int MaxCells(ConfigManager config) => config.Get_Config_GlobalSetting("Neighbor_BasketMaxItems")?.Params1 is { } cells && cells > 0 ? cells : DefaultMaxCells;
+    private static string FurnitureName(ConfigManager config, Furniture furniture)
+    {
+        var key = config.Get_Config_Furniture(furniture.AgentConfigId)?.Name;
+        var text = string.IsNullOrEmpty(key) ? null : config.GetLocalTxt(key);
+
+        if (!string.IsNullOrEmpty(text) && text != key) return text!;
+
+        return string.IsNullOrWhiteSpace(key) ? "#" + furniture.InstanceId : key!;
+    }
 
     /// <summary>Home furniture with a bag that counts as the player's storage, without the basket itself.</summary>
     private static List<Furniture> HomeFurnitures(AgentManager agents)

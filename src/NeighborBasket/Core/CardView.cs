@@ -7,33 +7,13 @@ using System.Text;
 namespace NeighborBasket.Core;
 
 /// <summary>
-/// Builds the data for the card above the basket panel: her condition and when it next drops, her trouble's deadline,
-/// the send streak, the rescue's progress, the satiety a struggle needs, and what Fill would add right now. A row's
+/// Her status rows for the basket station and the phone: her condition and when it next drops, her trouble's deadline,
+/// the send streak, the rescue's progress and the satiety a struggle needs, plus what Fill would add right now. A row's
 /// tone is "warn" when its deadline is within the warning hours and "bad" when she is struggling, dying, or her trouble
-/// is that close; the page colours them. Weight goes out in the game's units with the free weight beside it, so the
-/// page can turn it into the kg the basket panel shows.
+/// is that close; the page colours them.
 /// </summary>
 public static class CardView
 {
-    public static string Json(NeedState? need, Tracker? tracker, string? troubleName, FillResult? plan, float freeWeight, int warnHours, bool isChinese)
-    {
-        var json = new StringBuilder("{");
-
-        json.Append("\"title\":").Append(JsText.Literal(Texts.AppTitle.Pick(isChinese)));
-        json.Append(",\"day\":").Append(JsText.Literal(need is { IsActive: true } ? Texts.AppDay.Say(isChinese, need.Day) : ""));
-        json.Append(",\"rows\":[");
-        json.Append(string.Join(",", Rows(need, tracker, troubleName, warnHours, isChinese).Select(RowJson)));
-        json.Append("],\"plan\":").Append(JsText.Literal(plan == null ? "" : PlanText(plan, isChinese)));
-
-        var weight = plan == null || plan.Picks.Count == 0 || freeWeight <= 0 || float.IsInfinity(freeWeight) ? 0 : plan.Picks.Sum(pick => pick.Weight);
-
-        json.Append(",\"weight\":").Append(weight.ToString(CultureInfo.InvariantCulture));
-        json.Append(",\"free\":").Append((weight > 0 ? freeWeight : 0).ToString("0.###", CultureInfo.InvariantCulture));
-        json.Append(",\"weightText\":").Append(JsText.Literal(Texts.CardWeight.Pick(isChinese)));
-
-        return json.Append('}').ToString();
-    }
-
     /// <summary>One card row; Tier is set on the condition row so the page can show the game's own name for the tier.</summary>
     public sealed record CardRow(string Label, string Value, string Tone = "", string Tier = "");
 
@@ -93,7 +73,7 @@ public static class CardView
         return new CardRow(label, value, hours <= warnHours ? "warn" : "", tier);
     }
 
-    /// <summary>What a Fill press would do now: how many wished and extra items, or why it would add nothing.</summary>
+    /// <summary>What a Fill press would do now: how many stacks and the progress they add, or why it would add nothing.</summary>
     public static string PlanText(FillResult plan, bool isChinese)
     {
         switch (plan.Stop)
@@ -102,14 +82,13 @@ public static class CardView
             case FillStop.Away: return Texts.Away.Pick(isChinese);
             case FillStop.Pending: return Texts.Pending.Pick(isChinese);
             case FillStop.Full: return Texts.Full.Pick(isChinese);
-            case FillStop.AllThere: return Texts.AllThere.Pick(isChinese);
         }
 
         if (plan.Picks.Count == 0) return Texts.CardFillsNothing.Pick(isChinese);
 
         if (plan.IsFoodOnly) return Texts.CardFillsFood.Say(isChinese, plan.Picks.Count);
 
-        return Texts.CardFills.Say(isChinese, plan.Picks.Count - plan.Extras, plan.Extras);
+        return Texts.CardFills.Say(isChinese, plan.Picks.Count, plan.Gain);
     }
 
     internal static string RowJson(CardRow row) =>

@@ -20,18 +20,18 @@ public static class Texts
     public static readonly Phrase FillButton = new("Fill", "装篮");
 
     public static readonly Phrase FillTitle = new(
-        "Put one cheap item for each thing she wants in the basket, from your home storage and your bag, then more of what she wants while the weight allows",
-        "从家中储物和背包里，为她想要的每一类物品各放一件便宜的进篮子，再在承重允许时多放一些她想要的");
+        "Pack the basket from your home storage as tightly as it goes, for the most progress she gives",
+        "从家中储物里把篮子尽量装满，换取最多的进度");
 
     public static readonly Phrase CallBackButton = new("Call back", "召回");
 
     public static readonly Phrase CallBackTitle = new("Bring the basket home now", "让篮子现在就回来");
 
-    public static readonly Phrase Filled = new("Put {0} in the basket for: {1}.", "已放入 {0} 件，对应：{1}。");
+    public static readonly Phrase Filled = new("Put {0} in the basket, about +{1} progress.", "已放入 {0} 组，约 +{1} 进度。");
 
     public static readonly Phrase FilledFood = new("Put {0} food in the basket.", "已放入 {0} 件食物。");
 
-    public static readonly Phrase NoneFound = new("Nothing at home or in your bag for: {0}.", "家中和背包里没有：{0}。");
+    public static readonly Phrase NoneFound = new("Nothing in home storage for: {0}.", "家中储物里没有：{0}。");
 
     public static readonly Phrase NotMoved = new("{0} could not be moved.", "{0} 件无法放入。");
 
@@ -42,8 +42,6 @@ public static class Texts
     public static readonly Phrase Pending = new("She has not said what she wants yet.", "她还没说想要什么。");
 
     public static readonly Phrase Full = new("The basket is full.", "篮子已经满了。");
-
-    public static readonly Phrase AllThere = new("The basket already has everything she wants.", "她想要的都已经在篮子里了。");
 
     public static readonly Phrase NotOpen = new("Open the basket first.", "请先打开篮子。");
 
@@ -72,8 +70,6 @@ public static class Texts
         "今天送出篮子才能保住连续赠送（{0}/{1} 天）。今天还剩约 {2} 小时。");
 
     public static readonly Phrase BasketSatiety = new("The basket holds {0} satiety; she needs at least {1}.", "篮子里共有 {0} 饱腹，她至少需要 {1}。");
-
-    public static readonly Phrase TooHeavy = new("Too heavy for the weight left: {0}.", "剩余承重放不下：{0}。");
 
     public static readonly Phrase PutAwayButton = new("Put away", "收纳");
 
@@ -143,21 +139,73 @@ public static class Texts
 
     public static readonly Phrase CardProgressValue = new("{0} / {1}, affinity {2} (good ending at {3})", "{0} / {1}，好感 {2}（达到 {3} 为好结局）");
 
-    public static readonly Phrase CardFills = new("Fill adds {0} wished + {1} extra", "装篮会放入 {0} 件想要的和 {1} 件额外的");
+    public static readonly Phrase CardFills = new("Fill adds {0} stacks from storage, about +{1} progress.", "装篮会从储物放入 {0} 组，约 +{1} 进度。");
 
-    public static readonly Phrase CardFillsFood = new("Fill adds {0} food", "装篮会放入 {0} 件食物");
+    public static readonly Phrase CardFillsFood = new("Fill adds {0} food from storage.", "装篮会从储物放入 {0} 组食物。");
 
     public static readonly Phrase CardFillsNothing = new("Fill finds nothing at hand to add.", "装篮在手边找不到可放的东西。");
 
-    public static readonly Phrase CardWeight = new(", {0} kg", "，{0} 千克");
+    public static readonly Phrase StationButton = new("Basket station", "篮子工作台");
+
+    public static readonly Phrase GameScreen = new("Game screen", "游戏界面");
+
+    public static readonly Phrase TakeFrom = new("Take from", "取自");
+
+    public static readonly Phrase TakeFromSub = new("your home storage and your bag", "家中储物和背包");
+
+    public static readonly Phrase AllStorage = new("All storage", "全部储物");
+
+    public static readonly Phrase StorageGroup = new("Storage", "储物");
+
+    public static readonly Phrase OnYou = new("On you", "随身");
+
+    public static readonly Phrase YourBag = new("Bag", "背包");
+
+    public static readonly Phrase SheWants = new("She wants", "她想要");
+
+    public static readonly Phrase Everything = new("Everything", "全部");
+
+    public static readonly Phrase Search = new("Search items", "搜索物品");
+
+    public static readonly Phrase WantedTag = new("WANTED", "想要");
+
+    public static readonly Phrase NothingHere = new("Nothing here.", "这里没有东西。");
+
+    public static readonly Phrase NothingWanted = new("Nothing here she wants. Try Everything.", "这里没有她想要的，试试「全部」。");
+
+    public static readonly Phrase AddHint = new("Click puts one in the basket. Shift-click puts the whole stack.", "单击放入一件，按住 Shift 单击放入整组。");
+
+    public static readonly Phrase BasketTitle = new("Basket", "篮子");
+
+    public static readonly Phrase Cells = new("{0} / {1} cells", "{0} / {1} 格");
+
+    public static readonly Phrase TakeHint = new("Click an item in the basket to take it back.", "单击篮子里的物品可以取回。");
+
+    public static readonly Phrase WeightLabel = new("Weight", "重量");
+
+    public static readonly Phrase KgFree = new("{0} kg free", "剩余 {0} 千克");
+
+    public static readonly Phrase IfSent = new("+{0} if sent now", "现在送出 +{0}");
+
+    public static readonly Phrase SendButton = new("Send basket", "送出篮子");
+
+    public static readonly Phrase NextDoor = new("Next door", "隔壁");
+
+    public static readonly Phrase CannotTake = new("She can't take this.", "她不收这个。");
+
+    public static readonly Phrase AddFailed = new("{0} does not fit in the basket.", "{0} 放不进篮子。");
+
+    public static readonly Phrase TakeFailed = new("{0} could not be taken back.", "{0} 无法取回。");
 
     public static IReadOnlyList<Phrase> All { get; } = new[]
     {
-        Source, FillButton, FillTitle, CallBackButton, CallBackTitle, Filled, FilledFood, NoneFound, NotMoved, NoNeighbor, Away, Pending, Full, AllThere, NotOpen, Food, CalledBack, NotAway, Failed,
-        TierDrop, StruggleSoon, CrisisDeadline, Struggle, StruggleNeed, Streak, BasketSatiety, TooHeavy, PutAwayButton, PutAwayTitle, NoStorageHub, Dying,
+        Source, FillButton, FillTitle, CallBackButton, CallBackTitle, Filled, FilledFood, NoneFound, NotMoved, NoNeighbor, Away, Pending, Full, NotOpen, Food, CalledBack, NotAway, Failed,
+        TierDrop, StruggleSoon, CrisisDeadline, Struggle, StruggleNeed, Streak, BasketSatiety, PutAwayButton, PutAwayTitle, NoStorageHub, Dying,
         AppTile, AppTitle, AppBack, AppEmpty, AppNoRescue, AppAffinity, AppAffinityValue, AppProgress, AppStreak, AppStrugglesLeft, AppDay, AppSent, AppReturned, AppSaid, AppGained, AppNothing,
         CardCondition, CardTier, CardDrops, CardStruggleIn, CardStruggling, CardDying, CardSatiety, CardSatietyValue, CardTrouble, CardTroubleOf, CardDue, CardStreakToday, CardStreakSent,
-        CardProgressValue, CardFills, CardFillsFood, CardFillsNothing, CardWeight,
+        CardProgressValue, CardFills, CardFillsFood, CardFillsNothing,
+        StationButton, GameScreen, TakeFrom, TakeFromSub, AllStorage, StorageGroup, OnYou, YourBag, SheWants, Everything, Search, WantedTag, NothingHere, NothingWanted, AddHint,
+        BasketTitle, Cells, TakeHint, WeightLabel, KgFree, IfSent, SendButton, NextDoor, CannotTake, AddFailed, TakeFailed,
     };
 
     public static string Warn(Warning warning, bool isChinese) => warning.Kind switch
@@ -173,7 +221,7 @@ public static class Texts
 
     /// <summary>
     /// The toast after a Fill press. Category names come from the game's wish list; a category it did not name is
-    /// shown as its number. <paramref name="failed"/> counts picks the game refused to move.
+    /// shown as its number. <paramref name="failed"/> counts picks the game refused to move; the progress shown is the plan's, so a refused pick still counts in it.
     /// </summary>
     public static string Outcome(FillResult result, int failed, IReadOnlyDictionary<int, string> names, bool isChinese)
     {
@@ -183,7 +231,6 @@ public static class Texts
             case FillStop.Away: return Away.Pick(isChinese);
             case FillStop.Pending: return Pending.Pick(isChinese);
             case FillStop.Full: return Full.Pick(isChinese);
-            case FillStop.AllThere: return AllThere.Pick(isChinese);
         }
 
         var parts = new List<string>();
@@ -193,14 +240,12 @@ public static class Texts
         {
             parts.Add(result.IsFoodOnly
                 ? FilledFood.Say(isChinese, moved)
-                : Filled.Say(isChinese, moved, Join(result.Picks.Select(pick => pick.Item.Category).Distinct(), names, isChinese)));
+                : Filled.Say(isChinese, moved, result.Gain));
         }
 
         if (failed > 0) parts.Add(NotMoved.Say(isChinese, failed));
 
         if (result.Missing.Count > 0) parts.Add(NoneFound.Say(isChinese, result.IsFoodOnly ? Food.Pick(isChinese) : Join(result.Missing, names, isChinese)));
-
-        if (result.TooHeavy > 0) parts.Add(TooHeavy.Say(isChinese, result.TooHeavy));
 
         return parts.Count == 0 ? Full.Pick(isChinese) : string.Join(" ", parts);
     }

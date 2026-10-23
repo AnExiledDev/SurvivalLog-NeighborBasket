@@ -12,6 +12,10 @@ internal sealed class BasketSession
 {
     private const float WarningCheckSeconds = 5f;
     private const float GiftPollSeconds = 1f;
+    // The game runs a placing move a moment after it is sent, so the fill looks at the basket again after this long.
+    private const float FillCheckSeconds = 0.6f;
+    // The station asks about once a second; the same answer goes out again only after this long.
+    private const float StationResendSeconds = 5f;
 
     private readonly BasketGame _game;
     private readonly GiftJournal _journal;
@@ -25,7 +29,17 @@ internal sealed class BasketSession
     private bool _hasWarningsFailed;
     private bool _hasGiftLogFailed;
     private bool _hasReportedWeight;
-    private bool _hasCardFailed;
+    private bool _hasStationFailed;
+    private PendingFill? _pendingFill;
+    private string? _lastStation;
+    private float _lastStationAt;
+    private string? _planKey;
+    private FillResult? _planCache;
+    // Where each stack the station put in the basket came from, by item id and by item kind, so Take puts it back there.
+    private readonly Dictionary<long, long> _originById = new();
+    private readonly Dictionary<int, long> _originByConfig = new();
+
+    private sealed record PendingFill(long BasketId, FillResult Plan, Dictionary<int, string> Names, bool IsChinese, float CheckAt);
 
     public BasketSession(BasketGame game, GiftJournal journal, WebPage page, Toasts toasts, Action<string> log)
     {
@@ -43,8 +57,6 @@ internal sealed class BasketSession
     public bool ShowPutAway { get; set; } = true;
 
     public bool ShowApp { get; set; } = true;
-
-    public int FillExtra { get; set; } = 5;
 
     public bool AreWarningsOn { get; set; } = true;
 
@@ -69,6 +81,12 @@ internal sealed class BasketSession
         }
 
         while (PageMessages.TryTake(out var command)) Handle(command, isChinese);
+
+        if (_pendingFill is { } pending && now >= pending.CheckAt)
+        {
+            _pendingFill = null;
+            RunGuarded("fill check", () => FinishFill(pending), isChinese);
+        }
 
         if (now >= _nextWarningCheckAt)
         {
@@ -102,8 +120,14 @@ internal sealed class BasketSession
             case PageCommand.App:
                 RunGuarded("phone app", () => AppJson(isChinese), isChinese);
                 break;
-            case PageCommand.Card:
-                ShowCard(isChinese);
+            case PageCommand.Station:
+                ShowStation(isChinese);
+                break;
+            case PageCommand.Add add:
+                RunGuarded("add", () => Add(add, isChinese), isChinese);
+                break;
+            case PageCommand.Take take:
+                RunGuarded("take", () => Take(take, isChinese), isChinese);
                 break;
             case PageCommand.Ready:
                 _log("page script ready");
@@ -118,8 +142,14 @@ internal sealed class BasketSession
         }
     }
 
+    /// <summary>
+    /// Plans the tightest, most valuable basket from home storage and sends each stack to its planned cell. The game
+    /// runs the moves a moment later, so the outcome toast waits for FinishFill.
+    /// </summary>
     private void Fill(bool isChinese)
     {
+        if (_pendingFill != null) return;
+
         var screen = _game.OpenBasket();
 
         if (screen == null)
@@ -129,7 +159,7 @@ internal sealed class BasketSession
             return;
         }
 
-        var stock = _game.ReadStock(screen.BasketId);
+        var stock = ReadStock(screen.BasketId);
 
         if (stock == null)
         {
@@ -138,50 +168,170 @@ internal sealed class BasketSession
             return;
         }
 
-        if (stock.WeightNote != null && !_hasReportedWeight)
+        var plan = Plan(screen, stock);
+
+        foreach (var pick in plan.Picks) BasketGame.PlaceAt(pick, screen.BasketId);
+
+        _log($"fill: wish [{string.Join(",", screen.Wish.Categories)}] crisis {screen.Wish.CrisisCategory?.ToString() ?? "-"} dying {screen.Wish.IsDying}, " +
+             $"{stock.Station.Sources.Count} stacks at hand, basket {stock.Station.Cols}x{stock.Station.Rows} holding {stock.Station.InBasket.Count}, weight {stock.Station.UsedWeight}/{stock.Station.MaxWeight}, " +
+             $"picked {string.Join(",", plan.Picks.Select(pick => $"{pick.Item.ConfigId}x{pick.Item.Count}@{pick.X},{pick.Y}w{pick.Weight}v{pick.Item.Value}"))}, " +
+             $"missing [{string.Join(",", plan.Missing)}], gain {plan.Gain}, stop {plan.Stop}");
+
+        if (plan.Picks.Count == 0)
+        {
+            _toasts.Show(Texts.Outcome(plan, 0, Names(screen, isChinese), isChinese), true, isChinese);
+
+            return;
+        }
+
+        foreach (var pick in plan.Picks) Remember(pick.Item.ItemId, pick.Item.ConfigId, pick.Item.OwnerId);
+
+        _pendingFill = new PendingFill(screen.BasketId, plan, Names(screen, isChinese), isChinese, Time.unscaledTime + FillCheckSeconds);
+        _lastStation = null;
+    }
+
+    /// <summary>Counts the planned stacks that reached the basket and says how the fill went.</summary>
+    private void FinishFill(PendingFill pending)
+    {
+        var held = _game.BasketItemIds(pending.BasketId);
+        var failed = pending.Plan.Picks.Count(pick => !held.Contains(pick.Item.ItemId));
+        var text = Texts.Outcome(pending.Plan, failed, pending.Names, pending.IsChinese);
+
+        if (failed > 0) _log($"fill: {failed} of {pending.Plan.Picks.Count} planned stacks did not reach the basket");
+
+        if (StruggleNeed() is { } need && _game.BasketSatiety(pending.BasketId) is { } satiety) text += " " + Texts.BasketSatiety.Say(pending.IsChinese, (int)Math.Floor(satiety), need);
+
+        _toasts.Show(text, failed > 0, pending.IsChinese);
+        _lastStation = null;
+    }
+
+    /// <summary>One item of a stack, or all of it, from wherever it sits into the basket.</summary>
+    private void Add(PageCommand.Add add, bool isChinese)
+    {
+        var screen = _game.OpenBasket();
+
+        if (screen == null || screen.Wish.IsAway)
+        {
+            _toasts.Show((screen == null ? Texts.NotOpen : Texts.Away).Pick(isChinese), true, isChinese);
+
+            return;
+        }
+
+        if (_game.Find(add.ItemId) is not { } item || item.OwnerId == screen.BasketId) return;
+
+        if (GameCore.HotUpdate.NeighborRules.IsBasketForbidItem(item.ConfigId))
+        {
+            _toasts.Show(Texts.CannotTake.Pick(isChinese), true, isChinese);
+
+            return;
+        }
+
+        var isMoved = _game.Move(add.ItemId, item.OwnerId, screen.BasketId, add.IsWholeStack);
+
+        _log($"add {item.ConfigId} ({(add.IsWholeStack ? "stack" : "one")}) from {item.OwnerId}: {(isMoved ? "moved" : "refused")}");
+
+        if (isMoved) Remember(add.ItemId, item.ConfigId, item.OwnerId);
+        else _toasts.Show(Texts.AddFailed.Say(isChinese, item.Name), true, isChinese);
+
+        _lastStation = null;
+    }
+
+    /// <summary>A stack from the basket back where the station took it from, or to the bag when that is unknown or full.</summary>
+    private void Take(PageCommand.Take take, bool isChinese)
+    {
+        var screen = _game.OpenBasket();
+
+        if (screen == null || _game.Find(take.ItemId) is not { } item || item.OwnerId != screen.BasketId) return;
+
+        var bagId = ReadStock(screen.BasketId)?.Station.BagId ?? 0;
+        var origin = _originById.TryGetValue(take.ItemId, out var byId) ? byId : _originByConfig.TryGetValue(item.ConfigId, out var byConfig) ? byConfig : bagId;
+        var isMoved = origin != 0 && _game.Move(take.ItemId, screen.BasketId, origin, true);
+
+        if (!isMoved && bagId != 0 && origin != bagId) isMoved = _game.Move(take.ItemId, screen.BasketId, bagId, true);
+
+        _log($"take {item.ConfigId} back to {origin}: {(isMoved ? "moved" : "refused")}");
+
+        if (isMoved) _originById.Remove(take.ItemId);
+        else _toasts.Show(Texts.TakeFailed.Say(isChinese, item.Name), true, isChinese);
+
+        _lastStation = null;
+    }
+
+    private void Remember(long itemId, int configId, long ownerId)
+    {
+        _originById[itemId] = ownerId;
+        _originByConfig[configId] = ownerId;
+    }
+
+    private BasketStock? ReadStock(long basketId)
+    {
+        var stock = _game.ReadStock(basketId);
+
+        if (stock?.WeightNote != null && !_hasReportedWeight)
         {
             _hasReportedWeight = true;
             _log("reading the basket's weight failed, fill ignores weight and the game refuses what does not fit (reported once): " + stock.WeightNote);
         }
 
-        var room = new Room(stock.FreeCells, stock.FreeWeight, FillExtra);
-        var plan = FillPlan.Plan(screen.Wish, stock.Sources, stock.CategoriesInBasket, room, StackingUnits.IsAvailable);
-        var failed = plan.Picks.Count(pick => !_game.Move(pick, screen.BasketId));
+        return stock;
+    }
 
-        _log($"fill: wish [{string.Join(",", screen.Wish.Categories)}] crisis {screen.Wish.CrisisCategory?.ToString() ?? "-"} dying {screen.Wish.IsDying}, " +
-             $"{stock.Sources.Count} stacks at hand, {stock.FreeCells} cells and {stock.FreeWeight} weight free, extras {FillExtra}, " +
-             $"picked {string.Join(",", plan.Picks.Select(pick => $"{pick.Item.ConfigId}x{(pick.IsOneUnit ? 1 : pick.Item.Count)}w{pick.Weight}"))}, " +
-             $"missing [{string.Join(",", plan.Missing)}], too heavy {plan.TooHeavy}, stop {plan.Stop}, failed {failed}");
+    /// <summary>
+    /// The fill plan from home storage only, so the bag is never emptied without a click. The station asks about once
+    /// a second, so a plan is kept until what is at hand, the basket or her wish changes.
+    /// </summary>
+    private FillResult Plan(BasketScreen screen, BasketStock stock)
+    {
+        var station = stock.Station;
+        var sources = station.Sources.Where(item => item.OwnerId != station.BagId).ToList();
+        var key = string.Join(";",
+            screen.Wish.IsActive, screen.Wish.IsAway, screen.Wish.IsDying, screen.Wish.IsPending, screen.Wish.CrisisCategory, string.Join(",", screen.Wish.Categories), station.MaxWeight, station.UsedWeight,
+            string.Join(",", station.InBasket.Select(item => $"{item.Id}:{item.X}:{item.Y}:{item.Width}:{item.Height}:{item.Category}")),
+            string.Join(",", sources.Select(item => $"{item.Id}:{item.OwnerId}:{item.Count}:{item.Value}:{item.Weight}")));
 
+        if (key == _planKey && _planCache != null) return _planCache;
+
+        var plan = FillPlan.Plan(screen.Wish, sources.Select(item => item.ToCandidate()).ToList(), station.ToBasket(screen.Wish, stock.CategoriesInBasket), Rates.Game);
+
+        _planKey = key;
+        _planCache = plan;
+
+        return plan;
+    }
+
+    private static Dictionary<int, string> Names(BasketScreen screen, bool isChinese)
+    {
         var names = new Dictionary<int, string>(screen.Names);
 
         if (!names.ContainsKey(FillPlan.FoodCategory)) names[FillPlan.FoodCategory] = Texts.Food.Pick(isChinese);
 
-        var text = Texts.Outcome(plan, failed, names, isChinese);
-
-        if (StruggleNeed() is { } need && _game.BasketSatiety(screen.BasketId) is { } satiety) text += " " + Texts.BasketSatiety.Say(isChinese, (int)Math.Floor(satiety), need);
-
-        _toasts.Show(text, failed > 0 || plan.Picks.Count == 0, isChinese);
+        return names;
     }
 
     /// <summary>
-    /// Answers the card's once-a-second ask. Reads her line and, with the basket home and Fill on, plans a fill without
-    /// moving anything, so the card says what a press would add. A failure turns the card off quietly (it asks every
-    /// second, so a toast each time would bury the screen) and is logged once.
+    /// Answers the station's once-a-second ask with everything it draws. A failure turns the station off quietly (it
+    /// asks every second, so a toast each time would bury the screen) and is logged once; the game's own screen stays.
     /// </summary>
-    private void ShowCard(bool isChinese)
+    private void ShowStation(bool isChinese)
     {
-        if (_hasCardFailed) return;
+        if (_hasStationFailed) return;
 
         try
         {
-            _page.Card(CardJson(isChinese));
+            var json = StationJson(isChinese);
+            var now = Time.unscaledTime;
+
+            if (json == _lastStation && now - _lastStationAt < StationResendSeconds) return;
+
+            _lastStation = json;
+            _lastStationAt = now;
+            _page.Station(json);
         }
         catch (Exception ex)
         {
-            _hasCardFailed = true;
-            _log("the basket card failed and is off until the next start: " + ex);
-            _page.Card("null");
+            _hasStationFailed = true;
+            _log("the basket station failed and is off until the next start: " + ex);
+            _page.Station("null");
         }
     }
 
@@ -193,26 +343,24 @@ internal sealed class BasketSession
         _page.App(AppView.Json(line?.Need, line?.Tracker, null, WarnHours, _journal.Entries, isChinese));
     }
 
-    private string CardJson(bool isChinese)
+    private string StationJson(bool isChinese)
     {
-        var line = ReadLine();
         var screen = _game.OpenBasket();
-        FillResult? plan = null;
-        var freeWeight = 0f;
+
+        if (screen == null) return "null";
+
+        var stock = ReadStock(screen.BasketId);
+
+        if (stock == null) return "null";
+
+        var line = ReadLine();
         string? troubleName = null;
 
-        if (screen != null)
-        {
-            if (screen.Wish.CrisisCategory is { } crisis && screen.Names.TryGetValue(crisis, out var name)) troubleName = name;
+        if (screen.Wish.CrisisCategory is { } crisis && screen.Names.TryGetValue(crisis, out var name)) troubleName = name;
 
-            if (ShowFill && !screen.Wish.IsAway && _game.ReadStock(screen.BasketId) is { } stock)
-            {
-                plan = FillPlan.Plan(screen.Wish, stock.Sources, stock.CategoriesInBasket, new Room(stock.FreeCells, stock.FreeWeight, FillExtra), StackingUnits.IsAvailable);
-                freeWeight = stock.FreeWeight;
-            }
-        }
+        var plan = ShowFill && !screen.Wish.IsAway ? Plan(screen, stock) : null;
 
-        return CardView.Json(line?.Need, line?.Tracker, troubleName, plan, freeWeight, WarnHours, isChinese);
+        return StationView.Json(stock.Station, screen.Wish, line?.Need, line?.Tracker, troubleName, plan, WarnHours, isChinese);
     }
 
     /// <summary>The least satiety that pulls her through, while she struggles; null otherwise or when it cannot be read.</summary>

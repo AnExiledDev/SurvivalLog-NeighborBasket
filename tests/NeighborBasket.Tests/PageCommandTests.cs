@@ -14,13 +14,21 @@ public class PageCommandTests
         Assert.Equal(new PageCommand.NoScript(), PageCommand.Parse("slmod|neighborbasket|noscript"));
         Assert.Equal(new PageCommand.PutAway(), PageCommand.Parse("slmod|neighborbasket|putaway"));
         Assert.Equal(new PageCommand.App(), PageCommand.Parse("slmod|neighborbasket|app"));
-        Assert.Equal(new PageCommand.Card(), PageCommand.Parse("slmod|neighborbasket|card"));
+        Assert.Equal(new PageCommand.Station(), PageCommand.Parse("slmod|neighborbasket|station"));
+        Assert.Equal(new PageCommand.Add(42, false), PageCommand.Parse("slmod|neighborbasket|add|42|one"));
+        Assert.Equal(new PageCommand.Add(42, true), PageCommand.Parse("slmod|neighborbasket|add|42|all"));
+        Assert.Equal(new PageCommand.Take(42), PageCommand.Parse("slmod|neighborbasket|take|42"));
     }
 
     [Theory]
     [InlineData("slmod|neighborbasket|fill|now")]
     [InlineData("slmod|neighborbasket|diag|cannot read the basket panel state")]
     [InlineData("slmod|neighborbasket|")]
+    [InlineData("slmod|neighborbasket|card")]
+    [InlineData("slmod|neighborbasket|add|42|two")]
+    [InlineData("slmod|neighborbasket|add|-42|one")]
+    [InlineData("slmod|neighborbasket|add|0|one")]
+    [InlineData("slmod|neighborbasket|take|x")]
     public void Anything_else_with_our_prefix_is_unknown_so_it_is_logged_not_acted_on(string message)
     {
         Assert.IsType<PageCommand.Unknown>(PageCommand.Parse(message));

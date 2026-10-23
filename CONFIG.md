@@ -6,8 +6,7 @@ Settings live in `BepInEx\config\com.dev.survivallog.neighborbasket.cfg`, create
 
 | Setting | Default | What it does |
 | --- | --- | --- |
-| `FillButton` | `true` | Shows the Fill button on the basket screen. It puts one item for each kind she wants that is not in the basket yet, the one that costs you least, from the storages at home and your bag, her trouble's kind first. While she is struggling or dying it puts in food instead. `false` hides it. |
-| `FillExtra` | `5` | After one item for each kind she wants, Fill adds up to this many more of the kinds she wants, the most value for their weight first, while the basket's weight allows. From 0 to 20; 0 puts in only one of each. |
+| `FillButton` | `true` | Shows the Fill button in the basket station. It packs the basket from your home storage as tightly as it goes for the most progress she gives: whole stacks, placed by their shapes on the basket's grid, within its weight limit. Each kind she wants earns a bonus, so those come first, and the space left takes whatever adds the most. Your bag is never touched. While she is dying it packs food only. `false` hides it. |
 | `PutAwayButton` | `true` | Shows a Put away button while the basket is home, which puts what it holds into your home storage the way Storage Hub puts the bag away. Needs Storage Hub; without it the button does not show. |
 | `CallBackButton` | `false` | Shows a Call back button while the basket is away, which brings it home at once with whatever she sends back. Off by default, since it skips the wait the game gives the basket. |
 

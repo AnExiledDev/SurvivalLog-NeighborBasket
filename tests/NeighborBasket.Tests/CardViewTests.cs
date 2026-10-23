@@ -15,7 +15,7 @@ public class CardViewTests
     private static CardView.CardRow[] Rows(NeedState? state, Tracker? tracker = null, string? trouble = null, int warnHours = 12) =>
         CardView.Rows(state, tracker, trouble, warnHours, false).ToArray();
 
-    private static Candidate Item(long id, int category, int unitValue, int weight = 1) => new(id, 100, (int)id, category, unitValue, 1, false, weight);
+    private static Candidate Item(long id, int category, int value) => new(id, 100, (int)id, category, value, 1, false, 0, 1, 1);
 
     [Fact]
     public void The_condition_shows_the_tier_and_the_hours_until_it_drops_in_warn_colour_once_within_the_warning_hours()
@@ -79,27 +79,16 @@ public class CardViewTests
     }
 
     [Fact]
-    public void The_plan_line_counts_wished_and_extra_items_apart()
+    public void The_plan_line_says_how_many_stacks_fill_adds_and_the_gain()
     {
         var wish = new BasketWish(true, false, false, false, new[] { Tools, Cloth }, null);
-        var sources = new[] { Item(1, Tools, 5), Item(2, Cloth, 5), Item(3, Tools, 30), Item(4, Tools, 20) };
-        var plan = FillPlan.Plan(wish, sources, new int[0], new Room(10, float.PositiveInfinity, 5), true);
+        var sources = new[] { Item(1, Tools, 5), Item(2, Cloth, 5) };
+        var plan = FillPlan.Plan(wish, sources, new Basket(5, 3, new Cells[0], float.PositiveInfinity, new int[0]), Rates.Game);
+        var full = FillPlan.Plan(wish, sources, new Basket(5, 3, new[] { new Cells(0, 0, 5, 3) }, float.PositiveInfinity, new int[0]), Rates.Game);
 
-        Assert.Equal(2, plan.Extras);
-        Assert.Equal("Fill adds 2 wished + 2 extra", CardView.PlanText(plan, false));
-        Assert.Equal("The basket is full.", CardView.PlanText(FillPlan.Plan(wish, sources, new int[0], new Room(0, 10, 5), true), false));
+        Assert.Equal("Fill adds 2 stacks from storage, about +32 progress.", CardView.PlanText(plan, false));
+        Assert.Equal("The basket is full.", CardView.PlanText(full, false));
         Assert.Equal("Fill finds nothing at hand to add.", CardView.PlanText(new FillResult(new Pick[0], new[] { Tools }, FillStop.None, false), false));
-    }
-
-    [Fact]
-    public void The_json_carries_the_plan_weight_with_the_free_weight_and_leaves_both_zero_when_weight_is_unknown()
-    {
-        var wish = new BasketWish(true, false, false, false, new[] { Tools }, null);
-        var plan = FillPlan.Plan(wish, new[] { Item(1, Tools, 5, weight: 3), Item(2, Tools, 9, weight: 4) }, new int[0], new Room(10, 40, 5), true);
-
-        Assert.Contains("\"weight\":7,\"free\":40", CardView.Json(State(), null, null, plan, 40, 12, false));
-        Assert.Contains("\"weight\":0,\"free\":0", CardView.Json(State(), null, null, plan, float.PositiveInfinity, 12, false));
-        Assert.Contains("\"plan\":\"\"", CardView.Json(State(), null, null, null, 0, 12, false));
     }
 
     private static (string Value, string Tone) Pick(CardView.CardRow[] rows, string label)
