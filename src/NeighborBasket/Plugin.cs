@@ -14,7 +14,7 @@ namespace NeighborBasket;
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.neighborbasket";
-    private const string Version = "0.6.0";
+    private const string Version = "0.6.1";
     private const string StackingGuid = "com.dev.survivallog.stacking";
 
     public override void Load()
@@ -56,7 +56,7 @@ public sealed class Plugin : BasePlugin
         var log = new BasketLog(Log, Path.Combine(Paths.BepInExRootPath, "neighbor-basket.log"));
         var page = new WebPage(log.Write);
         var journal = new GiftJournal(Path.Combine(Paths.ConfigPath, Guid + ".gifts"), log.Write);
-        var session = new BasketSession(new BasketGame(), journal, page, new Toasts(page, log.Write), log.Write);
+        var session = new BasketSession(new BasketGame(log.Write), journal, page, new Toasts(page, log.Write), log.Write);
 
         log.Write($"===== Neighbor Basket {Version} started");
 

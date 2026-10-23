@@ -10,7 +10,7 @@ namespace NeighborBasket.Core;
 /// Weight the whole stack's weight in the game's units, Width and Height its cells, X and Y its top-left cell when it
 /// sits in the basket. Icon is the game's own web icon path.
 /// </summary>
-public sealed record StationItem(long Id, long OwnerId, int ConfigId, string Name, string Icon, int Category, int Value, int Count, int Weight, int Width, int Height, bool IsForbidden, int X = 0, int Y = 0)
+public sealed record StationItem(long Id, long OwnerId, int ConfigId, string Name, string Icon, int Category, int Value, int Count, int Weight, int Width, int Height, bool IsForbidden, int X = 0, int Y = 0, bool Breaks = false)
 {
     public Candidate ToCandidate() => new(Id, OwnerId, ConfigId, Category, Value, Count, IsForbidden, Weight, Width, Height);
 
@@ -115,6 +115,8 @@ public static class StationView
 
         if (isInBasket) json.Append(",\"x\":").Append(item.X).Append(",\"y\":").Append(item.Y);
 
+        if (isInBasket && item.Breaks) json.Append(",\"br\":true");
+
         return json.Append('}').ToString();
     }
 
@@ -129,7 +131,7 @@ public static class StationView
             ("kgFree", Texts.KgFree), ("progress", Texts.AppProgress), ("ifSent", Texts.IfSent), ("send", Texts.SendButton), ("nextDoor", Texts.NextDoor),
             ("cannotTake", Texts.CannotTake), ("fill", Texts.FillButton), ("fillTitle", Texts.FillTitle), ("putAway", Texts.PutAwayButton),
             ("putAwayTitle", Texts.PutAwayTitle), ("callBack", Texts.CallBackButton), ("callBackTitle", Texts.CallBackTitle), ("away", Texts.Away), ("each", Texts.ProgressEach), ("one", Texts.ProgressOne),
-            ("toBag", Texts.TakeAllButton), ("toBagTitle", Texts.TakeAllTitle),
+            ("toBag", Texts.TakeAllButton), ("toBagTitle", Texts.TakeAllTitle), ("breakDown", Texts.BreakButton), ("breakDownTitle", Texts.BreakTitle),
         };
 
         return "{" + string.Join(",", labels.Select(label => JsText.Literal(label.Key) + ":" + JsText.Literal(label.Text.Pick(isChinese)))) + "}";

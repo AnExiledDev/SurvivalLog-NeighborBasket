@@ -440,6 +440,9 @@
     var isEmpty = !data.basket.length;
 
     if (!data.away) buttons += '<button class="nbs-btn is-quiet" data-act="takeall" title="' + esc(labels.toBagTitle) + '"' + (isEmpty ? ' disabled' : '') + '>' + esc(labels.toBag) + '</button>';
+    var breakable = data.basket.filter(function (it) { return it.br; }).length;
+
+    if (breakable && !data.away) buttons += '<button class="nbs-btn is-quiet" data-act="breakdown" title="' + esc(labels.breakDownTitle) + '">' + esc(labels.breakDown) + ' (' + breakable + ')</button>';
     if (settings.putAway && !data.away) buttons += '<button class="nbs-btn is-quiet" data-act="putaway" title="' + esc(labels.putAwayTitle) + '"' + (isEmpty ? ' disabled' : '') + '>' + esc(labels.putAway) + '</button>';
     if (settings.callBack && data.away) buttons += '<button class="nbs-btn is-quiet" data-act="callback" title="' + esc(labels.callBackTitle) + '">' + esc(labels.callBack) + '</button>';
 

@@ -35,6 +35,9 @@ public abstract record PageCommand
     /// <summary>To bag was clicked: everything in the basket goes to the bag.</summary>
     public sealed record TakeAll : PageCommand;
 
+    /// <summary>Break down was clicked.</summary>
+    public sealed record BreakDown : PageCommand;
+
     /// <summary>The phone app opened or wants fresh data.</summary>
     public sealed record App : PageCommand;
 
@@ -65,6 +68,7 @@ public abstract record PageCommand
             "callback" => new CallBack(),
             "putaway" => new PutAway(),
             "takeall" => new TakeAll(),
+            "breakdown" => new BreakDown(),
             "app" => new App(),
             "station" => new Station(),
             "ready" => new Ready(),

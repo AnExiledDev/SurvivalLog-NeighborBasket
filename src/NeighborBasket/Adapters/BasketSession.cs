@@ -138,6 +138,9 @@ internal sealed class BasketSession
             case PageCommand.TakeAll:
                 RunGuarded("to bag", () => TakeAll(isChinese), isChinese);
                 break;
+            case PageCommand.BreakDown:
+                RunGuarded("break down", () => BreakDown(isChinese), isChinese);
+                break;
             case PageCommand.Ready:
                 _log("page script ready");
                 Setup(isChinese);
@@ -312,6 +315,52 @@ internal sealed class BasketSession
         _log($"to bag: {station.InBasket.Count - failed} of {station.InBasket.Count} stacks moved");
 
         if (failed > 0) _toasts.Show(Texts.TakeAllShort.Say(isChinese, failed, station.InBasket.Count), true, isChinese);
+
+        _lastStation = null;
+        ShowStation(isChinese);
+    }
+
+    /// <summary>
+    /// Breaks down her gifts in the basket that the game lets you take apart by hand. Each goes to the bag first, where
+    /// the game's own Use works on it, then its use is lined up; the character does them one after another, taking the
+    /// game's own time. Gifts that do not fit in the bag, or that the game's use check refuses, stay and are reported.
+    /// </summary>
+    private void BreakDown(bool isChinese)
+    {
+        var screen = _game.OpenBasket();
+
+        if (screen == null)
+        {
+            _toasts.Show(Texts.NotOpen.Pick(isChinese), true, isChinese);
+
+            return;
+        }
+
+        var station = ReadStock(screen.BasketId)?.Station;
+        var gifts = station?.InBasket.Where(item => item.Breaks).ToList();
+
+        if (station == null || station.BagId == 0 || gifts == null || gifts.Count == 0) return;
+
+        var lined = 0;
+
+        _game.ClearLine();
+
+        foreach (var gift in gifts)
+        {
+            if (!_game.Move(gift.Id, screen.BasketId, station.BagId, true)) continue;
+
+            _originById.Remove(gift.Id);
+
+            if (_game.LineUpBreakdown(gift.Id)) lined++;
+        }
+
+        var started = lined > 0 && _game.StartLine();
+        var done = started ? lined : 0;
+
+        _log($"break down: {done} of {gifts.Count} gift(s) lined up ({string.Join(", ", gifts.Select(gift => gift.Name))})");
+
+        if (done > 0) _toasts.Show(Texts.BreakStarted.Say(isChinese, done), false, isChinese);
+        if (done < gifts.Count) _toasts.Show(Texts.BreakShort.Say(isChinese, gifts.Count - done, gifts.Count), true, isChinese);
 
         _lastStation = null;
         ShowStation(isChinese);

@@ -24,6 +24,11 @@ internal sealed class BasketGame
     private const int DefaultCols = 5;
     private const int DefaultRows = 3;
 
+    private readonly Dictionary<int, bool> _breakable = new();
+    private readonly Action<string> _log;
+
+    public BasketGame(Action<string> log) => _log = log;
+
     /// <summary>The bag screen while it shows the neighbor's basket on its right side; null otherwise.</summary>
     public BasketScreen? OpenBasket()
     {
@@ -109,7 +114,7 @@ internal sealed class BasketGame
 
         foreach (var item in Held(items, basketId))
         {
-            var station = StationItemOf(config, items, item, basketId, weigh);
+            var station = StationItemOf(config, items, item, basketId, weigh) with { Breaks = IsBreakable(config, item.ItemConfigId) };
 
             inBasket.Add(station);
             categories.Add(station.Category);
@@ -228,6 +233,116 @@ internal sealed class BasketGame
         if (item == null || config == null || item.ItemCount <= 0) return null;
 
         return (item.OwnerId, item.ItemConfigId, ItemName(config, item.ItemConfigId));
+    }
+
+    /// <summary>
+    /// Whether the game's own Use takes this item apart into materials and nothing else (see Breakdown). Read once per
+    /// kind from the item, effect and package tables; a kind whose tables cannot be read does not break down.
+    /// </summary>
+    public bool IsBreakable(ConfigManager config, int configId)
+    {
+        if (_breakable.TryGetValue(configId, out var known)) return known;
+
+        var result = false;
+
+        try
+        {
+            result = Breakdown.IsBreakable(ReadUse(config, configId));
+        }
+        catch (Exception ex)
+        {
+            _log($"break-down check for config {configId} failed: {ex.Message}");
+        }
+
+        _breakable[configId] = result;
+
+        return result;
+    }
+
+    private static UseInfo? ReadUse(ConfigManager config, int configId)
+    {
+        var item = config.Get_Config_Item(configId);
+
+        if (item == null || item.UseAction <= 0) return null;
+
+        var effect = config.Get_Config_Effect(item.UseAction);
+
+        if (effect == null) return null;
+
+        var hasOther = effect.ItemSatietyStart != 0 || effect.ItemMoraleStart != 0 || effect.ItemStaminaStart != 0 || effect.ItemHealthStart != 0 || effect.ItemVitalityStart != 0
+            || effect.ItemSatietyEnd != 0 || effect.ItemMoraleEnd != 0 || effect.ItemStaminaEnd != 0 || effect.ItemHealthEnd != 0 || effect.ItemVitalityEnd != 0
+            || effect.ItemEndBuff01 != 0 || effect.ItemEndBuff02 != 0 || (effect.EAddBuff?.Count ?? 0) > 0 || (effect.EDelBuff?.Count ?? 0) > 0 || effect.PonitEnd != 0;
+        var isRandom = false;
+        var outputs = new List<int>();
+        var packages = effect.ItemGetEnd;
+
+        for (var i = 0; packages != null && i < packages.Count; i++)
+        {
+            var package = config.Get_Config_Package(packages[i]);
+
+            if (package == null) return null;
+
+            if ((package.RandomID?.Count ?? 0) > 0) isRandom = true;
+
+            for (var j = 0; package.ItemIdList != null && j < package.ItemIdList.Count; j++) outputs.Add(config.Get_Config_Item(package.ItemIdList[j])?.Category ?? 0);
+        }
+
+        return new UseInfo(item.CantUse, item.UseAction, hasOther, isRandom, outputs);
+    }
+
+    /// <summary>
+    /// Lines up one hand break-down of an item in the bag, the way the bag's own Use does
+    /// (BattleLogicWorld.OnUseItemFromFurnitureRequest with no furniture: the item's use action aimed at the item), after
+    /// the game's own use check. Nothing starts until StartLine.
+    /// </summary>
+    public bool LineUpBreakdown(long itemId)
+    {
+        var items = GameSingleton.Existing<BattleLogicWorld>()?._ItemManager;
+        var role = GameSingleton.Existing<BattleLogicWorld>()?._AgentManager?.GetLeadingRole();
+        var config = GameSingleton.Existing<ConfigManager>();
+        var item = items?.GetItemData(itemId);
+
+        if (items == null || role == null || config == null || item == null) return false;
+
+        var actionId = config.Get_Config_Item(item.ItemConfigId)?.UseAction ?? 0;
+
+        if (actionId <= 0 || !IsBreakable(config, item.ItemConfigId)) return false;
+
+        if (!items.VerifyItemUse(itemId, item.ItemConfigId, out var failMessage))
+        {
+            _log($"break down: item {itemId} (config {item.ItemConfigId}) refused by the use check: {failMessage}");
+
+            return false;
+        }
+
+        role.AddLeadingRoleAction(actionId, itemId, UnityEngine.Vector3.zero, UnityEngine.Quaternion.identity);
+
+        return true;
+    }
+
+    /// <summary>Clears the character's not-yet-started action line, as the game does before a Use.</summary>
+    public void ClearLine() => GameSingleton.Existing<BattleLogicWorld>()?._AgentManager?.GetLeadingRole()?.ClearLeadingRoleActionCache();
+
+    /// <summary>Starts the lined-up actions as one batch; on failure the line is cleared so nothing is left stranded.</summary>
+    public bool StartLine()
+    {
+        var role = GameSingleton.Existing<BattleLogicWorld>()?._AgentManager?.GetLeadingRole();
+
+        if (role == null) return false;
+
+        try
+        {
+            role.DoLeadingRoleActionCache();
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _log($"break down: starting the line failed: {ex}");
+            role.ClearLeadingRoleActionCache();
+
+            return false;
+        }
     }
 
     /// <summary>Whether the basket is out with her now, by the game's own return schedule.</summary>

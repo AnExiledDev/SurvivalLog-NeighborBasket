@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.1
+
+- New Break down button at the basket station. It shows when the basket holds gifts you can take apart by hand (wind chimes, star jars, notes and the like), and takes them apart the game's own way: each goes to your bag, then your character uses it, one after another, in the game's own time. Only items whose Use gives back nothing but materials count, so food, flowers and packages are never touched.
+- Made for Survival Log 1.1.19611.
+
 ## 0.6.0
 
 - Fill takes at most 30% of any one item you have at home (`FillShare`), so it no longer gives away all your tomato seeds. Items you have only 1 to 3 of stay home. Shift-click Fill keeps to it too; clicking items yourself is never limited.
