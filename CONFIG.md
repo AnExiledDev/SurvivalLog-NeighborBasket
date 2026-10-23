@@ -8,7 +8,8 @@ Settings live in `BepInEx\config\com.dev.survivallog.neighborbasket.cfg`, create
 | --- | --- | --- |
 | `FillButton` | `true` | Shows the Fill button in the basket station. It puts in enough from your home storage to reach `FillGoal`: one of each kind she wants first (each kind earns a bonus), then more of what you have most of, only as many as it takes. With Stacking it takes part of a stack; without it, whole stacks. Shift-click packs the basket as full as it goes for the most progress, within its grid and weight limit. Your bag is never touched. While she is dying it packs food only. `false` hides it. |
 | `FillGoal` | `80` | The progress Fill aims for in one basket, 0 to 500. A basket worth 40 lifts her condition one step, 80 lifts it two, so 80 gets the most from the least. Fill never aims past what her current stage still needs. `0` makes Fill pack the basket full every time. |
-| `PutAwayButton` | `true` | Shows a Put away button while the basket is home, which puts what it holds into your home storage the way Storage Hub puts the bag away. Needs Storage Hub; without it the button does not show. |
+| `FillShare` | `30` | The most of any one item Fill takes, in percent of how many you have at home (what is already in the basket counts), 1 to 100. At 30, Fill takes at most 4 of 16 tomato seeds, and none of an item you have only 1 to 3 of. Shift-click Fill keeps to it too. Clicking items yourself is never limited. 100 means no limit. |
+| `PutAwayButton` | `true` | Shows a To storage button while the basket is home, which puts what it holds into your home storage the way Storage Hub puts the bag away. Needs Storage Hub; without it the button does not show. |
 | `CallBackButton` | `false` | Shows a Call back button while the basket is away, which brings it home at once with whatever she sends back. Off by default, since it skips the wait the game gives the basket. |
 
 ## Warnings

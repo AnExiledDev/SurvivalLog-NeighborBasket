@@ -77,11 +77,17 @@ public static class Texts
 
     public static readonly Phrase BasketSatiety = new("The basket holds {0} satiety; she needs at least {1}.", "篮子里共有 {0} 饱腹，她至少需要 {1}。");
 
-    public static readonly Phrase PutAwayButton = new("Put away", "收纳");
+    public static readonly Phrase PutAwayButton = new("To storage", "放进储物");
 
-    public static readonly Phrase PutAwayTitle = new("Put what the basket holds into your home storage, the same way Storage Hub puts the bag away", "把篮子里的东西收进家中储物，和储物中心收纳背包的方式一样");
+    public static readonly Phrase PutAwayTitle = new("Put everything in the basket into your home storage, the same way Storage Hub puts the bag away", "把篮子里的所有东西收进家中储物，和储物中心收纳背包的方式一样");
 
-    public static readonly Phrase NoStorageHub = new("Put away needs Storage Hub.", "收纳需要储物中心模组。");
+    public static readonly Phrase NoStorageHub = new("To storage needs Storage Hub.", "「放进储物」需要储物中心模组。");
+
+    public static readonly Phrase TakeAllButton = new("To bag", "放进背包");
+
+    public static readonly Phrase TakeAllTitle = new("Put everything in the basket into your bag, her gifts included", "把篮子里的所有东西放进背包，包括她的回礼");
+
+    public static readonly Phrase TakeAllShort = new("{0} of {1} stacks did not fit in your bag.", "有 {0}/{1} 组放不进背包。");
 
     public static readonly Phrase AppTile = new("Neighbor", "邻居");
 
@@ -206,7 +212,7 @@ public static class Texts
     public static IReadOnlyList<Phrase> All { get; } = new[]
     {
         Source, FillButton, FillTitle, CallBackButton, CallBackTitle, Filled, FilledFood, NoneFound, NotMoved, NoNeighbor, Away, Pending, Full, GoalMet, ProgressOne, ProgressEach, NotOpen, Food, CalledBack, NotAway, Failed,
-        TierDrop, StruggleSoon, CrisisDeadline, Struggle, StruggleNeed, Streak, BasketSatiety, PutAwayButton, PutAwayTitle, NoStorageHub, Dying,
+        TierDrop, StruggleSoon, CrisisDeadline, Struggle, StruggleNeed, Streak, BasketSatiety, PutAwayButton, PutAwayTitle, NoStorageHub, TakeAllButton, TakeAllTitle, TakeAllShort, Dying,
         AppTile, AppTitle, AppBack, AppEmpty, AppNoRescue, AppAffinity, AppAffinityValue, AppProgress, AppStreak, AppStrugglesLeft, AppDay, AppSent, AppReturned, AppSaid, AppGained, AppNothing,
         CardCondition, CardTier, CardDrops, CardStruggleIn, CardStruggling, CardDying, CardSatiety, CardSatietyValue, CardTrouble, CardTroubleOf, CardDue, CardStreakToday, CardStreakSent,
         CardProgressValue, CardFills, CardFillsFood, CardFillsNothing,

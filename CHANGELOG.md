@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.0
+
+- Fill takes at most 30% of any one item you have at home (`FillShare`), so it no longer gives away all your tomato seeds. Items you have only 1 to 3 of stay home. Shift-click Fill keeps to it too; clicking items yourself is never limited.
+- New To bag button: puts everything in the basket into your bag, her gifts included. Put away is now called To storage.
+- The station's list puts the stacks that add the most progress at the top.
+- The list holds still while you click: a stack you put in whole keeps its row, greyed out, so the rows below do not move under the mouse. It sorts again when you change the place, tab or search, or send the basket.
+- Made for Survival Log 1.1.19611.
+
 ## 0.5.0
 
 - Fill now puts in just enough for a big jump in her condition (80 progress, `FillGoal`), not as much as the basket holds: one of each kind she wants first for its bonus, then more of what you have most of. With Stacking it takes part of a stack, so it no longer empties your piles. It never aims past what her current stage still needs. Shift-click Fill packs the basket full as before.

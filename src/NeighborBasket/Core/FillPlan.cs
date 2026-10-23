@@ -95,11 +95,12 @@ public static class FillPlan
     /// goal still needs. Kinds she did not ask for count at under a third of the rate, so they go in only when the
     /// wished stacks run out. Every unit of a stack adds the same, so taking more of one never counts for less. With
     /// canSplit false (no Stacking) only whole stacks move, the smallest that covers what is left first. While she is
-    /// dying the goal does not apply and the plan is the most food, as Plan makes it.
+    /// dying the goal does not apply and the plan is the most food, as Plan makes it. limits (from Limits) caps how many
+    /// of each item kind it takes.
     /// </summary>
-    public static FillResult Goal(BasketWish wish, IReadOnlyList<Candidate> sources, Basket basket, Rates rates, int goal, double scoreNow, bool canSplit)
+    public static FillResult Goal(BasketWish wish, IReadOnlyList<Candidate> sources, Basket basket, Rates rates, int goal, double scoreNow, bool canSplit, IReadOnlyDictionary<int, int>? limits = null)
     {
-        if (wish.IsDying || goal <= 0) return Plan(wish, sources, basket, rates);
+        if (wish.IsDying || goal <= 0) return Plan(wish, sources, basket, rates, limits);
         if (!wish.IsActive) return Stopped(FillStop.NoNeighbor);
         if (wish.IsAway) return Stopped(FillStop.Away);
 
@@ -118,10 +119,10 @@ public static class FillPlan
 
         if (grid.FreeCount == 0 || basket.FreeWeight <= 0) return Stopped(FillStop.Full);
 
-        var usable = sources.Where(item => item.IsUsable).ToList();
+        var usable = sources.Where(item => item.IsUsable && Allowed(limits, item.ConfigId) > 0).ToList();
         var missing = wished.Where(category => !basket.CategoriesInBasket.Contains(category) && usable.All(item => item.Category != category)).ToList();
         var scorer = new Scorer(wished, basket.CategoriesInBasket, rates, false);
-        var packer = new Packer(grid, basket.FreeWeight, scorer);
+        var packer = new Packer(grid, basket.FreeWeight, scorer, limits, canSplit);
 
         foreach (var category in wished.Where(category => !basket.CategoriesInBasket.Contains(category)))
         {
@@ -176,6 +177,29 @@ public static class FillPlan
         return (scorer.Score(new[] { item.Part(1) with { Value = 0 } }) + scorer.Rated(item) / Math.Max(1, item.Count), scorer.Score(new[] { item }));
     }
 
+    /// <summary>
+    /// How many of each item kind Fill may take: sharePercent of what the player has (at home plus what the basket
+    /// already holds), rounded down, less what the basket already holds. Null when sharePercent is 100 or more (no cap).
+    /// </summary>
+    public static IReadOnlyDictionary<int, int>? Limits(IEnumerable<Candidate> home, IEnumerable<Candidate> inBasket, int sharePercent)
+    {
+        if (sharePercent >= 100) return null;
+
+        var share = Math.Max(0, sharePercent);
+        var held = inBasket.GroupBy(item => item.ConfigId).ToDictionary(kind => kind.Key, kind => kind.Sum(item => Math.Max(0, item.Count)));
+
+        return home.GroupBy(item => item.ConfigId).ToDictionary(kind => kind.Key, kind =>
+        {
+            var inIt = held.TryGetValue(kind.Key, out var count) ? count : 0;
+            var total = kind.Sum(item => (long)Math.Max(0, item.Count)) + inIt;
+
+            return (int)Math.Max(0, total * share / 100 - inIt);
+        });
+    }
+
+    private static int Allowed(IReadOnlyDictionary<int, int>? limits, int configId) =>
+        limits == null ? int.MaxValue : limits.TryGetValue(configId, out var left) ? left : 0;
+
     // Aim this far over the goal: a part's rounded value can be one under its share (one value is 0.2 progress).
     private const double PartMargin = 0.25;
 
@@ -188,7 +212,7 @@ public static class FillPlan
                ?? list.OrderByDescending(scorer.Rated).ThenBy(item => item.ItemId).FirstOrDefault();
     }
 
-    public static FillResult Plan(BasketWish wish, IReadOnlyList<Candidate> sources, Basket basket, Rates rates)
+    public static FillResult Plan(BasketWish wish, IReadOnlyList<Candidate> sources, Basket basket, Rates rates, IReadOnlyDictionary<int, int>? limits = null)
     {
         if (!wish.IsActive) return Stopped(FillStop.NoNeighbor);
         if (wish.IsAway) return Stopped(FillStop.Away);
@@ -201,12 +225,12 @@ public static class FillPlan
 
         if (grid.FreeCount == 0 || basket.FreeWeight <= 0) return Stopped(FillStop.Full);
 
-        var usable = sources.Where(item => item.IsUsable && (!wish.IsDying || item.Category == FoodCategory)).ToList();
+        var usable = sources.Where(item => item.IsUsable && item.Count <= Allowed(limits, item.ConfigId) && (!wish.IsDying || item.Category == FoodCategory)).ToList();
         var missing = wish.IsDying
             ? (usable.Count == 0 ? new List<int> { FoodCategory } : new List<int>())
             : wished.Where(category => !basket.CategoriesInBasket.Contains(category) && usable.All(item => item.Category != category)).ToList();
         var scorer = new Scorer(wished, basket.CategoriesInBasket, rates, wish.IsDying);
-        var picks = new Search(grid, Shortlist(usable, scorer, grid), scorer, basket.FreeWeight).Run();
+        var picks = new Search(grid, Shortlist(usable, scorer, grid), scorer, basket.FreeWeight, limits).Run();
         var gain = (int)Math.Round(scorer.Score(picks.Select(pick => pick.Item)));
 
         if (picks.Count == 0 && missing.Count == 0) return Stopped(FillStop.Full);
@@ -319,14 +343,19 @@ public static class FillPlan
         private readonly Scorer _scorer;
         private readonly List<(Candidate Item, int X, int Y)> _spots = new();
         private readonly Dictionary<long, int> _units = new();
+        private readonly Dictionary<int, int> _byKind = new();
+        private readonly IReadOnlyDictionary<int, int>? _limits;
+        private readonly bool _canSplit;
         private long _closed;
         private float _weight;
 
-        public Packer(Grid grid, float freeWeight, Scorer scorer)
+        public Packer(Grid grid, float freeWeight, Scorer scorer, IReadOnlyDictionary<int, int>? limits, bool canSplit)
         {
             _grid = grid;
             _freeWeight = freeWeight;
             _scorer = scorer;
+            _limits = limits;
+            _canSplit = canSplit;
             _closed = grid.Taken;
         }
 
@@ -334,7 +363,11 @@ public static class FillPlan
 
         public bool Has(Candidate item) => _units.ContainsKey(item.ItemId);
 
-        public int UnitsLeft(Candidate item) => item.Count - (_units.TryGetValue(item.ItemId, out var taken) ? taken : 0);
+        /// <summary>The units of this stack still free to take: what is left of it, within its kind's cap.</summary>
+        public int UnitsLeft(Candidate item) =>
+            Math.Min(item.Count - (_units.TryGetValue(item.ItemId, out var taken) ? taken : 0), KindLeft(item.ConfigId));
+
+        private int KindLeft(int configId) => _limits == null ? int.MaxValue : Allowed(_limits, configId) - (_byKind.TryGetValue(configId, out var taken) ? taken : 0);
 
         public bool HasUnitsLeft(Candidate item) => UnitsLeft(item) > 0;
 
@@ -344,11 +377,14 @@ public static class FillPlan
             var taken = _units.TryGetValue(item.ItemId, out var had) ? had : 0;
             var unitWeight = item.Count > 0 ? item.Weight / (double)item.Count : 0;
 
-            units = Math.Min(units, item.Count - taken);
+            var wanted = Math.Min(units, item.Count - taken);
+
+            units = Math.Min(wanted, KindLeft(item.ConfigId));
 
             if (unitWeight > 0) units = Math.Min(units, (int)Math.Floor((_freeWeight - _weight) / unitWeight + 1e-9));
 
-            if (units <= 0) return false;
+            // Without Stacking only whole stacks move, so a stack that does not fit whole stays home.
+            if (units <= 0 || (!_canSplit && units < wanted)) return false;
 
             if (taken == 0)
             {
@@ -361,6 +397,7 @@ public static class FillPlan
             }
 
             _units[item.ItemId] = taken + units;
+            _byKind[item.ConfigId] = (_byKind.TryGetValue(item.ConfigId, out var kindTaken) ? kindTaken : 0) + units;
             _weight += (float)(unitWeight * units);
             Gain = _scorer.Score(Picks().Select(pick => pick.Item));
 
@@ -447,13 +484,16 @@ public static class FillPlan
         private readonly Scorer _scorer;
         private readonly float _freeWeight;
         private readonly bool[] _used;
+        private readonly IReadOnlyDictionary<int, int>? _limits;
+        private readonly Dictionary<int, int> _byKind = new();
         private readonly List<Pick> _current = new();
         private List<Pick> _best = new();
         private double _bestScore;
         private int _steps;
 
-        public Search(Grid grid, List<Candidate> items, Scorer scorer, float freeWeight)
+        public Search(Grid grid, List<Candidate> items, Scorer scorer, float freeWeight, IReadOnlyDictionary<int, int>? limits)
         {
+            _limits = limits;
             _grid = grid;
             _items = items;
             _scorer = scorer;
@@ -494,12 +534,18 @@ public static class FillPlan
 
                 if (mask == 0 || (mask & closed) != 0 || weight + item.Weight > _freeWeight) continue;
 
+                var kindTaken = _byKind.TryGetValue(item.ConfigId, out var had) ? had : 0;
+
+                if (kindTaken + item.Count > Allowed(_limits, item.ConfigId)) continue;
+
                 var isNewHit = _scorer.CanHit(item) && hits.Add(item.Category);
 
                 _used[i] = true;
+                _byKind[item.ConfigId] = kindTaken + item.Count;
                 _current.Add(new Pick(item, x, y));
                 Step(closed | mask, weight + item.Weight, rated + _scorer.Rated(item), hits);
                 _current.RemoveAt(_current.Count - 1);
+                _byKind[item.ConfigId] = kindTaken;
                 _used[i] = false;
 
                 if (isNewHit) hits.Remove(item.Category);

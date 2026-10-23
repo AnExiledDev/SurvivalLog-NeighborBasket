@@ -32,6 +32,9 @@ public abstract record PageCommand
     /// <summary>A stack in the basket was clicked: it goes back where it came from.</summary>
     public sealed record Take(long ItemId) : PageCommand;
 
+    /// <summary>To bag was clicked: everything in the basket goes to the bag.</summary>
+    public sealed record TakeAll : PageCommand;
+
     /// <summary>The phone app opened or wants fresh data.</summary>
     public sealed record App : PageCommand;
 
@@ -61,6 +64,7 @@ public abstract record PageCommand
             "fillmax" => new Fill(true),
             "callback" => new CallBack(),
             "putaway" => new PutAway(),
+            "takeall" => new TakeAll(),
             "app" => new App(),
             "station" => new Station(),
             "ready" => new Ready(),

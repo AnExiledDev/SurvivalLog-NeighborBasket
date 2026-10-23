@@ -19,8 +19,8 @@ public class GoalFillTests
     private static Basket Basket(int cols = 5, int rows = 3, float freeWeight = float.PositiveInfinity, params int[] inBasket) =>
         new(cols, rows, new Cells[0], freeWeight, inBasket);
 
-    private static FillResult Goal(BasketWish wish, Candidate[] sources, Basket? basket = null, int goal = 80, double scoreNow = 0, bool canSplit = true) =>
-        FillPlan.Goal(wish, sources, basket ?? Basket(), Rates.Game, goal, scoreNow, canSplit);
+    private static FillResult Goal(BasketWish wish, Candidate[] sources, Basket? basket = null, int goal = 80, double scoreNow = 0, bool canSplit = true, IReadOnlyDictionary<int, int>? limits = null) =>
+        FillPlan.Goal(wish, sources, basket ?? Basket(), Rates.Game, goal, scoreNow, canSplit, limits);
 
     private static double Score(FillResult result, BasketWish wish) => FillPlan.Score(result.Picks.Select(pick => pick.Item), wish, new int[0], Rates.Game);
 
@@ -160,5 +160,57 @@ public class GoalFillTests
         Assert.Equal(15.2, fresh.One, 6);
         Assert.Equal(21.0, fresh.Stack, 6);
         Assert.Equal(0.06, FillPlan.ItemGain(Stack(2, Medicine, 10, 10), Wish(Tools), new int[0], Rates.Game).One, 6);
+    }
+
+    private const int Seeds = 12;
+
+    private static Candidate Seed(long id, int config, int count, int unitValue = 10) => new(id, 100, config, Seeds, unitValue * count, count, false, 0, 1, 1);
+
+    [Fact]
+    public void The_cap_is_a_share_of_what_you_have_rounded_down_less_what_the_basket_holds()
+    {
+        var home = new[] { Seed(1, 501, 10), Seed(2, 501, 6), Seed(3, 502, 3), Seed(4, 503, 14) };
+        var limits = FillPlan.Limits(home, new[] { Seed(9, 503, 2) }, 30)!;
+
+        Assert.Equal(4, limits[501]);
+        Assert.Equal(0, limits[502]);
+        // 14 at home and 2 in the basket: 30% of 16 is 4, 2 of them already in.
+        Assert.Equal(2, limits[503]);
+        Assert.Null(FillPlan.Limits(home, new Candidate[0], 100));
+    }
+
+    [Fact]
+    public void Fill_never_takes_more_of_one_item_than_its_cap_even_when_that_item_is_worth_the_most()
+    {
+        var sources = new[] { Seed(1, 501, 16, 30), Seed(2, 502, 12, 20), Seed(3, 503, 11, 20) };
+        var limits = FillPlan.Limits(sources, new Candidate[0], 30);
+        var result = Goal(Wish(Seeds), sources, limits: limits);
+
+        Assert.Equal(4, PickOf(result, 1).Item.Count);
+        Assert.Equal(3, PickOf(result, 2).Item.Count);
+        Assert.Equal(3, PickOf(result, 3).Item.Count);
+        Assert.All(result.Picks, pick => Assert.True(pick.IsPart));
+    }
+
+    [Fact]
+    public void Without_stacking_a_stack_bigger_than_its_cap_stays_home()
+    {
+        var sources = new[] { Seed(1, 501, 16, 30), Seed(2, 501, 3, 30), Seed(3, 502, 20, 1) };
+        var limits = FillPlan.Limits(sources, new Candidate[0], 30);
+        var result = Goal(Wish(Seeds), sources, limits: limits, canSplit: false);
+
+        Assert.Contains(result.Picks, pick => pick.Item.ItemId == 2);
+        Assert.DoesNotContain(result.Picks, pick => pick.Item.ItemId == 1);
+        Assert.DoesNotContain(result.Picks, pick => pick.Item.ItemId == 3);
+    }
+
+    [Fact]
+    public void Shift_fill_keeps_to_the_cap_too()
+    {
+        var sources = new[] { Seed(1, 501, 3), Seed(2, 501, 3), Seed(3, 501, 3) };
+        var result = FillPlan.Plan(Wish(Seeds), sources, Basket(), Rates.Game, FillPlan.Limits(sources, new Candidate[0], 70));
+
+        // 70% of 9 is 6: two of the three stacks.
+        Assert.Equal(2, result.Picks.Count);
     }
 }

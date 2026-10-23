@@ -31,6 +31,23 @@ public class StationViewTests
     }
 
     [Fact]
+    public void Stacks_list_by_the_progress_one_item_adds_then_the_whole_stack()
+    {
+        var wish = new BasketWish(true, false, false, false, new[] { Tools }, null);
+        var cheapTool = new StationItem(1, 7, 501, "a", "i.png", Tools, 10, 10, 2, 1, 1, false);
+        var dearTool = new StationItem(2, 7, 502, "b", "i.png", Tools, 100, 10, 2, 1, 1, false);
+        var bigPile = new StationItem(3, 7, 503, "c", "i.png", Tools, 200, 100, 2, 1, 1, false);
+        var cloth = new StationItem(4, 7, 504, "d", "i.png", Cloth, 900, 1, 2, 1, 1, false);
+        var data = new StationData(5, 3, 0, 0, new StationItem[0], new[] { cheapTool, bigPile, cloth, dearTool }, new[] { new Place(7, "") }, 7);
+        var json = StationView.Json(data, wish, null, null, null, null, 12, false);
+        var order = new[] { 1, 2, 3, 4 }.OrderBy(id => json.IndexOf("\"id\":" + id + ",\"owner\"", System.StringComparison.Ordinal)).ToArray();
+
+        // One cloth is 54 at the other rate, no bonus but still the most. One tool brings the bonus: 15 + 2 for the dear
+        // one, 15 + 0.4 for one of the big pile, 15 + 0.2 for the cheap one.
+        Assert.Equal(new[] { 4, 2, 3, 1 }, order);
+    }
+
+    [Fact]
     public void The_json_carries_the_grid_the_basket_cells_the_planned_picks_and_wanted_marks()
     {
         var inBasket = Item(10, Tools, 5, x: 2, y: 1);

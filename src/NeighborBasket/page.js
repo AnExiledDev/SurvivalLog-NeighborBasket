@@ -25,11 +25,11 @@
   // A basket: the body and its handle.
   var BASKET_STROKES = ['M4 10h16l-2 9H6z', 'M8 10l4-6 4 6', 'M9 13v3', 'M15 13v3'];
 
-  var settings = { fill: true, callBack: false, putAway: false, app: true, fillLabel: 'Fill', fillTitle: '', callBackLabel: 'Call back', callBackTitle: '', putAwayLabel: 'Put away', putAwayTitle: '', appLabel: 'Neighbor' };
+  var settings = { fill: true, callBack: false, putAway: false, app: true, fillLabel: 'Fill', fillTitle: '', callBackLabel: 'Call back', callBackTitle: '', putAwayLabel: 'To storage', putAwayTitle: '', appLabel: 'Neighbor' };
   var phone = { screen: null, data: null, refreshAt: 0 };
   // The station's data from the plugin and the player's own choices in it. isOff is the Game screen button; it lasts
   // until the basket closes.
-  var station = { data: null, json: '', askAt: 0, isOff: false, isDead: false, sel: 'all', filt: '', query: '', drawn: '' };
+  var station = { data: null, json: '', askAt: 0, isOff: false, isDead: false, sel: 'all', filt: '', query: '', drawn: '', order: null, orderKey: '', seen: {} };
   var isBusy = false;
   var busyTimer = 0;
   var toastTimer = 0;
@@ -116,6 +116,7 @@
     '.nbs-btn.is-main:hover{background:#ffd664}',
     '.nbs-btn.is-quiet{border-color:rgba(220,188,120,.2);background:none;color:#cbbfa8;font-weight:400}',
     '.nbs-btn[disabled]{opacity:.35;cursor:default}',
+    '.nbs-row.is-gone{opacity:.3;pointer-events:none}',
     '.nbs-stat{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid rgba(220,188,120,.09);font-size:12.5px}',
     '.nbs-stat span:first-child{color:#a89a82}',
     '.nbs-stat span:last-child{text-align:right}',
@@ -344,8 +345,12 @@
     var scope = inScope();
     var filt = filterOf(scope);
     var wantN = scope.filter(function (item) { return item.wanted; }).length;
-    var items = shown();
+    var items = steady(shown(), station.sel + '|' + filt + '|' + station.query);
     var list = items.map(function (item) {
+      if (item.gone) {
+        return '<div class="nbs-row is-gone"><img src="' + esc(item.ic) + '"><span class="nbs-nm">' + esc(item.n) + '</span><span class="nbs-meta">x0</span></div>';
+      }
+
       return '<div class="nbs-row' + (item.no ? ' is-no' : '') + '" data-add="' + item.id + '"' + infoAttrs(item) + '><img src="' + esc(item.ic) + '"><span class="nbs-nm">' + esc(item.n) + '</span>' +
         (item.wanted ? '<span class="nbs-tag">' + esc(labels.wanted) + '</span>' : '') +
         (item.g1 > 0 ? '<span class="nbs-gain">+' + item.g1 + '</span>' : '') +
@@ -432,7 +437,10 @@
     var buttons = '';
 
     if (settings.fill && !data.away) buttons += '<button class="nbs-btn" data-act="fill" title="' + esc(labels.fillTitle) + '">' + esc(labels.fill) + '</button>';
-    if (settings.putAway && !data.away) buttons += '<button class="nbs-btn is-quiet" data-act="putaway" title="' + esc(labels.putAwayTitle) + '">' + esc(labels.putAway) + '</button>';
+    var isEmpty = !data.basket.length;
+
+    if (!data.away) buttons += '<button class="nbs-btn is-quiet" data-act="takeall" title="' + esc(labels.toBagTitle) + '"' + (isEmpty ? ' disabled' : '') + '>' + esc(labels.toBag) + '</button>';
+    if (settings.putAway && !data.away) buttons += '<button class="nbs-btn is-quiet" data-act="putaway" title="' + esc(labels.putAwayTitle) + '"' + (isEmpty ? ' disabled' : '') + '>' + esc(labels.putAway) + '</button>';
     if (settings.callBack && data.away) buttons += '<button class="nbs-btn is-quiet" data-act="callback" title="' + esc(labels.callBackTitle) + '">' + esc(labels.callBack) + '</button>';
 
     html += '<div class="nbs-btns" style="margin-top:14px">' + buttons + '</div>';
@@ -494,6 +502,33 @@
     return node;
   }
 
+  // Keeps the rows where they were while items go in and out, so a click lands on the row that was under the mouse.
+  // The order is set when the list is first shown and again when the place, tab or search changes; a stack that went
+  // in whole keeps its row, greyed out at x0, and one new to the list joins at the bottom.
+  function steady(items, key) {
+    if (!station.order || station.orderKey !== key) {
+      station.order = items.map(function (item) { return String(item.id); });
+      station.orderKey = key;
+    }
+
+    var byId = {};
+
+    items.forEach(function (item) {
+      byId[String(item.id)] = item;
+      station.seen[String(item.id)] = item;
+
+      if (station.order.indexOf(String(item.id)) < 0) station.order.push(String(item.id));
+    });
+
+    return station.order.map(function (id) {
+      if (byId[id]) return byId[id];
+
+      var last = station.seen[id];
+
+      return last ? { id: id, n: last.n, ic: last.ic, gone: true } : null;
+    }).filter(function (item) { return item; });
+  }
+
   function onClick(doc, e) {
     var target = e.target.closest('[data-p],[data-f],[data-add],[data-take],[data-act]');
 
@@ -545,6 +580,9 @@
   // Send is the game's own button press, so the game's checks and its sending all happen as usual.
   function sendBasket(doc) {
     var state = basketState(doc);
+
+    // A new round scores differently, so the list sorts afresh.
+    station.order = null;
 
     try {
       if (state.setup && typeof state.setup.onBasketSend === 'function') state.setup.onBasketSend();
@@ -671,6 +709,8 @@
         station.query = '';
         station.data = null;
         station.json = '';
+        station.order = null;
+        station.seen = {};
       }
 
       return;

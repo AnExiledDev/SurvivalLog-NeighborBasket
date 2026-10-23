@@ -55,6 +55,9 @@ internal sealed class BasketSession
     /// <summary>The progress Fill aims for (80 lifts her condition two steps); 0 packs the basket full every time.</summary>
     public int FillGoal { get; set; } = 80;
 
+    /// <summary>The most of any one item kind Fill takes, in percent of what you have at home; 100 is no cap.</summary>
+    public int FillShare { get; set; } = 30;
+
     public bool ShowCallBack { get; set; }
 
     public bool ShowPutAway { get; set; } = true;
@@ -132,6 +135,9 @@ internal sealed class BasketSession
             case PageCommand.Take take:
                 RunGuarded("take", () => Take(take, isChinese), isChinese);
                 break;
+            case PageCommand.TakeAll:
+                RunGuarded("to bag", () => TakeAll(isChinese), isChinese);
+                break;
             case PageCommand.Ready:
                 _log("page script ready");
                 Setup(isChinese);
@@ -176,7 +182,7 @@ internal sealed class BasketSession
 
         foreach (var pick in plan.Picks.Where(pick => !pick.IsPart)) BasketGame.PlaceAt(pick, screen.BasketId);
 
-        _log($"fill{(isMax ? " max" : $" to {FillGoal}, stage needs {screen.Wish.StageLeft}")}: wish [{string.Join(",", screen.Wish.Categories)}] crisis {screen.Wish.CrisisCategory?.ToString() ?? "-"} dying {screen.Wish.IsDying}, " +
+        _log($"fill{(isMax ? " max" : $" to {FillGoal}, stage needs {screen.Wish.StageLeft}")} share {FillShare}%: wish [{string.Join(",", screen.Wish.Categories)}] crisis {screen.Wish.CrisisCategory?.ToString() ?? "-"} dying {screen.Wish.IsDying}, " +
              $"{stock.Station.Sources.Count} stacks at hand, basket {stock.Station.Cols}x{stock.Station.Rows} holding {stock.Station.InBasket.Count}, weight {stock.Station.UsedWeight}/{stock.Station.MaxWeight}, " +
              $"picked {string.Join(",", plan.Picks.Select(pick => $"{pick.Item.ConfigId}x{pick.Item.Count}{(pick.IsPart ? "p" : "")}@{pick.X},{pick.Y}w{pick.Weight}v{pick.Item.Value}"))}, " +
              $"missing [{string.Join(",", plan.Missing)}], gain {plan.Gain}, stop {plan.Stop}");
@@ -279,6 +285,38 @@ internal sealed class BasketSession
         ShowStation(isChinese);
     }
 
+    /// <summary>Everything in the basket, her gifts included, into the bag; what does not fit stays and is reported.</summary>
+    private void TakeAll(bool isChinese)
+    {
+        var screen = _game.OpenBasket();
+
+        if (screen == null)
+        {
+            _toasts.Show(Texts.NotOpen.Pick(isChinese), true, isChinese);
+
+            return;
+        }
+
+        var station = ReadStock(screen.BasketId)?.Station;
+
+        if (station == null || station.BagId == 0 || station.InBasket.Count == 0) return;
+
+        var failed = 0;
+
+        foreach (var item in station.InBasket)
+        {
+            if (_game.Move(item.Id, screen.BasketId, station.BagId, true)) _originById.Remove(item.Id);
+            else failed++;
+        }
+
+        _log($"to bag: {station.InBasket.Count - failed} of {station.InBasket.Count} stacks moved");
+
+        if (failed > 0) _toasts.Show(Texts.TakeAllShort.Say(isChinese, failed, station.InBasket.Count), true, isChinese);
+
+        _lastStation = null;
+        ShowStation(isChinese);
+    }
+
     private void Remember(long itemId, int configId, long ownerId)
     {
         _originById[itemId] = ownerId;
@@ -307,7 +345,7 @@ internal sealed class BasketSession
         var station = stock.Station;
         var sources = HomeSources(station);
         var canSplit = StackingUnits.IsAvailable;
-        var key = string.Join(";", FillGoal, canSplit, screen.Wish.StageLeft,
+        var key = string.Join(";", FillGoal, FillShare, canSplit, screen.Wish.StageLeft,
             screen.Wish.IsActive, screen.Wish.IsAway, screen.Wish.IsDying, screen.Wish.IsPending, screen.Wish.CrisisCategory, string.Join(",", screen.Wish.Categories), station.MaxWeight, station.UsedWeight,
             string.Join(",", station.InBasket.Select(item => $"{item.Id}:{item.X}:{item.Y}:{item.Width}:{item.Height}:{item.Category}")),
             string.Join(",", sources.Select(item => $"{item.Id}:{item.OwnerId}:{item.Count}:{item.Value}:{item.Weight}")));
@@ -315,7 +353,7 @@ internal sealed class BasketSession
         if (key == _planKey && _planCache != null) return _planCache;
 
         var scoreNow = FillPlan.Score(station.InBasket.Select(item => item.ToCandidate()), screen.Wish, new int[0], Rates.Game);
-        var plan = FillPlan.Goal(screen.Wish, sources.Select(item => item.ToCandidate()).ToList(), station.ToBasket(screen.Wish, stock.CategoriesInBasket), Rates.Game, FillGoal, scoreNow, canSplit);
+        var plan = FillPlan.Goal(screen.Wish, sources.Select(item => item.ToCandidate()).ToList(), station.ToBasket(screen.Wish, stock.CategoriesInBasket), Rates.Game, FillGoal, scoreNow, canSplit, Limits(station));
 
         _planKey = key;
         _planCache = plan;
@@ -323,9 +361,12 @@ internal sealed class BasketSession
         return plan;
     }
 
-    /// <summary>The most the basket holds, whole stacks only: Shift+Fill.</summary>
-    private static FillResult MaxPlan(BasketScreen screen, BasketStock stock) =>
-        FillPlan.Plan(screen.Wish, HomeSources(stock.Station).Select(item => item.ToCandidate()).ToList(), stock.Station.ToBasket(screen.Wish, stock.CategoriesInBasket), Rates.Game);
+    /// <summary>The most the basket holds, whole stacks only: Shift+Fill. The per-item cap still holds.</summary>
+    private FillResult MaxPlan(BasketScreen screen, BasketStock stock) =>
+        FillPlan.Plan(screen.Wish, HomeSources(stock.Station).Select(item => item.ToCandidate()).ToList(), stock.Station.ToBasket(screen.Wish, stock.CategoriesInBasket), Rates.Game, Limits(stock.Station));
+
+    private IReadOnlyDictionary<int, int>? Limits(StationData station) =>
+        FillPlan.Limits(HomeSources(station).Select(item => item.ToCandidate()), station.InBasket.Select(item => item.ToCandidate()), FillShare);
 
     private static List<StationItem> HomeSources(StationData station) => station.Sources.Where(item => item.OwnerId != station.BagId).ToList();
 

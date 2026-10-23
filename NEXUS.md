@@ -9,12 +9,13 @@ Keeping a neighbour alive means opening the basket, reading what she wants, then
 [*][b]Basket station[/b]: opens with the basket. Every storage at home and your bag on the left, with search and the kinds she wants marked; the basket's grid, her wishes, the weight left and the progress a send would give in the middle; her condition, deadlines, streak, progress and affinity on the right. Game screen switches back to the game's own basket screen.[/*]
 [*][b]Click to move[/b]: click a stack to put one in, Shift-click for the whole stack, click a stack in the basket to put it back where it came from.[/*]
 [*][b]Fill button[/b]: puts in enough from your home storage for 80 progress, the amount that lifts her condition two steps: one of each kind she wants first for its bonus, then more of what you have most of, only as many as it takes. With Stacking it takes part of a stack. Shift-click packs the basket as full as it goes. What Fill would do shows faintly in the free cells. Your bag is never touched.[/*]
-[*][b]Progress per item[/b]: every stack shows the progress one more of it adds; its tooltip shows that and the whole stack's.[/*]
+[*][b]Progress per item[/b]: every stack shows the progress one more of it adds; its tooltip shows that and the whole stack's. The stacks that add the most list first, and the list holds still while you click.[/*]
+[*][b]A cap per item[/b]: Fill takes at most 30% of any one item you have at home, so your last seeds of a kind stay home.[/*]
 [*][b]Never what you locked[/b]: items the basket refuses are skipped, and nothing goes past the basket's cells or its weight limit.[/*]
 [*][b]Food when she is dying[/b]: while she is dying, Fill packs food only.[/*]
 [*][b]Warnings[/b]: a message a few hours before her condition drops a step, before her trouble's deadline, before the send streak breaks, and when she starts to struggle or is dying. Each shows once.[/*]
 [*][b]Neighbor app[/b] on the phone: her status, the same rows as the basket station (condition and when it drops, her trouble's deadline, send streak, progress and affinity), plus struggles left, and a log by day of what you sent, what came back, what each send gained, and her thoughts.[/*]
-[*][b]Put away button[/b]: with Storage Hub installed, empties the basket into your home storage.[/*]
+[*][b]To bag and To storage buttons[/b]: empty the basket, her gifts included, into your bag, or (with Storage Hub installed) into your home storage.[/*]
 [*][b]Call back button[/b]: off by default. When on, it brings the basket home at once while it is away.[/*]
 [*][b]Both neighbours[/b]: works for whichever neighbour you are helping.[/*]
 [/list]
@@ -39,7 +40,7 @@ The mod adds no data of its own to your save; the phone app's log is a separate 
 [*]Optional: [url=https://www.nexusmods.com/survivallog/mods/61]Exiled's Toolkit[/url] 0.4.0 or newer. With it, messages show as toasts and settings changed on the Mod Manager's Mods screen take effect without restarting the game. With 0.8.0 or newer, the Neighbor phone app sits in the phone's dock with the game's apps.[/*]
 [*]Optional: Stacking. With it, clicking a stack in the station puts one in instead of the whole stack, and Fill takes only the part of a stack it needs.[/*]
 [*]Optional: Info Pack 0.8.13 or newer. With it, the station's stacks show Info Pack's item tooltip, with the progress line under the name.[/*]
-[*]Optional: Storage Hub 0.13.0 or newer. With it, the Put away button shows.[/*]
+[*]Optional: Storage Hub 0.13.0 or newer. With it, the To storage button shows.[/*]
 [/list]
 
 [size=5]Installation[/size]
@@ -54,7 +55,7 @@ The mod adds no data of its own to your save; the phone app's log is a separate 
 Delete [font=Courier New]NeighborBasket.dll[/font] from the [font=Courier New]BepInEx\plugins[/font] folder.
 
 [size=5]Configuration[/size]
-Edit [font=Courier New]BepInEx\config\com.dev.survivallog.neighborbasket.cfg[/font] while the game is closed, or change it in game on the Mod Manager's Mods screen (see [url=https://github.com/AnExiledDev/SurvivalLog-NeighborBasket/blob/main/CONFIG.md]CONFIG.md[/url]; the cfg file explains each setting in English and Chinese). Settings: [font=Courier New]FillButton[/font], [font=Courier New]FillGoal[/font], [font=Courier New]PutAwayButton[/font], [font=Courier New]CallBackButton[/font], [font=Courier New]Enabled[/font] (warnings), [font=Courier New]Streak[/font], [font=Courier New]WarnHours[/font] and [font=Courier New]App[/font] (phone app).
+Edit [font=Courier New]BepInEx\config\com.dev.survivallog.neighborbasket.cfg[/font] while the game is closed, or change it in game on the Mod Manager's Mods screen (see [url=https://github.com/AnExiledDev/SurvivalLog-NeighborBasket/blob/main/CONFIG.md]CONFIG.md[/url]; the cfg file explains each setting in English and Chinese). Settings: [font=Courier New]FillButton[/font], [font=Courier New]FillGoal[/font], [font=Courier New]FillShare[/font], [font=Courier New]PutAwayButton[/font], [font=Courier New]CallBackButton[/font], [font=Courier New]Enabled[/font] (warnings), [font=Courier New]Streak[/font], [font=Courier New]WarnHours[/font] and [font=Courier New]App[/font] (phone app).
 
 [size=5]Feedback[/size]
 Found a bug or have an idea? Come say hi on the [url=https://discord.gg/trTsyxUFqg]Core Directive Discord[/url], or post in this page's Posts tab. For bugs, please include [font=Courier New]BepInEx\LogOutput.log[/font] and [font=Courier New]BepInEx\neighbor-basket.log[/font].
@@ -74,12 +75,13 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-NeighborB
 [*][b]篮子工作台[/b]：随篮子一起打开。左边是家中所有储物和背包，可搜索，她想要的类别会标出；中间是篮子的格子、她的愿望、剩余承重和送出可得的进度；右边是她的状况、期限、连续赠送、进度和好感。「游戏界面」可切回游戏自带的篮子界面。[/*]
 [*][b]点击移动[/b]：点击一组物品放入一件，按住 Shift 点击放入整组；点击篮子里的物品放回原处。[/*]
 [*][b]「装篮」按钮[/b]：从家中储物里放入足够 80 进度的物品，正好让她的状态提升两档：先放她想要的每一类各一件以获得额外奖励，再放你最多的东西，够了就停。安装 Stacking 后可以只拿一组中的几件。按住 Shift 单击会把篮子尽量装满。「装篮」的计划会在空格中淡淡显示。不会动你的背包。[/*]
-[*][b]每件物品的进度[/b]：每组物品都会显示再放一件能加多少进度；悬停提示里还有整组的进度。[/*]
+[*][b]每件物品的进度[/b]：每组物品都会显示再放一件能加多少进度；悬停提示里还有整组的进度。加得最多的排在最前，单击时列表不会跳动。[/*]
+[*][b]每种物品的上限[/b]：「装篮」对同一种物品最多拿走家中数量的 30%，同类种子不会被拿光。[/*]
 [*][b]不动你锁定的物品[/b]：篮子拒收的物品会被跳过，放入的物品不会超过篮子的格子数和承重。[/*]
 [*][b]濒死时只放食物[/b]：她濒死时，「装篮」只放食物。[/*]
 [*][b]提醒[/b]：在她的状态下降一档之前几小时、她遇到的麻烦到期之前、连续赠送快要中断之前，以及她开始挣扎或濒死时显示提醒。每条只显示一次。[/*]
 [*][b]「邻居」手机应用[/b]：显示她的状况，和篮子工作台相同（状况及何时下降、困境期限、连续赠送、进度和好感），外加剩余挣扎次数，以及按天记录的送出物品、送回物品、每次送出获得的进度和她的心声。[/*]
-[*][b]「收纳」按钮[/b]：安装储物中心后，可把篮子里的东西收进家中储物。[/*]
+[*][b]「放进背包」和「放进储物」按钮[/b]：把篮子里的东西（包括她的回礼）放进背包，或在安装储物中心后收进家中储物。[/*]
 [*][b]「召回」按钮[/b]：默认关闭。开启后，篮子不在家时可以让它立刻回来。[/*]
 [*][b]两位邻居都支持[/b]：对你正在帮助的邻居生效。[/*]
 [/list]
@@ -104,7 +106,7 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-NeighborB
 [*]可选：[url=https://www.nexusmods.com/survivallog/mods/61]Exiled's Toolkit[/url] 0.4.0 或更新版本。安装后提示以弹窗显示，在 Mod Manager 的「模组」界面修改的设置无需重启游戏即可生效。0.8.0 或更新版本会把「邻居」手机应用和游戏自带的应用一起放在手机底部的程序栏里。[/*]
 [*]可选：Stacking。安装后在工作台点击一组物品只放入一件，而不是整组，「装篮」也只拿一组中需要的几件。[/*]
 [*]可选：Info Pack 0.8.13 或更新版本。安装后工作台里的物品会显示 Info Pack 的物品提示，名字下方附有进度。[/*]
-[*]可选：储物中心（Storage Hub）0.13.0 或更新版本。安装后显示「收纳」按钮。[/*]
+[*]可选：储物中心（Storage Hub）0.13.0 或更新版本。安装后显示「放进储物」按钮。[/*]
 [/list]
 
 [size=5]安装[/size]
@@ -119,7 +121,7 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-NeighborB
 从 [font=Courier New]BepInEx\plugins[/font] 文件夹中删除 [font=Courier New]NeighborBasket.dll[/font]。
 
 [size=5]配置[/size]
-在游戏关闭时编辑 [font=Courier New]BepInEx\config\com.dev.survivallog.neighborbasket.cfg[/font]，或在游戏中 Mod Manager 的「模组」界面修改。设置项：[font=Courier New]FillButton[/font]、[font=Courier New]FillGoal[/font]、[font=Courier New]PutAwayButton[/font]、[font=Courier New]CallBackButton[/font]、[font=Courier New]Enabled[/font]（提醒）、[font=Courier New]Streak[/font]、[font=Courier New]WarnHours[/font] 和 [font=Courier New]App[/font]（手机应用）。
+在游戏关闭时编辑 [font=Courier New]BepInEx\config\com.dev.survivallog.neighborbasket.cfg[/font]，或在游戏中 Mod Manager 的「模组」界面修改。设置项：[font=Courier New]FillButton[/font]、[font=Courier New]FillGoal[/font]、[font=Courier New]FillShare[/font]、[font=Courier New]PutAwayButton[/font]、[font=Courier New]CallBackButton[/font]、[font=Courier New]Enabled[/font]（提醒）、[font=Courier New]Streak[/font]、[font=Courier New]WarnHours[/font] 和 [font=Courier New]App[/font]（手机应用）。
 
 [size=5]反馈[/size]
 发现 bug 或有好点子？欢迎来 [url=https://discord.gg/trTsyxUFqg]Core Directive Discord[/url] 打个招呼，或在本页的「Posts」标签里发帖。报告 bug 时，请附上 [font=Courier New]BepInEx\LogOutput.log[/font] 和 [font=Courier New]BepInEx\neighbor-basket.log[/font]。

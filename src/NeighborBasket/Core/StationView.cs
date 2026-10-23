@@ -57,15 +57,23 @@ public static class StationView
         json.Append(",\"bag\":").Append(data.BagId);
         json.Append(",\"basket\":[").Append(string.Join(",", data.InBasket.Select(item => ItemJson(item, wanted, true, null)))).Append(']');
         json.Append(",\"places\":[").Append(string.Join(",", data.Places.Select(place => "{\"id\":" + place.Id + ",\"name\":" + JsText.Literal(place.Name) + "}"))).Append(']');
-        json.Append(",\"items\":[").Append(string.Join(",", Ordered(data.Sources, wanted).Select(item => ItemJson(item, wanted, false, wish.IsDying || item.IsForbidden ? null : FillPlan.ItemGain(item.ToCandidate(), wish, held, Rates.Game))))).Append(']');
+        var gains = new Dictionary<long, (double One, double Stack)?>();
+
+        foreach (var item in data.Sources) gains[item.Id] = wish.IsDying || item.IsForbidden ? null : FillPlan.ItemGain(item.ToCandidate(), wish, held, Rates.Game);
+
+        json.Append(",\"items\":[").Append(string.Join(",", Ordered(data.Sources, wanted, id => gains[id]).Select(item => ItemJson(item, wanted, false, gains[item.Id])))).Append(']');
         json.Append(",\"labels\":").Append(Labels(isChinese));
 
         return json.Append('}').ToString();
     }
 
-    /// <summary>Wanted first, then the most valuable, then by name so the list holds still between refreshes.</summary>
-    public static IEnumerable<StationItem> Ordered(IEnumerable<StationItem> items, ISet<int> wanted) =>
-        items.OrderByDescending(item => wanted.Contains(item.Category) && !item.IsForbidden).ThenByDescending(item => item.Value).ThenBy(item => item.Name, System.StringComparer.Ordinal).ThenBy(item => item.Id);
+    /// <summary>
+    /// The most progress for one item first, then for the whole stack; then wanted, the most valuable, and by name so
+    /// ties hold still between refreshes. Stacks with no progress (refused, or while she is dying) go by the rest.
+    /// </summary>
+    public static IEnumerable<StationItem> Ordered(IEnumerable<StationItem> items, ISet<int> wanted, System.Func<long, (double One, double Stack)?>? gainOf = null) =>
+        items.OrderByDescending(item => gainOf?.Invoke(item.Id)?.One ?? 0).ThenByDescending(item => gainOf?.Invoke(item.Id)?.Stack ?? 0)
+            .ThenByDescending(item => wanted.Contains(item.Category) && !item.IsForbidden).ThenByDescending(item => item.Value).ThenBy(item => item.Name, System.StringComparer.Ordinal).ThenBy(item => item.Id);
 
     /// <summary>The categories she wants now: her trouble's, and her wishes once she has named them; none while she is dying.</summary>
     public static ISet<int> Wanted(BasketWish wish)
@@ -121,6 +129,7 @@ public static class StationView
             ("kgFree", Texts.KgFree), ("progress", Texts.AppProgress), ("ifSent", Texts.IfSent), ("send", Texts.SendButton), ("nextDoor", Texts.NextDoor),
             ("cannotTake", Texts.CannotTake), ("fill", Texts.FillButton), ("fillTitle", Texts.FillTitle), ("putAway", Texts.PutAwayButton),
             ("putAwayTitle", Texts.PutAwayTitle), ("callBack", Texts.CallBackButton), ("callBackTitle", Texts.CallBackTitle), ("away", Texts.Away), ("each", Texts.ProgressEach), ("one", Texts.ProgressOne),
+            ("toBag", Texts.TakeAllButton), ("toBagTitle", Texts.TakeAllTitle),
         };
 
         return "{" + string.Join(",", labels.Select(label => JsText.Literal(label.Key) + ":" + JsText.Literal(label.Text.Pick(isChinese)))) + "}";
