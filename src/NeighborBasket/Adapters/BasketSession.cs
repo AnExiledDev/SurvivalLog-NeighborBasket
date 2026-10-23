@@ -52,6 +52,9 @@ internal sealed class BasketSession
 
     public bool ShowFill { get; set; } = true;
 
+    /// <summary>The progress Fill aims for (80 lifts her condition two steps); 0 packs the basket full every time.</summary>
+    public int FillGoal { get; set; } = 80;
+
     public bool ShowCallBack { get; set; }
 
     public bool ShowPutAway { get; set; } = true;
@@ -108,8 +111,8 @@ internal sealed class BasketSession
     {
         switch (command)
         {
-            case PageCommand.Fill:
-                RunGuarded("fill", () => Fill(isChinese), isChinese);
+            case PageCommand.Fill fill:
+                RunGuarded("fill", () => Fill(fill.IsMax, isChinese), isChinese);
                 break;
             case PageCommand.CallBack:
                 RunGuarded("call back", () => CallBack(isChinese), isChinese);
@@ -143,10 +146,11 @@ internal sealed class BasketSession
     }
 
     /// <summary>
-    /// Plans the tightest, most valuable basket from home storage and sends each stack to its planned cell. The game
-    /// runs the moves a moment later, so the outcome toast waits for FinishFill.
+    /// Plans the basket from home storage, enough for the goal (or as full as it goes, with isMax), and sends each whole
+    /// stack to its planned cell. The game runs those moves a moment later, so the outcome toast and the part stacks
+    /// (moved one item at a time, which finds its own cell) wait for FinishFill.
     /// </summary>
-    private void Fill(bool isChinese)
+    private void Fill(bool isMax, bool isChinese)
     {
         if (_pendingFill != null) return;
 
@@ -168,13 +172,13 @@ internal sealed class BasketSession
             return;
         }
 
-        var plan = Plan(screen, stock);
+        var plan = isMax ? MaxPlan(screen, stock) : Plan(screen, stock);
 
-        foreach (var pick in plan.Picks) BasketGame.PlaceAt(pick, screen.BasketId);
+        foreach (var pick in plan.Picks.Where(pick => !pick.IsPart)) BasketGame.PlaceAt(pick, screen.BasketId);
 
-        _log($"fill: wish [{string.Join(",", screen.Wish.Categories)}] crisis {screen.Wish.CrisisCategory?.ToString() ?? "-"} dying {screen.Wish.IsDying}, " +
+        _log($"fill{(isMax ? " max" : $" to {FillGoal}, stage needs {screen.Wish.StageLeft}")}: wish [{string.Join(",", screen.Wish.Categories)}] crisis {screen.Wish.CrisisCategory?.ToString() ?? "-"} dying {screen.Wish.IsDying}, " +
              $"{stock.Station.Sources.Count} stacks at hand, basket {stock.Station.Cols}x{stock.Station.Rows} holding {stock.Station.InBasket.Count}, weight {stock.Station.UsedWeight}/{stock.Station.MaxWeight}, " +
-             $"picked {string.Join(",", plan.Picks.Select(pick => $"{pick.Item.ConfigId}x{pick.Item.Count}@{pick.X},{pick.Y}w{pick.Weight}v{pick.Item.Value}"))}, " +
+             $"picked {string.Join(",", plan.Picks.Select(pick => $"{pick.Item.ConfigId}x{pick.Item.Count}{(pick.IsPart ? "p" : "")}@{pick.X},{pick.Y}w{pick.Weight}v{pick.Item.Value}"))}, " +
              $"missing [{string.Join(",", plan.Missing)}], gain {plan.Gain}, stop {plan.Stop}");
 
         if (plan.Picks.Count == 0)
@@ -190,11 +194,26 @@ internal sealed class BasketSession
         _lastStation = null;
     }
 
-    /// <summary>Counts the planned stacks that reached the basket and says how the fill went.</summary>
+    /// <summary>
+    /// Moves the part stacks, one item at a time, once the whole ones are in; then counts the planned stacks that
+    /// reached the basket and says how the fill went. A part that moved short counts as not reached.
+    /// </summary>
     private void FinishFill(PendingFill pending)
     {
         var held = _game.BasketItemIds(pending.BasketId);
-        var failed = pending.Plan.Picks.Count(pick => !held.Contains(pick.Item.ItemId));
+        var failed = pending.Plan.Picks.Count(pick => !pick.IsPart && !held.Contains(pick.Item.ItemId));
+
+        foreach (var pick in pending.Plan.Picks.Where(pick => pick.IsPart))
+        {
+            var moved = _game.MoveUnits(pick.Item.ItemId, pick.Item.OwnerId, pending.BasketId, pick.Item.Count);
+
+            if (moved < pick.Item.Count)
+            {
+                failed++;
+                _log($"fill: {moved} of {pick.Item.Count} of {pick.Item.ConfigId} reached the basket");
+            }
+        }
+
         var text = Texts.Outcome(pending.Plan, failed, pending.Names, pending.IsChinese);
 
         if (failed > 0) _log($"fill: {failed} of {pending.Plan.Picks.Count} planned stacks did not reach the basket");
@@ -233,7 +252,9 @@ internal sealed class BasketSession
         if (isMoved) Remember(add.ItemId, item.ConfigId, item.OwnerId);
         else _toasts.Show(Texts.AddFailed.Say(isChinese, item.Name), true, isChinese);
 
+        // The page waits for this answer to show the move, so it goes out now rather than on the next ask.
         _lastStation = null;
+        ShowStation(isChinese);
     }
 
     /// <summary>A stack from the basket back where the station took it from, or to the bag when that is unknown or full.</summary>
@@ -255,6 +276,7 @@ internal sealed class BasketSession
         else _toasts.Show(Texts.TakeFailed.Say(isChinese, item.Name), true, isChinese);
 
         _lastStation = null;
+        ShowStation(isChinese);
     }
 
     private void Remember(long itemId, int configId, long ownerId)
@@ -277,27 +299,35 @@ internal sealed class BasketSession
     }
 
     /// <summary>
-    /// The fill plan from home storage only, so the bag is never emptied without a click. The station asks about once
-    /// a second, so a plan is kept until what is at hand, the basket or her wish changes.
+    /// The goal plan from home storage only, so the bag is never emptied without a click. The station asks about once
+    /// a second, so a plan is kept until what is at hand, the basket, her wish or the goal changes.
     /// </summary>
     private FillResult Plan(BasketScreen screen, BasketStock stock)
     {
         var station = stock.Station;
-        var sources = station.Sources.Where(item => item.OwnerId != station.BagId).ToList();
-        var key = string.Join(";",
+        var sources = HomeSources(station);
+        var canSplit = StackingUnits.IsAvailable;
+        var key = string.Join(";", FillGoal, canSplit, screen.Wish.StageLeft,
             screen.Wish.IsActive, screen.Wish.IsAway, screen.Wish.IsDying, screen.Wish.IsPending, screen.Wish.CrisisCategory, string.Join(",", screen.Wish.Categories), station.MaxWeight, station.UsedWeight,
             string.Join(",", station.InBasket.Select(item => $"{item.Id}:{item.X}:{item.Y}:{item.Width}:{item.Height}:{item.Category}")),
             string.Join(",", sources.Select(item => $"{item.Id}:{item.OwnerId}:{item.Count}:{item.Value}:{item.Weight}")));
 
         if (key == _planKey && _planCache != null) return _planCache;
 
-        var plan = FillPlan.Plan(screen.Wish, sources.Select(item => item.ToCandidate()).ToList(), station.ToBasket(screen.Wish, stock.CategoriesInBasket), Rates.Game);
+        var scoreNow = FillPlan.Score(station.InBasket.Select(item => item.ToCandidate()), screen.Wish, new int[0], Rates.Game);
+        var plan = FillPlan.Goal(screen.Wish, sources.Select(item => item.ToCandidate()).ToList(), station.ToBasket(screen.Wish, stock.CategoriesInBasket), Rates.Game, FillGoal, scoreNow, canSplit);
 
         _planKey = key;
         _planCache = plan;
 
         return plan;
     }
+
+    /// <summary>The most the basket holds, whole stacks only: Shift+Fill.</summary>
+    private static FillResult MaxPlan(BasketScreen screen, BasketStock stock) =>
+        FillPlan.Plan(screen.Wish, HomeSources(stock.Station).Select(item => item.ToCandidate()).ToList(), stock.Station.ToBasket(screen.Wish, stock.CategoriesInBasket), Rates.Game);
+
+    private static List<StationItem> HomeSources(StationData station) => station.Sources.Where(item => item.OwnerId != station.BagId).ToList();
 
     private static Dictionary<int, string> Names(BasketScreen screen, bool isChinese)
     {

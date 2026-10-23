@@ -20,8 +20,8 @@ public static class Texts
     public static readonly Phrase FillButton = new("Fill", "装篮");
 
     public static readonly Phrase FillTitle = new(
-        "Pack the basket from your home storage as tightly as it goes, for the most progress she gives",
-        "从家中储物里把篮子尽量装满，换取最多的进度");
+        "Put in enough from your home storage for a big jump in her condition, using what you have most of. Shift-click packs the basket as full as it goes",
+        "从家中储物里放入足够让她状态大幅提升的物品，优先用你最多的东西。按住 Shift 单击会把篮子尽量装满");
 
     public static readonly Phrase CallBackButton = new("Call back", "召回");
 
@@ -42,6 +42,12 @@ public static class Texts
     public static readonly Phrase Pending = new("She has not said what she wants yet.", "她还没说想要什么。");
 
     public static readonly Phrase Full = new("The basket is full.", "篮子已经满了。");
+
+    public static readonly Phrase GoalMet = new("The basket already holds enough. Shift-click Fill to pack it full.", "篮子里的东西已经够了。按住 Shift 单击「装篮」可以装满。");
+
+    public static readonly Phrase ProgressOne = new("+{0} progress", "+{0} 进度");
+
+    public static readonly Phrase ProgressEach = new("+{0} progress for one, +{1} for all {2}", "放入一件 +{0} 进度，全部 {2} 件 +{1}");
 
     public static readonly Phrase NotOpen = new("Open the basket first.", "请先打开篮子。");
 
@@ -199,7 +205,7 @@ public static class Texts
 
     public static IReadOnlyList<Phrase> All { get; } = new[]
     {
-        Source, FillButton, FillTitle, CallBackButton, CallBackTitle, Filled, FilledFood, NoneFound, NotMoved, NoNeighbor, Away, Pending, Full, NotOpen, Food, CalledBack, NotAway, Failed,
+        Source, FillButton, FillTitle, CallBackButton, CallBackTitle, Filled, FilledFood, NoneFound, NotMoved, NoNeighbor, Away, Pending, Full, GoalMet, ProgressOne, ProgressEach, NotOpen, Food, CalledBack, NotAway, Failed,
         TierDrop, StruggleSoon, CrisisDeadline, Struggle, StruggleNeed, Streak, BasketSatiety, PutAwayButton, PutAwayTitle, NoStorageHub, Dying,
         AppTile, AppTitle, AppBack, AppEmpty, AppNoRescue, AppAffinity, AppAffinityValue, AppProgress, AppStreak, AppStrugglesLeft, AppDay, AppSent, AppReturned, AppSaid, AppGained, AppNothing,
         CardCondition, CardTier, CardDrops, CardStruggleIn, CardStruggling, CardDying, CardSatiety, CardSatietyValue, CardTrouble, CardTroubleOf, CardDue, CardStreakToday, CardStreakSent,
@@ -231,6 +237,7 @@ public static class Texts
             case FillStop.Away: return Away.Pick(isChinese);
             case FillStop.Pending: return Pending.Pick(isChinese);
             case FillStop.Full: return Full.Pick(isChinese);
+            case FillStop.GoalMet: return GoalMet.Pick(isChinese);
         }
 
         var parts = new List<string>();

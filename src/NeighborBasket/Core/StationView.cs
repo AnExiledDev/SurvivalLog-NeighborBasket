@@ -40,13 +40,14 @@ public static class StationView
     public static string Json(StationData data, BasketWish wish, NeedState? need, Tracker? tracker, string? troubleName, FillResult? plan, int warnHours, bool isChinese)
     {
         var wanted = Wanted(wish);
+        var held = data.InBasket.Select(item => item.Category).ToHashSet();
         var json = new StringBuilder("{");
 
         json.Append("\"day\":").Append(JsText.Literal(need is { IsActive: true } ? Texts.AppDay.Say(isChinese, need.Day) : ""));
         json.Append(",\"rows\":[").Append(string.Join(",", CardView.Rows(need, tracker, troubleName, warnHours, isChinese).Select(CardView.RowJson))).Append(']');
         json.Append(",\"plan\":").Append(JsText.Literal(plan == null ? "" : CardView.PlanText(plan, isChinese)));
         json.Append(",\"gain\":").Append(plan?.Gain ?? 0);
-        json.Append(",\"picks\":[").Append(string.Join(",", (plan?.Picks ?? new Pick[0]).Select(pick => "{\"id\":" + pick.Item.ItemId + ",\"x\":" + pick.X + ",\"y\":" + pick.Y + "}"))).Append(']');
+        json.Append(",\"picks\":[").Append(string.Join(",", (plan?.Picks ?? new Pick[0]).Select(pick => "{\"id\":" + pick.Item.ItemId + ",\"x\":" + pick.X + ",\"y\":" + pick.Y + ",\"q\":" + pick.Item.Count + "}"))).Append(']');
         json.Append(",\"away\":").Append(wish.IsAway ? "true" : "false");
         json.Append(",\"dying\":").Append(wish.IsDying ? "true" : "false");
         json.Append(",\"cols\":").Append(data.Cols);
@@ -54,9 +55,9 @@ public static class StationView
         json.Append(",\"max\":").Append(Number(data.MaxWeight));
         json.Append(",\"used\":").Append(Number(data.UsedWeight));
         json.Append(",\"bag\":").Append(data.BagId);
-        json.Append(",\"basket\":[").Append(string.Join(",", data.InBasket.Select(item => ItemJson(item, wanted, true)))).Append(']');
+        json.Append(",\"basket\":[").Append(string.Join(",", data.InBasket.Select(item => ItemJson(item, wanted, true, null)))).Append(']');
         json.Append(",\"places\":[").Append(string.Join(",", data.Places.Select(place => "{\"id\":" + place.Id + ",\"name\":" + JsText.Literal(place.Name) + "}"))).Append(']');
-        json.Append(",\"items\":[").Append(string.Join(",", Ordered(data.Sources, wanted).Select(item => ItemJson(item, wanted, false)))).Append(']');
+        json.Append(",\"items\":[").Append(string.Join(",", Ordered(data.Sources, wanted).Select(item => ItemJson(item, wanted, false, wish.IsDying || item.IsForbidden ? null : FillPlan.ItemGain(item.ToCandidate(), wish, held, Rates.Game))))).Append(']');
         json.Append(",\"labels\":").Append(Labels(isChinese));
 
         return json.Append('}').ToString();
@@ -80,12 +81,18 @@ public static class StationView
         return wanted;
     }
 
-    private static string ItemJson(StationItem item, ISet<int> wanted, bool isInBasket)
+    /// <summary>
+    /// One stack. cfg is its item kind, for Info Pack's tooltip. g1 and gs are the progress one item and the whole stack
+    /// would add on top of the basket as it is, left out while she is dying (only food counts then) and for what she
+    /// refuses.
+    /// </summary>
+    private static string ItemJson(StationItem item, ISet<int> wanted, bool isInBasket, (double One, double Stack)? gain)
     {
         var json = new StringBuilder("{");
 
         json.Append("\"id\":").Append(item.Id);
         json.Append(",\"owner\":").Append(item.OwnerId);
+        json.Append(",\"cfg\":").Append(item.ConfigId);
         json.Append(",\"n\":").Append(JsText.Literal(item.Name));
         json.Append(",\"ic\":").Append(JsText.Literal(item.Icon));
         json.Append(",\"v\":").Append(item.Value);
@@ -95,6 +102,8 @@ public static class StationView
         json.Append(",\"h\":").Append(item.Height);
         json.Append(",\"wanted\":").Append(wanted.Contains(item.Category) && !item.IsForbidden ? "true" : "false");
         json.Append(",\"no\":").Append(item.IsForbidden ? "true" : "false");
+
+        if (gain is { } g) json.Append(",\"g1\":").Append(Gain(g.One)).Append(",\"gs\":").Append(Gain(g.Stack));
 
         if (isInBasket) json.Append(",\"x\":").Append(item.X).Append(",\"y\":").Append(item.Y);
 
@@ -111,11 +120,14 @@ public static class StationView
             ("addHint", Texts.AddHint), ("basket", Texts.BasketTitle), ("cells", Texts.Cells), ("takeHint", Texts.TakeHint), ("weight", Texts.WeightLabel),
             ("kgFree", Texts.KgFree), ("progress", Texts.AppProgress), ("ifSent", Texts.IfSent), ("send", Texts.SendButton), ("nextDoor", Texts.NextDoor),
             ("cannotTake", Texts.CannotTake), ("fill", Texts.FillButton), ("fillTitle", Texts.FillTitle), ("putAway", Texts.PutAwayButton),
-            ("putAwayTitle", Texts.PutAwayTitle), ("callBack", Texts.CallBackButton), ("callBackTitle", Texts.CallBackTitle), ("away", Texts.Away),
+            ("putAwayTitle", Texts.PutAwayTitle), ("callBack", Texts.CallBackButton), ("callBackTitle", Texts.CallBackTitle), ("away", Texts.Away), ("each", Texts.ProgressEach), ("one", Texts.ProgressOne),
         };
 
         return "{" + string.Join(",", labels.Select(label => JsText.Literal(label.Key) + ":" + JsText.Literal(label.Text.Pick(isChinese)))) + "}";
     }
+
+    /// <summary>One decimal under 10, where a tenth still shows; whole numbers above.</summary>
+    public static string Gain(double value) => value.ToString(value < 10 ? "0.#" : "0", CultureInfo.InvariantCulture);
 
     private static string Number(float value) => float.IsInfinity(value) || float.IsNaN(value) ? "0" : value.ToString("0.###", CultureInfo.InvariantCulture);
 }

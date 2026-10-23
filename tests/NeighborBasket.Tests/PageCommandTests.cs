@@ -9,6 +9,8 @@ public class PageCommandTests
     public void The_buttons_and_the_script_messages_parse_to_their_commands()
     {
         Assert.Equal(new PageCommand.Fill(), PageCommand.Parse("slmod|neighborbasket|fill"));
+        Assert.Equal(new PageCommand.Fill(true), PageCommand.Parse("slmod|neighborbasket|fillmax"));
+        Assert.False(((PageCommand.Fill)PageCommand.Parse("slmod|neighborbasket|fill")).IsMax);
         Assert.Equal(new PageCommand.CallBack(), PageCommand.Parse("slmod|neighborbasket|callback"));
         Assert.Equal(new PageCommand.Ready(), PageCommand.Parse("slmod|neighborbasket|ready"));
         Assert.Equal(new PageCommand.NoScript(), PageCommand.Parse("slmod|neighborbasket|noscript"));

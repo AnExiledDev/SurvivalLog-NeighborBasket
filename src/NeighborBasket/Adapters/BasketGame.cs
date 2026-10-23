@@ -198,6 +198,27 @@ internal sealed class BasketGame
         return items.TryQuickMoveItem(itemId, fromOwnerId, toOwnerId, true, false);
     }
 
+    /// <summary>
+    /// Moves this many items of a stack into another bag one at a time with Stacking's unit move, never the whole stack;
+    /// returns how many moved. Stops when the stack is gone, has one item left, or Stacking refuses.
+    /// </summary>
+    public int MoveUnits(long itemId, long fromOwnerId, long toOwnerId, int count)
+    {
+        var items = GameSingleton.Existing<BattleLogicWorld>()?._ItemManager;
+        var moved = 0;
+
+        for (; moved < count; moved++)
+        {
+            var item = items?.GetItemData(itemId);
+
+            if (item == null || item.OwnerId != fromOwnerId || item.ItemCount <= 1) break;
+
+            if (StackingUnits.MoveOne(itemId, fromOwnerId, toOwnerId) != true) break;
+        }
+
+        return moved;
+    }
+
     /// <summary>The owner, config and name of a stack, by its id; null when it is gone.</summary>
     public (long OwnerId, int ConfigId, string Name)? Find(long itemId)
     {
@@ -324,6 +345,6 @@ internal sealed class BasketGame
 
         if (snap.crisisActive && !string.IsNullOrEmpty(snap.crisisCatName)) names[snap.crisisCat] = snap.crisisCatName;
 
-        return new BasketWish(snap.active, snap.wishPending, snap.basketAway, snap.dying, categories, snap.crisisActive ? snap.crisisCat : null);
+        return new BasketWish(snap.active, snap.wishPending, snap.basketAway, snap.dying, categories, snap.crisisActive ? snap.crisisCat : null, snap.max > 0 ? Math.Max(0, snap.max - snap.progress) : 0);
     }
 }

@@ -14,8 +14,8 @@ public abstract record PageCommand
     {
     }
 
-    /// <summary>Fill was clicked.</summary>
-    public sealed record Fill : PageCommand;
+    /// <summary>Fill was clicked; IsMax when Shift was held, for the most the basket holds instead of the goal.</summary>
+    public sealed record Fill(bool IsMax = false) : PageCommand;
 
     /// <summary>Call back was clicked.</summary>
     public sealed record CallBack : PageCommand;
@@ -58,6 +58,7 @@ public abstract record PageCommand
         return message.Substring(Prefix.Length) switch
         {
             "fill" => new Fill(),
+            "fillmax" => new Fill(true),
             "callback" => new CallBack(),
             "putaway" => new PutAway(),
             "app" => new App(),

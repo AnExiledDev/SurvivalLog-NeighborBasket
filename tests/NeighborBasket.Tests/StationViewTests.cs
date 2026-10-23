@@ -40,12 +40,30 @@ public class StationViewTests
         var json = StationView.Json(data, new BasketWish(true, false, false, false, new[] { Tools }, null), null, null, null, plan, 12, false);
 
         Assert.Contains("\"cols\":5,\"gridRows\":3,\"max\":0,\"used\":0,\"bag\":7", json);
-        Assert.Contains("\"picks\":[{\"id\":11,\"x\":3,\"y\":0}]", json);
+        Assert.Contains("\"picks\":[{\"id\":11,\"x\":3,\"y\":0,\"q\":1}]", json);
         Assert.Contains("\"id\":10,", json);
         Assert.Contains("\"wanted\":true,\"no\":false,\"x\":2,\"y\":1}", json);
-        Assert.Contains("\"id\":12,\"owner\":7,\"n\":\"x\",\"ic\":\"../../Res/i.png\",\"v\":3,\"q\":1,\"kg\":2,\"w\":1,\"h\":1,\"wanted\":false", json);
+        Assert.Contains("\"id\":12,\"owner\":7,\"cfg\":12,\"n\":\"x\",\"ic\":\"../../Res/i.png\",\"v\":3,\"q\":1,\"kg\":2,\"w\":1,\"h\":1,\"wanted\":false", json);
         Assert.Contains("\"gain\":21", json);
         Assert.Contains("\"send\":\"Send basket\"", json);
+    }
+
+    [Fact]
+    public void Each_stack_at_hand_says_what_one_item_and_the_whole_stack_would_add()
+    {
+        var tools = new StationItem(11, 7, 501, "Scrap", "i.png", Tools, 30, 30, 2, 1, 1, false);
+        var cloth = new StationItem(12, 7, 502, "Rag", "i.png", Cloth, 30, 30, 2, 1, 1, false);
+        var refused = new StationItem(13, 7, 503, "Bomb", "i.png", Tools, 30, 30, 2, 1, 1, true);
+        var data = new StationData(5, 3, 0, 0, new[] { Item(10, Cloth, 5) }, new[] { tools, cloth, refused }, new[] { new Place(7, "") }, 7);
+        var json = StationView.Json(data, new BasketWish(true, false, false, false, new[] { Tools, Cloth }, null), null, null, null, null, 12, false);
+
+        // Tools are not in the basket yet: the first brings the bonus (15.2, whole above 10). Cloth is there already: 0.2 an item.
+        Assert.Contains("\"id\":11,\"owner\":7,\"cfg\":501,", json);
+        Assert.Contains("\"g1\":15,\"gs\":21}", json);
+        Assert.Contains("\"g1\":0.2,\"gs\":6}", json);
+        Assert.Contains("\"no\":true}", json);
+        Assert.Equal("1.5", StationView.Gain(1.46));
+        Assert.Equal("15", StationView.Gain(15.4));
     }
 
     [Fact]

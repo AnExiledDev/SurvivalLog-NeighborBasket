@@ -82,6 +82,7 @@ public static class CardView
             case FillStop.Away: return Texts.Away.Pick(isChinese);
             case FillStop.Pending: return Texts.Pending.Pick(isChinese);
             case FillStop.Full: return Texts.Full.Pick(isChinese);
+            case FillStop.GoalMet: return Texts.GoalMet.Pick(isChinese);
         }
 
         if (plan.Picks.Count == 0) return Texts.CardFillsNothing.Pick(isChinese);

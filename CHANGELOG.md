@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.0
+
+- Fill now puts in just enough for a big jump in her condition (80 progress, `FillGoal`), not as much as the basket holds: one of each kind she wants first for its bonus, then more of what you have most of. With Stacking it takes part of a stack, so it no longer empties your piles. It never aims past what her current stage still needs. Shift-click Fill packs the basket full as before.
+- Every stack in the station shows the progress one more of it adds, and its tooltip shows that and the whole stack's.
+- With Info Pack 0.8.13 or newer, the station's stacks show Info Pack's item tooltip, with the progress line under the name.
+- Clicking a stack to put it in or take it out shows at once, so you can click quickly.
+- Made for Survival Log 1.1.19611.
+
 ## 0.4.0
 
 - New basket station: opening the neighbour's basket now shows every storage at home and your bag on the left, the basket's 5 x 3 grid with her wishes, its weight and the progress a send would give in the middle, and her status on the right. Click a stack to put one in (Shift-click for the whole stack), click a stack in the basket to put it back where it came from. Send basket sends it with the game's own send. Game screen goes back to the game's basket screen; Basket station brings the station back.

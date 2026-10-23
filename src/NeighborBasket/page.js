@@ -80,6 +80,7 @@
     '.nbs-row img{width:34px;height:34px;object-fit:contain;flex:none}',
     '.nbs-nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
     '.nbs-meta{color:#a89a82;font-size:11.5px;white-space:nowrap}',
+    '.nbs-gain{font-size:11px;font-weight:700;color:#b5e09a;white-space:nowrap}',
     '.nbs-tag{font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:3px;background:rgba(255,200,58,.15);color:#FFC83A}',
     '.nbs-row.is-no{opacity:.4;cursor:not-allowed}',
     '.nbs-where{color:#7a6e5a;font-size:11px;white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis}',
@@ -283,6 +284,36 @@
     });
   }
 
+  // Info Pack draws its own item tooltip on any element tagged data-slip-item, and data-slip-note adds a line under
+  // the name; when it is there, our rows carry the tags and our own tip stays hidden.
+  function infoTags() {
+    var pack = window.__slinfopack;
+
+    return pack && pack.tags && pack.tags.indexOf ? pack.tags : [];
+  }
+
+  function hasInfoTip(item) {
+    return !!item.cfg && infoTags().indexOf('item') >= 0;
+  }
+
+  // The progress one item and the whole stack add now. The first of a wished kind also brings its bonus; past that
+  // every item adds the same.
+  function gainText(item) {
+    var labels = station.data.labels;
+
+    if (item.g1 === undefined || !(item.g1 > 0)) return '';
+
+    return item.q > 1 ? labels.each.replace('{0}', item.g1).replace('{1}', item.gs).replace('{2}', item.q) : labels.one.replace('{0}', item.g1);
+  }
+
+  function infoAttrs(item) {
+    if (!hasInfoTip(item)) return '';
+
+    var note = gainText(item);
+
+    return ' data-slip-item="' + item.cfg + '"' + (note && infoTags().indexOf('note') >= 0 ? ' data-slip-note="' + esc(note) + '"' : '');
+  }
+
   function itemById(id) {
     var data = station.data;
     var all = data.items.concat(data.basket);
@@ -315,8 +346,9 @@
     var wantN = scope.filter(function (item) { return item.wanted; }).length;
     var items = shown();
     var list = items.map(function (item) {
-      return '<div class="nbs-row' + (item.no ? ' is-no' : '') + '" data-add="' + item.id + '"><img src="' + esc(item.ic) + '"><span class="nbs-nm">' + esc(item.n) + '</span>' +
+      return '<div class="nbs-row' + (item.no ? ' is-no' : '') + '" data-add="' + item.id + '"' + infoAttrs(item) + '><img src="' + esc(item.ic) + '"><span class="nbs-nm">' + esc(item.n) + '</span>' +
         (item.wanted ? '<span class="nbs-tag">' + esc(labels.wanted) + '</span>' : '') +
+        (item.g1 > 0 ? '<span class="nbs-gain">+' + item.g1 + '</span>' : '') +
         '<span class="nbs-meta">' + item.w + 'x' + item.h + ' &middot; x' + item.q + (kgOf(item.kg, state) ? ' &middot; ' + kgOf(item.kg, state) : '') + '</span>' +
         (station.sel === 'all' ? '<span class="nbs-where">' + esc(placeName(item.owner)) + '</span>' : '') + '</div>';
     }).join('');
@@ -353,14 +385,14 @@
 
     data.basket.forEach(function (item) {
       used += item.w * item.h;
-      cells += cellHtml(item, 'is-item' + (item.wanted ? ' is-w' : ''), ' data-take="' + item.id + '"');
+      cells += cellHtml(item, 'is-item' + (item.wanted ? ' is-w' : ''), ' data-take="' + item.id + '"' + infoAttrs(item));
     });
 
     // Where Fill would put each stack, drawn faintly in the free cells.
     (data.picks || []).forEach(function (pick) {
       var item = itemById(pick.id);
 
-      if (item) cells += cellHtml({ x: pick.x, y: pick.y, w: item.w, h: item.h, ic: item.ic, q: item.q }, 'is-ghost', '');
+      if (item) cells += cellHtml({ x: pick.x, y: pick.y, w: item.w, h: item.h, ic: item.ic, q: pick.q || item.q }, 'is-ghost', '');
     });
 
     var chips = (wish.chips || []).map(function (chip) {
@@ -486,9 +518,13 @@
       }
 
       send('add|' + item.id + '|' + (e.shiftKey ? 'all' : 'one'));
+      shownMoved(doc, item, e.shiftKey);
       askSoon();
     } else if (target.hasAttribute('data-take')) {
+      var taken = itemById(target.getAttribute('data-take'));
+
       send('take|' + target.getAttribute('data-take'));
+      if (taken) shownMoved(doc, taken, true);
       askSoon();
     } else {
       var act = target.getAttribute('data-act');
@@ -499,7 +535,8 @@
       } else if (act === 'send') {
         sendBasket(doc);
       } else {
-        press(act);
+        // Shift+Fill packs the basket as full as it goes instead of to the goal.
+        press(act === 'fill' && e.shiftKey ? 'fillmax' : act);
         askSoon();
       }
     }
@@ -517,6 +554,23 @@
     }
 
     askSoon();
+  }
+
+  // Shows the click at once instead of waiting for the plugin's answer: one fewer in the stack, or the stack gone. The
+  // answer redraws everything right after (it is let through even when it matches the last one), so a refused move
+  // comes back.
+  function shownMoved(doc, item, isWhole) {
+    var data = station.data;
+
+    if (isWhole || item.q <= 1) {
+      data.items = data.items.filter(function (other) { return other !== item; });
+      data.basket = data.basket.filter(function (other) { return other !== item; });
+    } else {
+      item.q -= 1;
+    }
+
+    station.json = '';
+    draw(doc, true);
   }
 
   function askSoon() {
@@ -537,10 +591,18 @@
       return;
     }
 
+    if (hasInfoTip(item)) {
+      tip.style.display = 'none';
+
+      return;
+    }
+
     var state = basketState(doc);
     var kg = kgOf(item.kg, state);
+    var gain = gainText(item);
 
-    tip.innerHTML = '<b>' + esc(item.n) + '</b><span>' + item.w + 'x' + item.h + ' &middot; x' + item.q + (kg ? ' &middot; ' + kg : '') + '<br>' + esc(placeName(item.owner)) + '</span>';
+    tip.innerHTML = '<b>' + esc(item.n) + '</b><span>' + item.w + 'x' + item.h + ' &middot; x' + item.q + (kg ? ' &middot; ' + kg : '') + '<br>' + esc(placeName(item.owner)) + '</span>' +
+      (gain ? '<span class="nbs-gain" style="display:block;margin-top:3px">' + esc(gain) + '</span>' : '');
     tip.style.display = 'block';
 
     var view = doc.defaultView;

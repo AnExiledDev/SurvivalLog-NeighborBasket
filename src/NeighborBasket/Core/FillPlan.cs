@@ -4,8 +4,11 @@ using System.Linq;
 
 namespace NeighborBasket.Core;
 
-/// <summary>What the neighbor wants this round, as the basket screen shows it.</summary>
-public sealed record BasketWish(bool IsActive, bool IsPending, bool IsAway, bool IsDying, IReadOnlyList<int> Categories, int? CrisisCategory)
+/// <summary>
+/// What the neighbor wants this round, as the basket screen shows it. StageLeft is the progress her current stage
+/// still needs, 0 when unknown.
+/// </summary>
+public sealed record BasketWish(bool IsActive, bool IsPending, bool IsAway, bool IsDying, IReadOnlyList<int> Categories, int? CrisisCategory, int StageLeft = 0)
 {
     public static readonly BasketWish None = new(false, false, false, false, new int[0], null);
 }
@@ -21,13 +24,26 @@ public sealed record Candidate(long ItemId, long OwnerId, int ConfigId, int Cate
     public bool IsUsable => !IsForbidden && Value > 0 && Count > 0 && Width > 0 && Height > 0;
 
     public int Area => Width * Height;
+
+    /// <summary>
+    /// Part of this stack: its value and weight scaled to the units taken. The game values a stack as count times
+    /// trade value times uses, so a part is worth its share; rounding can move it by one.
+    /// </summary>
+    public Candidate Part(int units) =>
+        units >= Count ? this : this with { Count = units, Value = (int)Math.Round(Value * (double)units / Count), Weight = (int)Math.Ceiling(Weight * (double)units / Count) };
+
+    /// <summary>What one unit of the stack is worth.</summary>
+    public double UnitValue => Count > 0 ? Value / (double)Count : 0;
 }
 
 /// <summary>A cell rectangle in a bag: column, row, width, height.</summary>
 public readonly record struct Cells(int X, int Y, int Width, int Height);
 
-/// <summary>A stack to put in the basket, with the top-left cell it goes to.</summary>
-public sealed record Pick(Candidate Item, int X, int Y)
+/// <summary>
+/// A stack to put in the basket, with the top-left cell it goes to. IsPart means only Item.Count units of the stack
+/// go, moved one at a time (Stacking's unit move), so they land wherever the game's quick move puts them.
+/// </summary>
+public sealed record Pick(Candidate Item, int X, int Y, bool IsPart = false)
 {
     public int Weight => Item.Weight;
 }
@@ -48,6 +64,8 @@ public enum FillStop
     Away,
     Pending,
     Full,
+    // What the basket holds already reaches the goal.
+    GoalMet,
 }
 
 /// <summary>
@@ -68,6 +86,107 @@ public static class FillPlan
 
     /// <summary>The search stops after this many steps and keeps the best plan found; a 5 x 3 basket rarely needs a tenth of it.</summary>
     public const int SearchBudget = 400_000;
+
+    /// <summary>
+    /// Enough for the goal and no more, from what the player will miss least. The goal is capped at what the stage
+    /// still needs; scoreNow is what the basket already scores. One unit of each wished kind not yet in the basket
+    /// comes first (the flat bonus is the cheapest progress there is), the cheapest unit of that kind. Then units of
+    /// wished stacks, from the stack worth the most in total (the one the player has most of), only as many as the
+    /// goal still needs. Kinds she did not ask for count at under a third of the rate, so they go in only when the
+    /// wished stacks run out. Every unit of a stack adds the same, so taking more of one never counts for less. With
+    /// canSplit false (no Stacking) only whole stacks move, the smallest that covers what is left first. While she is
+    /// dying the goal does not apply and the plan is the most food, as Plan makes it.
+    /// </summary>
+    public static FillResult Goal(BasketWish wish, IReadOnlyList<Candidate> sources, Basket basket, Rates rates, int goal, double scoreNow, bool canSplit)
+    {
+        if (wish.IsDying || goal <= 0) return Plan(wish, sources, basket, rates);
+        if (!wish.IsActive) return Stopped(FillStop.NoNeighbor);
+        if (wish.IsAway) return Stopped(FillStop.Away);
+
+        var wished = Wanted(wish).ToList();
+
+        if (wished.Count == 0) return Stopped(FillStop.Pending);
+
+        if (wish.StageLeft > 0) goal = Math.Min(goal, wish.StageLeft);
+
+        // A part's value can round one below its share, so the plan aims a little over.
+        var need = goal + PartMargin - scoreNow;
+
+        if (need <= PartMargin) return Stopped(FillStop.GoalMet);
+
+        var grid = new Grid(basket.Cols, basket.Rows, basket.Taken);
+
+        if (grid.FreeCount == 0 || basket.FreeWeight <= 0) return Stopped(FillStop.Full);
+
+        var usable = sources.Where(item => item.IsUsable).ToList();
+        var missing = wished.Where(category => !basket.CategoriesInBasket.Contains(category) && usable.All(item => item.Category != category)).ToList();
+        var scorer = new Scorer(wished, basket.CategoriesInBasket, rates, false);
+        var packer = new Packer(grid, basket.FreeWeight, scorer);
+
+        foreach (var category in wished.Where(category => !basket.CategoriesInBasket.Contains(category)))
+        {
+            if (packer.Gain >= need) break;
+
+            var kind = usable.Where(item => item.Category == category && !packer.Has(item)).ToList();
+            var cheapest = canSplit
+                ? kind.OrderBy(item => item.UnitValue).ThenByDescending(item => item.Count).ThenBy(item => item.ItemId)
+                : kind.OrderBy(item => item.Value).ThenBy(item => item.ItemId);
+
+            foreach (var item in cheapest)
+            {
+                if (packer.TryAdd(item, canSplit ? 1 : item.Count)) break;
+            }
+        }
+
+        foreach (var isWished in new[] { true, false })
+        {
+            var stacks = usable.Where(item => scorer.IsWished(item) == isWished && scorer.Rated(item) > 0).ToList();
+
+            while (packer.Gain < need)
+            {
+                var left = need - packer.Gain;
+                var next = canSplit
+                    ? stacks.Where(packer.HasUnitsLeft).OrderByDescending(item => item.Value).ThenBy(item => item.ItemId).FirstOrDefault()
+                    : Covering(stacks.Where(item => !packer.Has(item)), scorer, left);
+
+                if (next == null) break;
+
+                var units = canSplit ? Math.Min(packer.UnitsLeft(next), (int)Math.Ceiling(left / (scorer.Rated(next) / next.Count))) : next.Count;
+
+                if (!packer.TryAdd(next, units)) stacks.Remove(next);
+            }
+        }
+
+        var picks = packer.Picks();
+
+        if (picks.Count == 0 && missing.Count == 0) return Stopped(FillStop.Full);
+
+        return new FillResult(picks, missing, FillStop.None, false, (int)Math.Round(scorer.Score(picks.Select(pick => pick.Item))));
+    }
+
+    /// <summary>
+    /// The progress one unit and the whole stack add on top of what the basket holds: the flat bonus when its kind is
+    /// wished and not in the basket yet, plus its value at the wished or the other rate. Linear in the units, so the
+    /// tenth unit adds as much as the first.
+    /// </summary>
+    public static (double One, double Stack) ItemGain(Candidate item, BasketWish wish, IReadOnlyCollection<int> categoriesInBasket, Rates rates)
+    {
+        var scorer = new Scorer(Wanted(wish).ToList(), categoriesInBasket, rates, false);
+
+        return (scorer.Score(new[] { item.Part(1) with { Value = 0 } }) + scorer.Rated(item) / Math.Max(1, item.Count), scorer.Score(new[] { item }));
+    }
+
+    // Aim this far over the goal: a part's rounded value can be one under its share (one value is 0.2 progress).
+    private const double PartMargin = 0.25;
+
+    /// <summary>Whole stacks only: the smallest that covers what is left, or the biggest when none does.</summary>
+    private static Candidate? Covering(IEnumerable<Candidate> stacks, Scorer scorer, double left)
+    {
+        var list = stacks.ToList();
+
+        return list.Where(item => scorer.Rated(item) >= left).OrderBy(scorer.Rated).ThenBy(item => item.ItemId).FirstOrDefault()
+               ?? list.OrderByDescending(scorer.Rated).ThenBy(item => item.ItemId).FirstOrDefault();
+    }
 
     public static FillResult Plan(BasketWish wish, IReadOnlyList<Candidate> sources, Basket basket, Rates rates)
     {
@@ -186,6 +305,83 @@ public static class FillPlan
             }
 
             return total + hits.Count * HitPerCategory;
+        }
+    }
+
+    /// <summary>
+    /// The goal plan's picks as they grow: each stack gets one cell, at the first spot it fits; more units of a stack
+    /// already picked join it there. Weight is checked per unit.
+    /// </summary>
+    private sealed class Packer
+    {
+        private readonly Grid _grid;
+        private readonly float _freeWeight;
+        private readonly Scorer _scorer;
+        private readonly List<(Candidate Item, int X, int Y)> _spots = new();
+        private readonly Dictionary<long, int> _units = new();
+        private long _closed;
+        private float _weight;
+
+        public Packer(Grid grid, float freeWeight, Scorer scorer)
+        {
+            _grid = grid;
+            _freeWeight = freeWeight;
+            _scorer = scorer;
+            _closed = grid.Taken;
+        }
+
+        public double Gain { get; private set; }
+
+        public bool Has(Candidate item) => _units.ContainsKey(item.ItemId);
+
+        public int UnitsLeft(Candidate item) => item.Count - (_units.TryGetValue(item.ItemId, out var taken) ? taken : 0);
+
+        public bool HasUnitsLeft(Candidate item) => UnitsLeft(item) > 0;
+
+        /// <summary>Takes up to this many more units of the stack, as many as the weight allows; false when none fit.</summary>
+        public bool TryAdd(Candidate item, int units)
+        {
+            var taken = _units.TryGetValue(item.ItemId, out var had) ? had : 0;
+            var unitWeight = item.Count > 0 ? item.Weight / (double)item.Count : 0;
+
+            units = Math.Min(units, item.Count - taken);
+
+            if (unitWeight > 0) units = Math.Min(units, (int)Math.Floor((_freeWeight - _weight) / unitWeight + 1e-9));
+
+            if (units <= 0) return false;
+
+            if (taken == 0)
+            {
+                var spot = FirstFit(item.Width, item.Height);
+
+                if (spot == null) return false;
+
+                _closed |= _grid.Mask(spot.Value.X, spot.Value.Y, item.Width, item.Height);
+                _spots.Add((item, spot.Value.X, spot.Value.Y));
+            }
+
+            _units[item.ItemId] = taken + units;
+            _weight += (float)(unitWeight * units);
+            Gain = _scorer.Score(Picks().Select(pick => pick.Item));
+
+            return true;
+        }
+
+        public List<Pick> Picks() => _spots.Select(spot => new Pick(spot.Item.Part(_units[spot.Item.ItemId]), spot.X, spot.Y, _units[spot.Item.ItemId] < spot.Item.Count)).ToList();
+
+        private (int X, int Y)? FirstFit(int width, int height)
+        {
+            for (var y = 0; y < _grid.Rows; y++)
+            {
+                for (var x = 0; x < _grid.Cols; x++)
+                {
+                    var mask = _grid.Mask(x, y, width, height);
+
+                    if (mask != 0 && (mask & _closed) == 0) return (x, y);
+                }
+            }
+
+            return null;
         }
     }
 

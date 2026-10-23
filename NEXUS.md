@@ -1,5 +1,5 @@
 Name: Neighbor Basket
-Summary: Opens a basket station on the neighbour's gift basket: every home storage beside the basket's grid, her wishes, weight and progress, and a Fill button that packs it as tightly as it goes for the most progress. Click any stack to put it in or take it out. Warnings come before she gets worse, and a phone app tracks affinity, progress and every send.
+Summary: Opens a basket station on the neighbour's gift basket: every home storage beside the basket's grid, and a Fill button that puts in just enough for a big jump in her condition. Every stack shows the progress it adds; click to put it in or take it out. Warnings come before she gets worse, and a phone app tracks affinity, progress and every send.
 
 Description (BBCode):
 Keeping a neighbour alive means opening the basket, reading what she wants, then hunting through your storages for one item of each kind before time runs out. Neighbor Basket opens a [b]basket station[/b] with all your storages beside the basket and a [b]Fill[/b] button that does the hunting, warns you before she gets worse, and adds a phone app that tracks how she is doing.
@@ -8,7 +8,8 @@ Keeping a neighbour alive means opening the basket, reading what she wants, then
 [list]
 [*][b]Basket station[/b]: opens with the basket. Every storage at home and your bag on the left, with search and the kinds she wants marked; the basket's grid, her wishes, the weight left and the progress a send would give in the middle; her condition, deadlines, streak, progress and affinity on the right. Game screen switches back to the game's own basket screen.[/*]
 [*][b]Click to move[/b]: click a stack to put one in, Shift-click for the whole stack, click a stack in the basket to put it back where it came from.[/*]
-[*][b]Fill button[/b]: packs the basket from your home storage as tightly as it goes for the most progress she gives: whole stacks, placed by shape, within the weight limit. The kinds she wants come first for their bonus. What Fill would do shows faintly in the free cells. Your bag is never touched.[/*]
+[*][b]Fill button[/b]: puts in enough from your home storage for 80 progress, the amount that lifts her condition two steps: one of each kind she wants first for its bonus, then more of what you have most of, only as many as it takes. With Stacking it takes part of a stack. Shift-click packs the basket as full as it goes. What Fill would do shows faintly in the free cells. Your bag is never touched.[/*]
+[*][b]Progress per item[/b]: every stack shows the progress one more of it adds; its tooltip shows that and the whole stack's.[/*]
 [*][b]Never what you locked[/b]: items the basket refuses are skipped, and nothing goes past the basket's cells or its weight limit.[/*]
 [*][b]Food when she is dying[/b]: while she is dying, Fill packs food only.[/*]
 [*][b]Warnings[/b]: a message a few hours before her condition drops a step, before her trouble's deadline, before the send streak breaks, and when she starts to struggle or is dying. Each shows once.[/*]
@@ -26,17 +27,18 @@ The mod adds no data of its own to your save; the phone app's log is a separate 
 [size=5]Known issues[/size]
 [list]
 [*]The log only sees sends and returns while the game runs, and gifts she brings on her own are not logged. Her text messages are already in the game's Messages app.[/*]
-[*]Fill moves whole stacks and may add kinds she did not ask for when they add the most; click any you want to keep to put it back.[/*]
+[*]Without Stacking, Fill moves whole stacks, so it can go past the goal. It adds kinds she did not ask for only when the kinds she wants run out; click any you want to keep to put it back.[/*]
 [*]Without Stacking, clicking a stack moves the whole stack.[/*]
 [*]The most valuable food is taken to fill her most; the mod does not read how filling each food is.[/*]
 [/list]
 
 [size=5]Requirements[/size]
 [list]
-[*]Survival Log 1.1.19131. A game update can break it until the mod is updated.[/*]
+[*]Survival Log 1.1.19611. A game update can break it until the mod is updated.[/*]
 [*][url=https://www.nexusmods.com/survivallog/mods/12]BepInEx for Survival Log[/url]. Install it first.[/*]
 [*]Optional: [url=https://www.nexusmods.com/survivallog/mods/61]Exiled's Toolkit[/url] 0.4.0 or newer. With it, messages show as toasts and settings changed on the Mod Manager's Mods screen take effect without restarting the game. With 0.8.0 or newer, the Neighbor phone app sits in the phone's dock with the game's apps.[/*]
-[*]Optional: Stacking. With it, clicking a stack in the station puts one in instead of the whole stack.[/*]
+[*]Optional: Stacking. With it, clicking a stack in the station puts one in instead of the whole stack, and Fill takes only the part of a stack it needs.[/*]
+[*]Optional: Info Pack 0.8.13 or newer. With it, the station's stacks show Info Pack's item tooltip, with the progress line under the name.[/*]
 [*]Optional: Storage Hub 0.13.0 or newer. With it, the Put away button shows.[/*]
 [/list]
 
@@ -52,7 +54,7 @@ The mod adds no data of its own to your save; the phone app's log is a separate 
 Delete [font=Courier New]NeighborBasket.dll[/font] from the [font=Courier New]BepInEx\plugins[/font] folder.
 
 [size=5]Configuration[/size]
-Edit [font=Courier New]BepInEx\config\com.dev.survivallog.neighborbasket.cfg[/font] while the game is closed, or change it in game on the Mod Manager's Mods screen (see [url=https://github.com/AnExiledDev/SurvivalLog-NeighborBasket/blob/main/CONFIG.md]CONFIG.md[/url]; the cfg file explains each setting in English and Chinese). Settings: [font=Courier New]FillButton[/font], [font=Courier New]PutAwayButton[/font], [font=Courier New]CallBackButton[/font], [font=Courier New]Enabled[/font] (warnings), [font=Courier New]Streak[/font], [font=Courier New]WarnHours[/font] and [font=Courier New]App[/font] (phone app).
+Edit [font=Courier New]BepInEx\config\com.dev.survivallog.neighborbasket.cfg[/font] while the game is closed, or change it in game on the Mod Manager's Mods screen (see [url=https://github.com/AnExiledDev/SurvivalLog-NeighborBasket/blob/main/CONFIG.md]CONFIG.md[/url]; the cfg file explains each setting in English and Chinese). Settings: [font=Courier New]FillButton[/font], [font=Courier New]FillGoal[/font], [font=Courier New]PutAwayButton[/font], [font=Courier New]CallBackButton[/font], [font=Courier New]Enabled[/font] (warnings), [font=Courier New]Streak[/font], [font=Courier New]WarnHours[/font] and [font=Courier New]App[/font] (phone app).
 
 [size=5]Feedback[/size]
 Found a bug or have an idea? Come say hi on the [url=https://discord.gg/trTsyxUFqg]Core Directive Discord[/url], or post in this page's Posts tab. For bugs, please include [font=Courier New]BepInEx\LogOutput.log[/font] and [font=Courier New]BepInEx\neighbor-basket.log[/font].
@@ -71,7 +73,8 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-NeighborB
 [list]
 [*][b]篮子工作台[/b]：随篮子一起打开。左边是家中所有储物和背包，可搜索，她想要的类别会标出；中间是篮子的格子、她的愿望、剩余承重和送出可得的进度；右边是她的状况、期限、连续赠送、进度和好感。「游戏界面」可切回游戏自带的篮子界面。[/*]
 [*][b]点击移动[/b]：点击一组物品放入一件，按住 Shift 点击放入整组；点击篮子里的物品放回原处。[/*]
-[*][b]「装篮」按钮[/b]：从家中储物里把篮子尽量装满，换取她给出的最多进度：按形状摆放整组物品，不超过承重。她想要的类别有额外奖励，所以优先放入。「装篮」的计划会在空格中淡淡显示。不会动你的背包。[/*]
+[*][b]「装篮」按钮[/b]：从家中储物里放入足够 80 进度的物品，正好让她的状态提升两档：先放她想要的每一类各一件以获得额外奖励，再放你最多的东西，够了就停。安装 Stacking 后可以只拿一组中的几件。按住 Shift 单击会把篮子尽量装满。「装篮」的计划会在空格中淡淡显示。不会动你的背包。[/*]
+[*][b]每件物品的进度[/b]：每组物品都会显示再放一件能加多少进度；悬停提示里还有整组的进度。[/*]
 [*][b]不动你锁定的物品[/b]：篮子拒收的物品会被跳过，放入的物品不会超过篮子的格子数和承重。[/*]
 [*][b]濒死时只放食物[/b]：她濒死时，「装篮」只放食物。[/*]
 [*][b]提醒[/b]：在她的状态下降一档之前几小时、她遇到的麻烦到期之前、连续赠送快要中断之前，以及她开始挣扎或濒死时显示提醒。每条只显示一次。[/*]
@@ -89,17 +92,18 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-NeighborB
 [size=5]已知问题[/size]
 [list]
 [*]记录只在游戏运行时看到送出和送回，她主动送来的礼物不会记录。她的短信已在游戏自带的「信息」应用中。[/*]
-[*]「装篮」整组移动，并可能放入她没要的类别（当它们带来的进度最多时）；想留下的点击即可放回。[/*]
+[*]没有安装 Stacking 时，「装篮」整组移动，所以可能超过目标。只有她想要的类别不够时才会放入她没要的类别；想留下的点击即可放回。[/*]
 [*]没有安装 Stacking 时，点击一组物品会整组移动。[/*]
 [*]选择价值最高的食物来尽量喂饱她；本模组不读取每种食物的饱腹程度。[/*]
 [/list]
 
 [size=5]前置要求[/size]
 [list]
-[*]Survival Log 1.1.19131。游戏更新后模组可能暂时失效，直到模组更新为止。[/*]
+[*]Survival Log 1.1.19611。游戏更新后模组可能暂时失效，直到模组更新为止。[/*]
 [*][url=https://www.nexusmods.com/survivallog/mods/12]BepInEx for Survival Log[/url]，请先安装。[/*]
 [*]可选：[url=https://www.nexusmods.com/survivallog/mods/61]Exiled's Toolkit[/url] 0.4.0 或更新版本。安装后提示以弹窗显示，在 Mod Manager 的「模组」界面修改的设置无需重启游戏即可生效。0.8.0 或更新版本会把「邻居」手机应用和游戏自带的应用一起放在手机底部的程序栏里。[/*]
-[*]可选：Stacking。安装后在工作台点击一组物品只放入一件，而不是整组。[/*]
+[*]可选：Stacking。安装后在工作台点击一组物品只放入一件，而不是整组，「装篮」也只拿一组中需要的几件。[/*]
+[*]可选：Info Pack 0.8.13 或更新版本。安装后工作台里的物品会显示 Info Pack 的物品提示，名字下方附有进度。[/*]
 [*]可选：储物中心（Storage Hub）0.13.0 或更新版本。安装后显示「收纳」按钮。[/*]
 [/list]
 
@@ -115,7 +119,7 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-NeighborB
 从 [font=Courier New]BepInEx\plugins[/font] 文件夹中删除 [font=Courier New]NeighborBasket.dll[/font]。
 
 [size=5]配置[/size]
-在游戏关闭时编辑 [font=Courier New]BepInEx\config\com.dev.survivallog.neighborbasket.cfg[/font]，或在游戏中 Mod Manager 的「模组」界面修改。设置项：[font=Courier New]FillButton[/font]、[font=Courier New]PutAwayButton[/font]、[font=Courier New]CallBackButton[/font]、[font=Courier New]Enabled[/font]（提醒）、[font=Courier New]Streak[/font]、[font=Courier New]WarnHours[/font] 和 [font=Courier New]App[/font]（手机应用）。
+在游戏关闭时编辑 [font=Courier New]BepInEx\config\com.dev.survivallog.neighborbasket.cfg[/font]，或在游戏中 Mod Manager 的「模组」界面修改。设置项：[font=Courier New]FillButton[/font]、[font=Courier New]FillGoal[/font]、[font=Courier New]PutAwayButton[/font]、[font=Courier New]CallBackButton[/font]、[font=Courier New]Enabled[/font]（提醒）、[font=Courier New]Streak[/font]、[font=Courier New]WarnHours[/font] 和 [font=Courier New]App[/font]（手机应用）。
 
 [size=5]反馈[/size]
 发现 bug 或有好点子？欢迎来 [url=https://discord.gg/trTsyxUFqg]Core Directive Discord[/url] 打个招呼，或在本页的「Posts」标签里发帖。报告 bug 时，请附上 [font=Courier New]BepInEx\LogOutput.log[/font] 和 [font=Courier New]BepInEx\neighbor-basket.log[/font]。
