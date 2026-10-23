@@ -1,0 +1,114 @@
+Name: Neighbor Basket
+Summary: Adds a Fill button to the neighbour's gift basket that puts in one item for each kind she wants, the cheapest you have at home or in your bag, her trouble's kind first. Warns you hours before her condition drops or her trouble runs out of time, and while she struggles or is dying. Skips locked items, stays within the basket's cells and never sends it for you.
+
+Description (BBCode):
+Keeping a neighbour alive means opening the basket, reading what she wants, then hunting through your storages for one item of each kind before time runs out. Neighbor Basket adds a [b]Fill[/b] button to the basket screen that does the hunting, and warns you before she gets worse.
+
+[size=5]Main features[/size]
+[list]
+[*][b]Fill button[/b]: for each kind she wishes for, puts in the matching item that costs you least, from the storages at home or your bag. Her trouble's kind goes in first.[/*]
+[*][b]Never what you locked[/b]: items the basket refuses are skipped, and nothing goes past the basket's cells.[/*]
+[*][b]Food when she is dying[/b]: while she is struggling or dying, Fill puts in food only, the most valuable first.[/*]
+[*][b]Warnings[/b]: a message a few hours before her condition drops a step, before her trouble's deadline, and when she starts to struggle or is dying. Each shows once.[/*]
+[*][b]Call back button[/b]: off by default. When on, it brings the basket home at once while it is away.[/*]
+[*][b]Both neighbours[/b]: works for whichever neighbour you are helping.[/*]
+[/list]
+Fill never sends the basket: check what went in, then send it with the game's own button.
+
+Works in English and Chinese.
+
+The mod adds no data of its own to your save. The moves are real, the same as moving items into the basket by hand. You can remove it at any time.
+
+[size=5]Known issues[/size]
+[list]
+[*]Fill puts in one item per wished kind and does not fill the leftover cells, except with food while she is dying.[/*]
+[*]Without Stacking, the game moves a stack whole, so Fill picks the stack that costs you least in total.[/*]
+[*]The most valuable food is taken to fill her most; the mod does not read how filling each food is.[/*]
+[/list]
+
+[size=5]Requirements[/size]
+[list]
+[*]Survival Log 1.1.19131. A game update can break it until the mod is updated.[/*]
+[*][url=https://www.nexusmods.com/survivallog/mods/12]BepInEx for Survival Log[/url]. Install it first.[/*]
+[*]Optional: [url=https://www.nexusmods.com/survivallog/mods/61]Exiled's Toolkit[/url] 0.4.0 or newer. With it, messages show as toasts and settings changed on the Mod Manager's Mods screen take effect without restarting the game.[/*]
+[*]Optional: Stacking. With it, Fill moves one unit of a stack instead of the whole stack.[/*]
+[/list]
+
+[size=5]Installation[/size]
+[list=1]
+[*]Install [url=https://www.nexusmods.com/survivallog/mods/12]BepInEx[/url] [i](if no other mods were installed before, start the game once so BepInEx finishes setup, then quit)[/i].[/*]
+[*]Download the zip from the Files tab.[/*]
+[*]Extract it into the game folder (the folder with [font=Courier New]SurvivalLog.exe[/font]). The zip holds a BepInEx folder, so the DLL lands in the right place. When asked, merge the folders. The result should be:
+[code]C:\Program Files (x86)\Steam\steamapps\common\Survival Log\BepInEx\plugins\NeighborBasket.dll[/code][/*]
+[/list]
+
+[size=5]Uninstall[/size]
+Delete [font=Courier New]NeighborBasket.dll[/font] from the [font=Courier New]BepInEx\plugins[/font] folder.
+
+[size=5]Configuration[/size]
+Edit [font=Courier New]BepInEx\config\com.dev.survivallog.neighborbasket.cfg[/font] while the game is closed, or change it in game on the Mod Manager's Mods screen (see [url=https://github.com/AnExiledDev/SurvivalLog-NeighborBasket/blob/main/CONFIG.md]CONFIG.md[/url]; the cfg file explains each setting in English and Chinese). Settings: [font=Courier New]FillButton[/font], [font=Courier New]CallBackButton[/font], [font=Courier New]Enabled[/font] (warnings) and [font=Courier New]WarnHours[/font].
+
+[size=5]Feedback[/size]
+Found a bug or have an idea? Come say hi on the [url=https://discord.gg/trTsyxUFqg]Core Directive Discord[/url], or post in this page's Posts tab. For bugs, please include [font=Courier New]BepInEx\LogOutput.log[/font] and [font=Courier New]BepInEx\neighbor-basket.log[/font].
+To reach me directly, message [b]exiled.dev[/b] on Discord; you can find me in the [url=https://discord.gg/MZGg4gQAUe]official Survival Log Discord[/url]. I'm also on X as [url=https://x.com/AnExiledDev]@AnExiledDev[/url].
+Check out my [url=https://sldb.core-directive.com/en/]Survival Log wiki[/url] for items, crafting, maps and more.
+
+[size=5]Source and license[/size]
+Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-NeighborBasket]github.com/AnExiledDev/SurvivalLog-NeighborBasket[/url]
+
+[line]
+[size=5]简体中文[/size]
+
+想让邻居活下去，就得打开篮子、看她想要什么，再在储物家具里翻找每一类物品各一件，还要赶在时间用完之前。Neighbor Basket 在篮子界面加了一个「装篮」按钮替你翻找，并在她状况变差之前提醒你。
+
+[size=5]主要功能[/size]
+[list]
+[*][b]「装篮」按钮[/b]：为她想要的每一类物品，从家中储物家具或背包里放入对你来说最便宜的一件。她遇到的麻烦所需的类别优先放入。[/*]
+[*][b]不动你锁定的物品[/b]：篮子拒收的物品会被跳过，放入的数量不会超过篮子的格子数。[/*]
+[*][b]濒死时只放食物[/b]：她挣扎或濒死时，「装篮」只放食物，价值高的优先。[/*]
+[*][b]提醒[/b]：在她的状态下降一档之前几小时、她遇到的麻烦到期之前，以及她开始挣扎或濒死时显示提醒。每条只显示一次。[/*]
+[*][b]「召回」按钮[/b]：默认关闭。开启后，篮子不在家时可以让它立刻回来。[/*]
+[*][b]两位邻居都支持[/b]：对你正在帮助的邻居生效。[/*]
+[/list]
+「装篮」不会替你送出篮子：确认放入的物品后，用游戏自己的按钮送出。
+
+支持中文和英文。
+
+本模组不会往存档里写入自己的数据。物品的移动是真实的，和你亲手放进篮子一样。你可以随时移除它。
+
+[size=5]已知问题[/size]
+[list]
+[*]「装篮」每个想要的类别只放一件，不会把剩下的格子填满（她濒死时放食物除外）。[/*]
+[*]没有安装 Stacking 时，游戏会整组移动，所以「装篮」会选总价值最低的一组。[/*]
+[*]选择价值最高的食物来尽量喂饱她；本模组不读取每种食物的饱腹程度。[/*]
+[/list]
+
+[size=5]前置要求[/size]
+[list]
+[*]Survival Log 1.1.19131。游戏更新后模组可能暂时失效，直到模组更新为止。[/*]
+[*][url=https://www.nexusmods.com/survivallog/mods/12]BepInEx for Survival Log[/url]，请先安装。[/*]
+[*]可选：[url=https://www.nexusmods.com/survivallog/mods/61]Exiled's Toolkit[/url] 0.4.0 或更新版本。安装后提示以弹窗显示，在 Mod Manager 的「模组」界面修改的设置无需重启游戏即可生效。[/*]
+[*]可选：Stacking。安装后「装篮」每次只从一组中移出一件，而不是整组。[/*]
+[/list]
+
+[size=5]安装[/size]
+[list=1]
+[*]安装 [url=https://www.nexusmods.com/survivallog/mods/12]BepInEx[/url] [i]（如果之前没有装过其他模组，先启动一次游戏，让 BepInEx 完成初始化，然后退出）[/i]。[/*]
+[*]在「文件」页下载压缩包。[/*]
+[*]把压缩包解压到游戏目录（[font=Courier New]SurvivalLog.exe[/font] 所在的文件夹）。压缩包里带有 BepInEx 文件夹，DLL 会自动放到正确位置。如果提示合并文件夹，选择合并。解压后应为：
+[code]C:\Program Files (x86)\Steam\steamapps\common\Survival Log\BepInEx\plugins\NeighborBasket.dll[/code][/*]
+[/list]
+
+[size=5]卸载[/size]
+从 [font=Courier New]BepInEx\plugins[/font] 文件夹中删除 [font=Courier New]NeighborBasket.dll[/font]。
+
+[size=5]配置[/size]
+在游戏关闭时编辑 [font=Courier New]BepInEx\config\com.dev.survivallog.neighborbasket.cfg[/font]，或在游戏中 Mod Manager 的「模组」界面修改。设置项：[font=Courier New]FillButton[/font]、[font=Courier New]CallBackButton[/font]、[font=Courier New]Enabled[/font]（提醒）和 [font=Courier New]WarnHours[/font]。
+
+[size=5]反馈[/size]
+发现 bug 或有好点子？欢迎来 [url=https://discord.gg/trTsyxUFqg]Core Directive Discord[/url] 打个招呼，或在本页的「Posts」标签里发帖。报告 bug 时，请附上 [font=Courier New]BepInEx\LogOutput.log[/font] 和 [font=Courier New]BepInEx\neighbor-basket.log[/font]。
+想直接联系我，可以在 Discord 上给 [b]exiled.dev[/b] 发消息，我在 [url=https://discord.gg/MZGg4gQAUe]Survival Log 官方 Discord[/url] 里。也可以在 X 上找我：[url=https://x.com/AnExiledDev]@AnExiledDev[/url]。
+也欢迎看看我做的 [url=https://sldb.core-directive.com/zh/]Survival Log 维基[/url]，收录物品、制作、地图等资料。
+
+[size=5]源代码与许可[/size]
+基于 MIT 许可开源：[url=https://github.com/AnExiledDev/SurvivalLog-NeighborBasket]github.com/AnExiledDev/SurvivalLog-NeighborBasket[/url]

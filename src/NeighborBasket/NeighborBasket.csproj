@@ -1,0 +1,49 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <AssemblyName>NeighborBasket</AssemblyName>
+    <RootNamespace>NeighborBasket</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <GameDir Condition="'$(GameDir)' == ''">D:\Games\Survival Log\Survival Log</GameDir>
+    <BepInExCore>$(GameDir)\BepInEx\core</BepInExCore>
+    <Interop>$(GameDir)\BepInEx\interop</Interop>
+    <ToolkitDll Condition="'$(ToolkitDll)' == ''">D:\devnew\game-mods\SurvivalLog\mods\sl-exiled-toolkit\src\ExiledToolkit\bin\Release\ExiledToolkit.dll</ToolkitDll>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="$(BepInExCore)\BepInEx.Core.dll" Private="false" />
+    <Reference Include="$(BepInExCore)\BepInEx.Unity.IL2CPP.dll" Private="false" />
+    <Reference Include="$(BepInExCore)\0Harmony.dll" Private="false" />
+    <Reference Include="$(BepInExCore)\Il2CppInterop.Runtime.dll" Private="false" />
+    <Reference Include="$(BepInExCore)\Il2CppInterop.Common.dll" Private="false" />
+    <Reference Include="$(Interop)\HotUpdate.dll" Private="false" />
+    <Reference Include="$(Interop)\Il2Cppmscorlib.dll" Private="false" />
+    <Reference Include="$(Interop)\UnityEngine.CoreModule.dll" Private="false" />
+    <Reference Include="$(Interop)\UnityEngine.UIModule.dll" Private="false" />
+    <Reference Include="$(Interop)\UnityEngine.UI.dll" Private="false" />
+    <Reference Include="$(Interop)\Vuplex.WebView.dll" Private="false" />
+    <Reference Include="$(ToolkitDll)" Private="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="page.js" LogicalName="NeighborBasket.page.js" />
+  </ItemGroup>
+
+  <!-- What the Mod Manager's Mods screen shows about this mod. -->
+  <ItemGroup>
+    <AssemblyMetadata Include="ModManager.Name" Value="Neighbor Basket&#10;邻居篮子" />
+    <AssemblyMetadata Include="ModManager.Description" Value="Helps you look after the neighbor through her basket. A Fill button puts one cheap item for each thing she wants in the basket from your home storage and bag, and warnings come before her condition drops, before her trouble runs out of time, and while she struggles. An optional Call back button brings the basket home early.&#10;帮你通过篮子照顾邻居。「装篮」按钮从家中储物和背包里为她想要的每一类物品各放一件便宜的进篮子；在她的状态下降之前、她遇到的麻烦快要超时之前以及她挣扎时都会提醒你。可选的「召回」按钮能让篮子提前回来。" />
+    <AssemblyMetadata Include="ModManager.Author" Value="AnExiledDev" />
+    <AssemblyMetadata Include="ModManager.Category" Value="QualityOfLife" />
+    <AssemblyMetadata Include="ModManager.GameVersion" Value="1.1.19131" />
+    <AssemblyMetadata Include="ModManager.Settings" Value="Restart" />
+    <AssemblyMetadata Include="ModManager.GitHub" Value="AnExiledDev/SurvivalLog-NeighborBasket" />
+    <AssemblyMetadata Include="ModManager.Changelog" Value="https://github.com/AnExiledDev/SurvivalLog-NeighborBasket/blob/main/CHANGELOG.md" />
+  </ItemGroup>
+
+</Project>
