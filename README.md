@@ -6,7 +6,8 @@ Keeping a neighbour alive means opening the basket, reading her wishes, then hun
 
 ## Features
 
-- **Fill button**: on the basket screen, next to the game's send button. For each kind of item she wishes for, it puts in the matching item that costs you least, from the storages at home or your bag. Her trouble's kind goes in first, so it still fits when the basket is nearly full.
+- **Basket card**: a card above the basket panel shows her condition and how many hours until it drops, her trouble and its deadline, the send streak and whether today is sent, progress and affinity, the satiety she needs while she struggles, and what Fill would add right now. Close deadlines show in orange or red. The buttons below sit in it.
+- **Fill button**: on the basket card. For each kind of item she wishes for, it puts in the matching item that costs you least, from the storages at home or your bag. Her trouble's kind goes in first, so it still fits when the basket is nearly full.
 - **More of what she wants**: after one of each kind, Fill adds up to 5 more items of the kinds she wants (`FillExtra`), the most value for their weight first. Items she wants give more progress than others.
 - **Never what you locked**: items the basket refuses are skipped, and nothing goes past the basket's cells or its weight limit.
 - **Food when she is dying**: while she is struggling or dying, Fill puts in food only, the most valuable first, until the cells are full.
@@ -23,9 +24,9 @@ Neighbor Basket adds no data of its own to your save; the phone app's log is a s
 
 | Button | Where | What it does |
 | --- | --- | --- |
-| **Fill** | Basket screen, next to the send button | Puts one item for each wished kind not yet in the basket, cheapest first, her trouble's kind first, then more of what she wants within the weight limit. While she is struggling or dying, food only. |
-| **Put away** | Basket screen while the basket is home, only with Storage Hub installed | Puts what the basket holds into your home storage. |
-| **Call back** | Basket screen while the basket is away, only with `CallBackButton` on | Brings the basket home now. |
+| **Fill** | Basket card | Puts one item for each wished kind not yet in the basket, cheapest first, her trouble's kind first, then more of what she wants within the weight limit. While she is struggling or dying, food only. |
+| **Put away** | Basket card while the basket is home, only with Storage Hub installed | Puts what the basket holds into your home storage. |
+| **Call back** | Basket card while the basket is away, only with `CallBackButton` on | Brings the basket home now. |
 
 Fill never sends the basket. Check what went in, then send it with the game's own button.
 
@@ -44,7 +45,7 @@ The buttons, their tooltips and the messages follow the game's language, English
 
 - Survival Log 1.1.19131. Built and tested on this version; a game update can break it until the mod is updated.
 - The [BepInEx Pack for Survival Log](https://www.nexusmods.com/survivallog/mods/12), the BepInEx 6 (IL2CPP) build for the game.
-- Optional: [Exiled's Toolkit](https://github.com/AnExiledDev/SurvivalLog-ExiledToolkit) 0.4.0 or newer. With it, messages show as the Toolkit's toasts and settings changed on the Mod Manager's Mods screen take effect without restarting the game.
+- Optional: [Exiled's Toolkit](https://github.com/AnExiledDev/SurvivalLog-ExiledToolkit) 0.4.0 or newer. With it, messages show as the Toolkit's toasts and settings changed on the Mod Manager's Mods screen take effect without restarting the game. With 0.8.0 or newer, the Neighbor phone app sits in the phone's dock with the game's apps; without it, it shows in the middle of the phone's home screen.
 - Optional: [Stacking](https://github.com/AnExiledDev/SurvivalLog-Stacking). With it, Fill moves one unit of a stack instead of the whole stack.
 - Optional: [Storage Hub](https://github.com/AnExiledDev/SurvivalLog-StorageHub) 0.13.0 or newer. With it, the Put away button shows.
 
@@ -65,7 +66,7 @@ Settings live in `BepInEx\config\com.dev.survivallog.neighborbasket.cfg`, create
 
 ## Troubleshooting
 
-Check `BepInEx\LogOutput.log` for `===== Neighbor Basket 0.2.0 started`. The same line, plus every press and what it moved or why it moved nothing, is in `BepInEx\neighbor-basket.log`, which survives restarts.
+Check `BepInEx\LogOutput.log` for `===== Neighbor Basket 0.3.0 started`. The same line, plus every press and what it moved or why it moved nothing, is in `BepInEx\neighbor-basket.log`, which survives restarts.
 
 If the Fill button does not show, open the basket from the neighbour's gift basket at home and check that `FillButton` is `true`. If Fill says nothing is at hand for a kind, nothing of that kind is in your bag or the storages at home, or all of it is locked.
 

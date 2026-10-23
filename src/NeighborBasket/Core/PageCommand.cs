@@ -23,6 +23,9 @@ public abstract record PageCommand
     /// <summary>Put away was clicked.</summary>
     public sealed record PutAway : PageCommand;
 
+    /// <summary>The basket card is showing and wants fresh data.</summary>
+    public sealed record Card : PageCommand;
+
     /// <summary>The phone app opened or wants fresh data.</summary>
     public sealed record App : PageCommand;
 
@@ -47,6 +50,7 @@ public abstract record PageCommand
             "callback" => new CallBack(),
             "putaway" => new PutAway(),
             "app" => new App(),
+            "card" => new Card(),
             "ready" => new Ready(),
             "noscript" => new NoScript(),
             _ => new Unknown(message),

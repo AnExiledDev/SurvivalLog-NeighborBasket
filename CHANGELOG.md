@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0
+
+- New card above the basket panel: her condition and how many hours until it drops, her trouble and its deadline, the send streak and whether today is sent, progress and affinity, the satiety she needs while she struggles, and what Fill would add right now. Close deadlines show in orange or red.
+- Fill, Put away and Call back moved from the game's footer into the card, so the game's hint and Send button have their room back.
+- With Exiled's Toolkit 0.8.0 or newer, the Neighbor phone app sits in the phone's dock with the game's apps instead of in the middle of the home screen.
+
 ## 0.2.0
 
 - Fill now adds more of what she wants after one of each kind (5 by default, `FillExtra`), the most value for their weight first, and stays within the basket's weight limit.

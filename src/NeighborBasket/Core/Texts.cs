@@ -115,11 +115,49 @@ public static class Texts
 
     public static readonly Phrase Dying = new("She is dying. Send her food now.", "她快不行了，马上送食物给她。");
 
+    public static readonly Phrase CardCondition = new("Condition", "状态");
+
+    public static readonly Phrase CardTier = new("Tier {0}", "第 {0} 档");
+
+    public static readonly Phrase CardDrops = new("drops in {0} h", "{0} 小时后下降");
+
+    public static readonly Phrase CardStruggleIn = new("struggles in {0} h", "{0} 小时后陷入挣扎");
+
+    public static readonly Phrase CardStruggling = new("Struggling, {0} h left", "挣扎中，还剩约 {0} 小时");
+
+    public static readonly Phrase CardDying = new("Dying", "濒死");
+
+    public static readonly Phrase CardSatiety = new("Satiety needed", "所需饱腹");
+
+    public static readonly Phrase CardSatietyValue = new("at least {0}, better from {1}", "至少 {0}，{1} 以上恢复更好");
+
+    public static readonly Phrase CardTrouble = new("Trouble", "麻烦");
+
+    public static readonly Phrase CardTroubleOf = new("Trouble: {0}", "麻烦：{0}");
+
+    public static readonly Phrase CardDue = new("due in {0} h", "剩约 {0} 小时");
+
+    public static readonly Phrase CardStreakToday = new("{0} / {1} days, send today", "{0} / {1} 天，今天还没送");
+
+    public static readonly Phrase CardStreakSent = new("{0} / {1} days, sent today", "{0} / {1} 天，今天已送");
+
+    public static readonly Phrase CardProgressValue = new("{0} / {1}, affinity {2} (good ending at {3})", "{0} / {1}，好感 {2}（达到 {3} 为好结局）");
+
+    public static readonly Phrase CardFills = new("Fill adds {0} wished + {1} extra", "装篮会放入 {0} 件想要的和 {1} 件额外的");
+
+    public static readonly Phrase CardFillsFood = new("Fill adds {0} food", "装篮会放入 {0} 件食物");
+
+    public static readonly Phrase CardFillsNothing = new("Fill finds nothing at hand to add.", "装篮在手边找不到可放的东西。");
+
+    public static readonly Phrase CardWeight = new(", {0} kg", "，{0} 千克");
+
     public static IReadOnlyList<Phrase> All { get; } = new[]
     {
         Source, FillButton, FillTitle, CallBackButton, CallBackTitle, Filled, FilledFood, NoneFound, NotMoved, NoNeighbor, Away, Pending, Full, AllThere, NotOpen, Food, CalledBack, NotAway, Failed,
         TierDrop, StruggleSoon, CrisisDeadline, Struggle, StruggleNeed, Streak, BasketSatiety, TooHeavy, PutAwayButton, PutAwayTitle, NoStorageHub, Dying,
         AppTile, AppTitle, AppBack, AppEmpty, AppNoRescue, AppAffinity, AppAffinityValue, AppProgress, AppStreak, AppStrugglesLeft, AppDay, AppSent, AppReturned, AppSaid, AppGained, AppNothing,
+        CardCondition, CardTier, CardDrops, CardStruggleIn, CardStruggling, CardDying, CardSatiety, CardSatietyValue, CardTrouble, CardTroubleOf, CardDue, CardStreakToday, CardStreakSent,
+        CardProgressValue, CardFills, CardFillsFood, CardFillsNothing, CardWeight,
     };
 
     public static string Warn(Warning warning, bool isChinese) => warning.Kind switch

@@ -1,11 +1,12 @@
 Name: Neighbor Basket
-Summary: Adds a Fill button to the neighbour's gift basket that puts in what she wants from your storages, then more within its weight, plus warnings before she gets worse. A phone app tracks affinity, progress, send streak and a log of every send, return and her thoughts. With Storage Hub, a Put away button empties the basket. Skips locked items, never sends it for you.
+Summary: Adds a card to the neighbour's gift basket with her condition, deadlines and streak, and a Fill button that puts in what she wants from your storages, then more within its weight. Warnings come before she gets worse. A phone app tracks affinity, progress and a log of every send and return. With Storage Hub, Put away empties the basket. Never sends it for you.
 
 Description (BBCode):
 Keeping a neighbour alive means opening the basket, reading what she wants, then hunting through your storages for one item of each kind before time runs out. Neighbor Basket adds a [b]Fill[/b] button to the basket screen that does the hunting, warns you before she gets worse, and adds a phone app that tracks how she is doing.
 
 [size=5]Main features[/size]
 [list]
+[*][b]Basket card[/b]: above the basket panel, her condition and the hours until it drops, her trouble and its deadline, the send streak, progress and affinity, the satiety she needs while she struggles, and what Fill would add right now. The buttons sit in it.[/*]
 [*][b]Fill button[/b]: for each kind she wishes for, puts in the matching item that costs you least, from the storages at home or your bag. Her trouble's kind goes in first.[/*]
 [*][b]More of what she wants[/b]: after one of each kind, Fill adds up to 5 more items of the kinds she wants, the most value for their weight first.[/*]
 [*][b]Never what you locked[/b]: items the basket refuses are skipped, and nothing goes past the basket's cells or its weight limit.[/*]
@@ -33,7 +34,7 @@ The mod adds no data of its own to your save; the phone app's log is a separate 
 [list]
 [*]Survival Log 1.1.19131. A game update can break it until the mod is updated.[/*]
 [*][url=https://www.nexusmods.com/survivallog/mods/12]BepInEx for Survival Log[/url]. Install it first.[/*]
-[*]Optional: [url=https://www.nexusmods.com/survivallog/mods/61]Exiled's Toolkit[/url] 0.4.0 or newer. With it, messages show as toasts and settings changed on the Mod Manager's Mods screen take effect without restarting the game.[/*]
+[*]Optional: [url=https://www.nexusmods.com/survivallog/mods/61]Exiled's Toolkit[/url] 0.4.0 or newer. With it, messages show as toasts and settings changed on the Mod Manager's Mods screen take effect without restarting the game. With 0.8.0 or newer, the Neighbor phone app sits in the phone's dock with the game's apps.[/*]
 [*]Optional: Stacking. With it, Fill moves one unit of a stack instead of the whole stack.[/*]
 [*]Optional: Storage Hub 0.13.0 or newer. With it, the Put away button shows.[/*]
 [/list]
@@ -67,6 +68,7 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-NeighborB
 
 [size=5]主要功能[/size]
 [list]
+[*][b]篮子信息卡[/b]：在篮子面板上方显示她的状态和距下降还剩几小时、她遇到的麻烦和期限、连续赠送、进度和好感、挣扎时所需的饱腹，以及现在「装篮」会放入什么。按钮也在卡片里。[/*]
 [*][b]「装篮」按钮[/b]：为她想要的每一类物品，从家中储物家具或背包里放入对你来说最便宜的一件。她遇到的麻烦所需的类别优先放入。[/*]
 [*][b]多放她想要的[/b]：每类各放一件之后，「装篮」最多再多放 5 件她想要的类别的物品，按单位重量价值从高到低。[/*]
 [*][b]不动你锁定的物品[/b]：篮子拒收的物品会被跳过，放入的物品不会超过篮子的格子数和承重。[/*]
@@ -94,7 +96,7 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-NeighborB
 [list]
 [*]Survival Log 1.1.19131。游戏更新后模组可能暂时失效，直到模组更新为止。[/*]
 [*][url=https://www.nexusmods.com/survivallog/mods/12]BepInEx for Survival Log[/url]，请先安装。[/*]
-[*]可选：[url=https://www.nexusmods.com/survivallog/mods/61]Exiled's Toolkit[/url] 0.4.0 或更新版本。安装后提示以弹窗显示，在 Mod Manager 的「模组」界面修改的设置无需重启游戏即可生效。[/*]
+[*]可选：[url=https://www.nexusmods.com/survivallog/mods/61]Exiled's Toolkit[/url] 0.4.0 或更新版本。安装后提示以弹窗显示，在 Mod Manager 的「模组」界面修改的设置无需重启游戏即可生效。0.8.0 或更新版本会把「邻居」手机应用和游戏自带的应用一起放在手机底部的程序栏里。[/*]
 [*]可选：Stacking。安装后「装篮」每次只从一组中移出一件，而不是整组。[/*]
 [*]可选：储物中心（Storage Hub）0.13.0 或更新版本。安装后显示「收纳」按钮。[/*]
 [/list]

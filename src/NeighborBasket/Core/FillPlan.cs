@@ -47,9 +47,10 @@ public enum FillStop
 
 /// <summary>
 /// The picks, the wished categories nothing at hand could cover, and why nothing was picked when nothing was.
-/// TooHeavy counts the wished categories that had items, all of them too heavy for the weight left.
+/// TooHeavy counts the wished categories that had items, all of them too heavy for the weight left. Extras counts the
+/// picks past the one per wished category; they come last in Picks.
 /// </summary>
-public sealed record FillResult(IReadOnlyList<Pick> Picks, IReadOnlyList<int> Missing, FillStop Stop, bool IsFoodOnly, int TooHeavy = 0);
+public sealed record FillResult(IReadOnlyList<Pick> Picks, IReadOnlyList<int> Missing, FillStop Stop, bool IsFoodOnly, int TooHeavy = 0, int Extras = 0);
 
 /// <summary>
 /// Chooses what goes in the basket. Each wished category she gets earns a flat bonus, while value counts for little,
@@ -99,18 +100,18 @@ public static class FillPlan
             weightLeft -= pick.Weight;
         }
 
-        AddExtras(picks, sources, wished, room, weightLeft, movesOneUnit);
+        var extras = AddExtras(picks, sources, wished, room, weightLeft, movesOneUnit);
 
         if (picks.Count == 0 && missing.Count == 0 && tooHeavy == 0) return Stopped(wanted.Count == 0 ? FillStop.AllThere : FillStop.Full);
 
-        return new FillResult(picks, missing, FillStop.None, false, tooHeavy);
+        return new FillResult(picks, missing, FillStop.None, false, tooHeavy, extras);
     }
 
     /// <summary>
     /// Up to room.Extras more stacks of the wished kinds, one pick each, the most value per weight first, while cells
-    /// and weight last. A stack already picked is not picked again.
+    /// and weight last. A stack already picked is not picked again. Returns how many were added.
     /// </summary>
-    private static void AddExtras(List<Pick> picks, IReadOnlyList<Candidate> sources, IReadOnlyCollection<int> wished, Room room, float weightLeft, bool movesOneUnit)
+    private static int AddExtras(List<Pick> picks, IReadOnlyList<Candidate> sources, IReadOnlyCollection<int> wished, Room room, float weightLeft, bool movesOneUnit)
     {
         var taken = picks.Select(pick => pick.Item.ItemId).ToHashSet();
         var extras = sources
@@ -122,7 +123,7 @@ public static class FillPlan
 
         foreach (var item in extras)
         {
-            if (added >= room.Extras || picks.Count >= room.FreeCells) return;
+            if (added >= room.Extras || picks.Count >= room.FreeCells) return added;
 
             var pick = new Pick(item, movesOneUnit);
 
@@ -132,6 +133,8 @@ public static class FillPlan
             weightLeft -= pick.Weight;
             added++;
         }
+
+        return added;
     }
 
     /// <summary>The crisis category first, then her wishes in the order she named them, each once.</summary>

@@ -75,16 +75,16 @@ public static class Warnings
         {
             yield return new Warning(WarningKind.Dying, 0, "dying:" + state.StruggleDeadlineSeconds);
         }
-        else if (DropKind(state) is { } kind && state.TierAnchorSeconds >= 0)
+        else if (DropKind(state) is { } kind)
         {
-            var dropAt = state.TierAnchorSeconds + state.TierDropHours * SecondsPerHour;
+            var dropAt = DropAt(state);
 
             if (dropAt - state.NowSeconds <= warnHours * SecondsPerHour) yield return new Warning(kind, HoursUntil(dropAt, state.NowSeconds), "drop:" + dropAt);
         }
 
         if (state.HasCrisis && state.CrisisDeadlineDay >= 0)
         {
-            var hoursLeft = Math.Max(0, (state.CrisisDeadlineDay - state.Day) * 24 - state.Hour24);
+            var hoursLeft = HoursToCrisis(state);
 
             if (hoursLeft <= warnHours) yield return new Warning(WarningKind.CrisisDeadline, hoursLeft, "crisis:" + state.CrisisDeadlineDay);
         }
@@ -102,14 +102,22 @@ public static class Warnings
         state.StreakDays > 0 && state.ConsecutiveSendDays >= 1 && state.LastSendDay >= 0 && state.LastSendDay == state.Day - 1;
 
     /// <summary>What the next missed drop does: lowers the tier, starts a struggle at a floor of 1, or nothing at a higher floor.</summary>
-    private static WarningKind? DropKind(NeedState state)
+    internal static WarningKind? DropKind(NeedState state)
     {
-        if (state.TierDropHours <= 0 || state.Tier <= 0) return null;
+        if (state.TierDropHours <= 0 || state.Tier <= 0 || state.TierAnchorSeconds < 0) return null;
         if (state.Tier > state.TierFloor) return WarningKind.TierDrop;
 
         return state.TierFloor <= 1 ? WarningKind.StruggleSoon : null;
     }
 
+    private static int DropAt(NeedState state) => state.TierAnchorSeconds + state.TierDropHours * SecondsPerHour;
+
+    /// <summary>Whole hours until the next drop; only meaningful when DropKind is not null.</summary>
+    internal static int HoursToDrop(NeedState state) => HoursUntil(DropAt(state), state.NowSeconds);
+
+    /// <summary>Whole hours until her trouble fails, at the start of its deadline day.</summary>
+    internal static int HoursToCrisis(NeedState state) => Math.Max(0, (state.CrisisDeadlineDay - state.Day) * 24 - state.Hour24);
+
     /// <summary>Whole hours left, rounded up so "1 h" never means "already gone".</summary>
-    private static int HoursUntil(int atSeconds, int nowSeconds) => Math.Max(0, (atSeconds - nowSeconds + SecondsPerHour - 1) / SecondsPerHour);
+    internal static int HoursUntil(int atSeconds, int nowSeconds) => Math.Max(0, (atSeconds - nowSeconds + SecondsPerHour - 1) / SecondsPerHour);
 }

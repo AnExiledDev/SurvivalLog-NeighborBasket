@@ -1,6 +1,6 @@
-// Neighbor Basket's web half. Runs in Root.html, the document every game page iframe sits in. Puts Fill, Put away
-// (with Storage Hub) and, when turned on, Call back beside the game's Send button on the basket panel, adds the
-// Neighbor app to the phone, and shows a short toast when Exiled's Toolkit is not there to. Talks to the plugin through
+// Neighbor Basket's web half. Runs in Root.html, the document every game page iframe sits in. Puts a card above the
+// basket panel with her state, what Fill would add, and the Fill, Put away (with Storage Hub) and, when turned on,
+// Call back buttons; adds the Neighbor app to the phone; and shows a short toast when Exiled's Toolkit is not there to. Talks to the plugin through
 // vuplex.postMessage("slmod|neighborbasket|<verb>") and is driven by window.__slneighborbasket.
 (function () {
   if (window.__slneighborbasket) return;
@@ -11,6 +11,9 @@
   var FILL_ID = 'slnb-fill';
   var CALLBACK_ID = 'slnb-callback';
   var PUTAWAY_ID = 'slnb-putaway';
+  var CARD_ID = 'slnb-card';
+  var CARD_REFRESH_MS = 1000;
+  var CARD_GAP = 8;
   var APP_CLASS = 'slnb-app';
   var SCREEN_CLASS = 'slnb-phone';
   var PHONE_STYLE_ID = 'slnb-phone-style';
@@ -21,6 +24,7 @@
 
   var settings = { fill: true, callBack: false, putAway: false, app: true, fillLabel: 'Fill', fillTitle: '', callBackLabel: 'Call back', callBackTitle: '', putAwayLabel: 'Put away', putAwayTitle: '', appLabel: 'Neighbor' };
   var phone = { screen: null, data: null, refreshAt: 0 };
+  var card = { data: null, askAt: 0 };
   var isBusy = false;
   var busyTimer = 0;
   var toastTimer = 0;
@@ -28,9 +32,25 @@
   var hasReportedState = false;
 
   var TOAST_STYLE = '#slnb-toast{position:fixed;left:50%;bottom:150px;transform:translateX(-50%);z-index:2147483002;pointer-events:none;display:none;max-width:640px;text-align:center;padding:10px 18px;border-radius:8px;border:1px solid rgba(255,193,7,.75);background:linear-gradient(180deg,rgba(30,30,33,.94),rgba(18,18,20,.96));color:#eee;font-family:"Microsoft YaHei","PingFang SC",sans-serif;font-size:14px;box-shadow:0 6px 20px rgba(0,0,0,.6)}';
-  // A quieter twin of the game's Send button, so Send stays the main action.
-  var BUTTON_STYLE = '.slnb-btn{min-width:72px;margin-right:8px;padding:8px 14px;font-size:14px;font-weight:600;letter-spacing:1px;color:#FFCA28;background:rgba(255,193,7,.08);border:1px solid rgba(255,193,7,.6);border-radius:6px;cursor:pointer;transition:all 160ms ease}' +
-    '.slnb-btn:hover{background:rgba(255,193,7,.2);transform:translateY(-1px)}';
+  // The card takes the basket panel's look; its buttons are quieter twins of the game's Send button, so Send stays the
+  // main action. Warn and bad colour the rows whose deadline is close.
+  var CARD_STYLE = [
+    '#' + CARD_ID + '{position:fixed;z-index:60;display:none;box-sizing:border-box;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,193,7,.35);background:linear-gradient(180deg,rgba(30,30,33,.94),rgba(18,18,20,.96));box-shadow:0 6px 20px rgba(0,0,0,.5);color:#eee;font-family:"Microsoft YaHei","PingFang SC",sans-serif;font-size:13px;line-height:1.4}',
+    '.slnb-card-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:6px}',
+    '.slnb-card-title{color:#FFC107;font-weight:700;letter-spacing:1px;text-transform:uppercase}',
+    '.slnb-card-day{color:rgba(255,255,255,.55);font-size:12px}',
+    '.slnb-card-row{display:flex;justify-content:space-between;gap:10px;padding:1px 0}',
+    '.slnb-card-label{color:rgba(255,255,255,.55)}',
+    '.slnb-card-value{text-align:right}',
+    '.slnb-card-value.is-warn{color:#FFB74D}',
+    '.slnb-card-value.is-bad{color:#FF6E6E}',
+    '.slnb-card-plan{margin-top:6px;color:rgba(255,255,255,.7);font-size:12px}',
+    '.slnb-card-plan:empty{display:none}',
+    '.slnb-card-buttons{display:flex;gap:8px;margin-top:8px}',
+    '.slnb-card-buttons:empty{display:none}',
+    '.slnb-btn{flex:1;padding:7px 10px;font-size:14px;font-weight:600;letter-spacing:1px;color:#FFCA28;background:rgba(255,193,7,.08);border:1px solid rgba(255,193,7,.6);border-radius:6px;cursor:pointer;white-space:nowrap;transition:all 160ms ease}',
+    '.slnb-btn:hover{background:rgba(255,193,7,.2);transform:translateY(-1px)}'
+  ].join('\n');
 
   function send(message) {
     try {
@@ -92,18 +112,34 @@
     removeApps();
   }
 
-  // The basket panel's Vue state; a game update could rename it, so a failure hides the buttons and is reported once.
+  // The basket panel's Vue state; a game update could rename it, so a failure hides the card and is reported once. The
+  // tier's name and the kg left are read too, so the card can use the game's own words and units; they are optional.
   function basketState(doc) {
+    var state = { isBasket: false, isAway: false, tierName: '', freeKg: -1 };
+
     try {
       var setup = doc.getElementById('app')._vnode.component.setupState;
 
-      return { isBasket: !!setup.isBasket, isAway: !!(setup.basketWish && setup.basketWish.away) };
+      state.isBasket = !!setup.isBasket;
+      state.isAway = !!(setup.basketWish && setup.basketWish.away);
     } catch (e) {
-      if (!hasReportedState) send('diag|cannot read the basket panel state, the buttons stay hidden: ' + e);
+      if (!hasReportedState) send('diag|cannot read the basket panel state, the card stays hidden: ' + e);
       hasReportedState = true;
 
-      return { isBasket: false, isAway: false };
+      return state;
     }
+
+    try {
+      state.tierName = String(setup.basketWish.tierName || '');
+
+      var bag = typeof setup.getBag === 'function' ? setup.getBag('B') : setup.bagB;
+      var max = Number(bag.maxWeight);
+      var used = Number(bag.currentWeight);
+
+      if (isFinite(max) && isFinite(used) && max > 0) state.freeKg = Math.max(0, max - used);
+    } catch (e) {}
+
+    return state;
   }
 
   function addStyle(doc) {
@@ -111,16 +147,137 @@
 
     var style = doc.createElement('style');
     style.id = 'slnb-style';
-    style.textContent = BUTTON_STYLE;
+    style.textContent = CARD_STYLE;
     doc.head.appendChild(style);
   }
 
-  // Vue drops foreign nodes when it re-renders the footer, so the buttons are checked and put back on every poll.
-  function place(doc, id, isWanted, label, title, verb) {
-    var node = doc.getElementById(id);
-    var sendButton = doc.querySelector('.basket-footer .basket-send-btn');
+  // The card lives in the page's body, outside the game's Vue app, so a re-render of the basket panel leaves it alone.
+  function cardNode(doc) {
+    var node = doc.getElementById(CARD_ID);
 
-    if (!isWanted || !sendButton) {
+    if (node) return node;
+
+    node = make(doc, 'div', 'unity-interactive');
+    node.id = CARD_ID;
+
+    var head = make(doc, 'div', 'slnb-card-h');
+
+    head.appendChild(make(doc, 'span', 'slnb-card-title'));
+    head.appendChild(make(doc, 'span', 'slnb-card-day'));
+    node.appendChild(head);
+    node.appendChild(make(doc, 'div', 'slnb-card-rows'));
+    node.appendChild(make(doc, 'div', 'slnb-card-plan'));
+    node.appendChild(make(doc, 'div', 'slnb-card-buttons'));
+    // Clicks on the card stay on the card, so the inventory never reads them as a click beside its panels.
+    node.addEventListener('mousedown', function (e) { e.stopPropagation(); });
+    node.addEventListener('click', function (e) { e.stopPropagation(); });
+    doc.body.appendChild(node);
+
+    return node;
+  }
+
+  function fillCard(node, state) {
+    var doc = node.ownerDocument;
+    var data = card.data;
+    var rows = node.querySelector('.slnb-card-rows');
+
+    node.querySelector('.slnb-card-title').textContent = data.title;
+    node.querySelector('.slnb-card-day').textContent = data.day;
+    rows.textContent = '';
+    (data.rows || []).forEach(function (row) {
+      var line = make(doc, 'div', 'slnb-card-row');
+      var name = row.tier ? (state.tierName || row.tier) : '';
+      var value = name && row.value ? name + ', ' + row.value : (name || row.value);
+
+      line.appendChild(make(doc, 'span', 'slnb-card-label', row.label));
+      line.appendChild(make(doc, 'span', 'slnb-card-value' + (row.tone ? ' is-' + row.tone : ''), value));
+      rows.appendChild(line);
+    });
+
+    var plan = data.plan || '';
+
+    // The plugin weighs in the game's units; the panel's own kg left converts them.
+    if (plan && data.weight > 0 && data.free > 0 && state.freeKg >= 0) plan += data.weightText.replace('{0}', (data.weight * state.freeKg / data.free).toFixed(1));
+
+    node.querySelector('.slnb-card-plan').textContent = plan;
+  }
+
+  // Above the basket panel when there is room, else beside it, right first; never over the screen's edge.
+  function position(doc, node) {
+    var panel = doc.querySelector('.bag-panel.is-basket-panel .panel') || doc.querySelector('.bag-panel.is-basket-panel');
+
+    if (!panel) return false;
+
+    var r = panel.getBoundingClientRect();
+    var view = doc.defaultView;
+    var width = Math.max(300, Math.round(r.width));
+
+    node.style.width = width + 'px';
+
+    var height = node.offsetHeight;
+    var left = Math.round(r.left + (r.width - width) / 2);
+    var top = Math.round(r.top - height - CARD_GAP);
+
+    if (top < CARD_GAP) {
+      top = Math.max(CARD_GAP, Math.round(r.top));
+      left = r.right + CARD_GAP + width <= view.innerWidth - CARD_GAP ? Math.round(r.right + CARD_GAP) : Math.round(r.left - CARD_GAP - width);
+    }
+
+    left = Math.max(CARD_GAP, Math.min(left, view.innerWidth - width - CARD_GAP));
+    node.style.left = left + 'px';
+    node.style.top = top + 'px';
+
+    return true;
+  }
+
+  function hideCard(doc) {
+    var node = doc.getElementById(CARD_ID);
+
+    if (node) node.style.display = 'none';
+  }
+
+  function patchCard(doc, state) {
+    if (!state.isBasket) {
+      hideCard(doc);
+
+      return;
+    }
+
+    if (Date.now() >= card.askAt) {
+      card.askAt = Date.now() + CARD_REFRESH_MS;
+      send('card');
+    }
+
+    var node = cardNode(doc);
+    var buttons = node.querySelector('.slnb-card-buttons');
+
+    place(doc, buttons, FILL_ID, settings.fill && !state.isAway, settings.fillLabel, settings.fillTitle, 'fill');
+    place(doc, buttons, PUTAWAY_ID, settings.putAway && !state.isAway, settings.putAwayLabel, settings.putAwayTitle, 'putaway');
+    place(doc, buttons, CALLBACK_ID, settings.callBack && state.isAway, settings.callBackLabel, settings.callBackTitle, 'callback');
+
+    if (!card.data) {
+      node.style.display = 'none';
+
+      return;
+    }
+
+    fillCard(node, state);
+    node.style.display = 'block';
+
+    if (!position(doc, node)) node.style.display = 'none';
+  }
+
+  // The plugin's answer to 'card'; null turns the card off.
+  function setCard(data) {
+    card.data = data;
+
+    if (!data) card.askAt = Infinity;
+  }
+
+  function place(doc, container, id, isWanted, label, title, verb) {
+    var node = doc.getElementById(id);
+
+    if (!isWanted) {
       if (node) node.remove();
 
       return;
@@ -138,7 +295,7 @@
 
     if (node.textContent !== label) node.textContent = label;
     if (node.title !== title) node.title = title;
-    if (node.nextSibling !== sendButton) sendButton.parentNode.insertBefore(node, sendButton);
+    if (node.parentNode !== container) container.appendChild(node);
   }
 
   function patchBasket() {
@@ -162,9 +319,7 @@
       var state = basketState(doc);
 
       addStyle(doc);
-      place(doc, FILL_ID, settings.fill && state.isBasket && !state.isAway, settings.fillLabel, settings.fillTitle, 'fill');
-      place(doc, PUTAWAY_ID, settings.putAway && state.isBasket && !state.isAway, settings.putAwayLabel, settings.putAwayTitle, 'putaway');
-      place(doc, CALLBACK_ID, settings.callBack && state.isBasket && state.isAway, settings.callBackLabel, settings.callBackTitle, 'callback');
+      patchCard(doc, state);
     }
   }
 
@@ -229,6 +384,9 @@
   // The markup of the phone's own apps: an icon square with a stroked glyph, and the label under it.
   function phoneApp(doc) {
     var app = make(doc, 'div', 'app ' + APP_CLASS);
+
+    // Exiled's Toolkit puts marked apps in the phone's dock, lowest number first; without it this does nothing.
+    app.setAttribute('data-etk-phone', '20');
     var icon = make(doc, 'div', 'app-icon');
     var glyph = make(doc, 'div', 'icon-glyph');
     var svg = doc.createElementNS(SVG_NS, 'svg');
@@ -257,7 +415,8 @@
   function patchPhone(doc, frame) {
     var grid = doc.querySelector('.app-grid');
 
-    if (settings.app && grid && !grid.querySelector('.' + APP_CLASS)) {
+    // Exiled's Toolkit moves the app into the phone's dock, so look for it anywhere on the page, not only in the grid.
+    if (settings.app && grid && !doc.querySelector('.' + APP_CLASS)) {
       addPhoneStyle(doc);
       grid.appendChild(phoneApp(doc));
     }
@@ -390,6 +549,6 @@
     } catch (e) {}
   }, 400);
 
-  window.__slneighborbasket = { status: status, setup: setup, app: app };
+  window.__slneighborbasket = { status: status, setup: setup, app: app, card: setCard };
   send('ready');
 })();

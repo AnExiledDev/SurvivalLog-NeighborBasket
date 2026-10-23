@@ -25,6 +25,7 @@ internal sealed class BasketSession
     private bool _hasWarningsFailed;
     private bool _hasGiftLogFailed;
     private bool _hasReportedWeight;
+    private bool _hasCardFailed;
 
     public BasketSession(BasketGame game, GiftJournal journal, WebPage page, Toasts toasts, Action<string> log)
     {
@@ -101,6 +102,9 @@ internal sealed class BasketSession
             case PageCommand.App:
                 RunGuarded("phone app", () => _page.App(AppView.Json(ReadLine()?.Tracker, _journal.Entries, isChinese)), isChinese);
                 break;
+            case PageCommand.Card:
+                ShowCard(isChinese);
+                break;
             case PageCommand.Ready:
                 _log("page script ready");
                 Setup(isChinese);
@@ -158,6 +162,49 @@ internal sealed class BasketSession
         if (StruggleNeed() is { } need && _game.BasketSatiety(screen.BasketId) is { } satiety) text += " " + Texts.BasketSatiety.Say(isChinese, (int)Math.Floor(satiety), need);
 
         _toasts.Show(text, failed > 0 || plan.Picks.Count == 0, isChinese);
+    }
+
+    /// <summary>
+    /// Answers the card's once-a-second ask. Reads her line and, with the basket home and Fill on, plans a fill without
+    /// moving anything, so the card says what a press would add. A failure turns the card off quietly (it asks every
+    /// second, so a toast each time would bury the screen) and is logged once.
+    /// </summary>
+    private void ShowCard(bool isChinese)
+    {
+        if (_hasCardFailed) return;
+
+        try
+        {
+            _page.Card(CardJson(isChinese));
+        }
+        catch (Exception ex)
+        {
+            _hasCardFailed = true;
+            _log("the basket card failed and is off until the next start: " + ex);
+            _page.Card("null");
+        }
+    }
+
+    private string CardJson(bool isChinese)
+    {
+        var line = ReadLine();
+        var screen = _game.OpenBasket();
+        FillResult? plan = null;
+        var freeWeight = 0f;
+        string? troubleName = null;
+
+        if (screen != null)
+        {
+            if (screen.Wish.CrisisCategory is { } crisis && screen.Names.TryGetValue(crisis, out var name)) troubleName = name;
+
+            if (ShowFill && !screen.Wish.IsAway && _game.ReadStock(screen.BasketId) is { } stock)
+            {
+                plan = FillPlan.Plan(screen.Wish, stock.Sources, stock.CategoriesInBasket, new Room(stock.FreeCells, stock.FreeWeight, FillExtra), StackingUnits.IsAvailable);
+                freeWeight = stock.FreeWeight;
+            }
+        }
+
+        return CardView.Json(line?.Need, line?.Tracker, troubleName, plan, freeWeight, WarnHours, isChinese);
     }
 
     /// <summary>The least satiety that pulls her through, while she struggles; null otherwise or when it cannot be read.</summary>

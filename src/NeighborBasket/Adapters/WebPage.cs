@@ -8,7 +8,7 @@ namespace NeighborBasket.Adapters;
 
 /// <summary>
 /// The mod's half that lives in the game's web UI: page.js, run in the root document the game's pages sit in. It puts
-/// Fill and Call back on the basket panel and shows a toast when the Toolkit cannot. The web view can reload at any
+/// a card with her state and the Fill, Put away and Call back buttons above the basket panel and shows a toast when the Toolkit cannot. The web view can reload at any
 /// time and lose the script, so it is checked for every couple of seconds and put back when the page says it is missing.
 /// </summary>
 internal sealed class WebPage
@@ -54,6 +54,9 @@ internal sealed class WebPage
 
     /// <summary>The phone app's data, as AppView builds it.</summary>
     public void App(string json) => Run("window.__slneighborbasket&&window.__slneighborbasket.app(" + json + ")");
+
+    /// <summary>The basket card's data, as CardView builds it; null hides the card.</summary>
+    public void Card(string json) => Run("window.__slneighborbasket&&window.__slneighborbasket.card(" + json + ")");
 
     private static string Bool(bool value) => value ? "true" : "false";
 
