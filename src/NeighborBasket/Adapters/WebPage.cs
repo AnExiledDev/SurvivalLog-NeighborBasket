@@ -43,11 +43,19 @@ internal sealed class WebPage
     /// <summary>A toast over the game; the script travels with it, so a page that just reloaded still shows it.</summary>
     public void Status(string text) => Run(Script() + "\n;window.__slneighborbasket&&window.__slneighborbasket.status(" + JsText.Literal(text) + ");");
 
-    /// <summary>Which buttons to show, with their labels and tooltips in the game's language.</summary>
-    public void Setup(bool showFill, bool showCallBack, bool isChinese) =>
-        Run("window.__slneighborbasket&&window.__slneighborbasket.setup(" + (showFill ? "true" : "false") + "," + (showCallBack ? "true" : "false") + "," +
-            JsText.Literal(Texts.FillButton.Pick(isChinese)) + "," + JsText.Literal(Texts.FillTitle.Pick(isChinese)) + "," +
-            JsText.Literal(Texts.CallBackButton.Pick(isChinese)) + "," + JsText.Literal(Texts.CallBackTitle.Pick(isChinese)) + ")");
+    /// <summary>Which buttons and whether the phone app show, with their labels and tooltips in the game's language.</summary>
+    public void Setup(bool showFill, bool showCallBack, bool showPutAway, bool showApp, bool isChinese) =>
+        Run("window.__slneighborbasket&&window.__slneighborbasket.setup({" +
+            "fill:" + Bool(showFill) + ",callBack:" + Bool(showCallBack) + ",putAway:" + Bool(showPutAway) + ",app:" + Bool(showApp) +
+            ",fillLabel:" + JsText.Literal(Texts.FillButton.Pick(isChinese)) + ",fillTitle:" + JsText.Literal(Texts.FillTitle.Pick(isChinese)) +
+            ",callBackLabel:" + JsText.Literal(Texts.CallBackButton.Pick(isChinese)) + ",callBackTitle:" + JsText.Literal(Texts.CallBackTitle.Pick(isChinese)) +
+            ",putAwayLabel:" + JsText.Literal(Texts.PutAwayButton.Pick(isChinese)) + ",putAwayTitle:" + JsText.Literal(Texts.PutAwayTitle.Pick(isChinese)) +
+            ",appLabel:" + JsText.Literal(Texts.AppTile.Pick(isChinese)) + "})");
+
+    /// <summary>The phone app's data, as AppView builds it.</summary>
+    public void App(string json) => Run("window.__slneighborbasket&&window.__slneighborbasket.app(" + json + ")");
+
+    private static string Bool(bool value) => value ? "true" : "false";
 
     private bool Run(string javaScript)
     {

@@ -20,6 +20,12 @@ public abstract record PageCommand
     /// <summary>Call back was clicked.</summary>
     public sealed record CallBack : PageCommand;
 
+    /// <summary>Put away was clicked.</summary>
+    public sealed record PutAway : PageCommand;
+
+    /// <summary>The phone app opened or wants fresh data.</summary>
+    public sealed record App : PageCommand;
+
     /// <summary>The page script just installed itself.</summary>
     public sealed record Ready : PageCommand;
 
@@ -39,6 +45,8 @@ public abstract record PageCommand
         {
             "fill" => new Fill(),
             "callback" => new CallBack(),
+            "putaway" => new PutAway(),
+            "app" => new App(),
             "ready" => new Ready(),
             "noscript" => new NoScript(),
             _ => new Unknown(message),

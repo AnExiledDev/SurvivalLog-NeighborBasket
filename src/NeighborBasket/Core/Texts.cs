@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -19,8 +20,8 @@ public static class Texts
     public static readonly Phrase FillButton = new("Fill", "装篮");
 
     public static readonly Phrase FillTitle = new(
-        "Put one cheap item for each thing she wants in the basket, from your home storage and your bag",
-        "从家中储物和背包里，为她想要的每一类物品各放一件便宜的进篮子");
+        "Put one cheap item for each thing she wants in the basket, from your home storage and your bag, then more of what she wants while the weight allows",
+        "从家中储物和背包里，为她想要的每一类物品各放一件便宜的进篮子，再在承重允许时多放一些她想要的");
 
     public static readonly Phrase CallBackButton = new("Call back", "召回");
 
@@ -62,12 +63,63 @@ public static class Texts
 
     public static readonly Phrase Struggle = new("She is struggling. About {0} h left to send her food.", "她正在挣扎，还剩约 {0} 小时送食物给她。");
 
+    public static readonly Phrase StruggleNeed = new(
+        "She is struggling. About {0} h left to send her food: at least {1} satiety pulls her through, {2} or more for a better recovery.",
+        "她正在挣扎，还剩约 {0} 小时送食物给她：至少 {1} 饱腹能让她撑过去，{2} 以上恢复得更好。");
+
+    public static readonly Phrase Streak = new(
+        "Send the basket today to keep the streak ({0} of {1} days). About {2} h left today.",
+        "今天送出篮子才能保住连续赠送（{0}/{1} 天）。今天还剩约 {2} 小时。");
+
+    public static readonly Phrase BasketSatiety = new("The basket holds {0} satiety; she needs at least {1}.", "篮子里共有 {0} 饱腹，她至少需要 {1}。");
+
+    public static readonly Phrase TooHeavy = new("Too heavy for the weight left: {0}.", "剩余承重放不下：{0}。");
+
+    public static readonly Phrase PutAwayButton = new("Put away", "收纳");
+
+    public static readonly Phrase PutAwayTitle = new("Put what the basket holds into your home storage, the same way Storage Hub puts the bag away", "把篮子里的东西收进家中储物，和储物中心收纳背包的方式一样");
+
+    public static readonly Phrase NoStorageHub = new("Put away needs Storage Hub.", "收纳需要储物中心模组。");
+
+    public static readonly Phrase AppTile = new("Neighbor", "邻居");
+
+    public static readonly Phrase AppTitle = new("Neighbor", "邻居");
+
+    public static readonly Phrase AppBack = new("Back", "返回");
+
+    public static readonly Phrase AppEmpty = new("Nothing logged yet. Sends, returns and her thoughts show here from now on.", "还没有记录。之后的送出、送回和她的心声都会显示在这里。");
+
+    public static readonly Phrase AppNoRescue = new("Nobody to help right now.", "现在没有需要帮助的人。");
+
+    public static readonly Phrase AppAffinity = new("Affinity", "好感");
+
+    public static readonly Phrase AppAffinityValue = new("{0} (good ending at {1})", "{0}（达到 {1} 为好结局）");
+
+    public static readonly Phrase AppProgress = new("Progress", "进度");
+
+    public static readonly Phrase AppStreak = new("Send streak", "连续赠送");
+
+    public static readonly Phrase AppStrugglesLeft = new("Struggles left", "剩余挣扎次数");
+
+    public static readonly Phrase AppDay = new("Day {0}", "第 {0} 天");
+
+    public static readonly Phrase AppSent = new("Sent", "送出");
+
+    public static readonly Phrase AppReturned = new("Came back", "送回");
+
+    public static readonly Phrase AppSaid = new("She thought", "她的心声");
+
+    public static readonly Phrase AppGained = new("{0} progress, {1} affinity", "进度 {0}，好感 {1}");
+
+    public static readonly Phrase AppNothing = new("(empty)", "（空）");
+
     public static readonly Phrase Dying = new("She is dying. Send her food now.", "她快不行了，马上送食物给她。");
 
     public static IReadOnlyList<Phrase> All { get; } = new[]
     {
         Source, FillButton, FillTitle, CallBackButton, CallBackTitle, Filled, FilledFood, NoneFound, NotMoved, NoNeighbor, Away, Pending, Full, AllThere, NotOpen, Food, CalledBack, NotAway, Failed,
-        TierDrop, StruggleSoon, CrisisDeadline, Struggle, Dying,
+        TierDrop, StruggleSoon, CrisisDeadline, Struggle, StruggleNeed, Streak, BasketSatiety, TooHeavy, PutAwayButton, PutAwayTitle, NoStorageHub, Dying,
+        AppTile, AppTitle, AppBack, AppEmpty, AppNoRescue, AppAffinity, AppAffinityValue, AppProgress, AppStreak, AppStrugglesLeft, AppDay, AppSent, AppReturned, AppSaid, AppGained, AppNothing,
     };
 
     public static string Warn(Warning warning, bool isChinese) => warning.Kind switch
@@ -75,7 +127,9 @@ public static class Texts
         WarningKind.TierDrop => TierDrop.Say(isChinese, warning.HoursLeft),
         WarningKind.StruggleSoon => StruggleSoon.Say(isChinese, warning.HoursLeft),
         WarningKind.CrisisDeadline => CrisisDeadline.Say(isChinese, warning.HoursLeft),
+        WarningKind.Struggle when warning.A > 0 => StruggleNeed.Say(isChinese, warning.HoursLeft, warning.A, Math.Max(warning.A, warning.B)),
         WarningKind.Struggle => Struggle.Say(isChinese, warning.HoursLeft),
+        WarningKind.Streak => Streak.Say(isChinese, warning.A, warning.B, warning.HoursLeft),
         _ => Dying.Pick(isChinese),
     };
 
@@ -107,6 +161,8 @@ public static class Texts
         if (failed > 0) parts.Add(NotMoved.Say(isChinese, failed));
 
         if (result.Missing.Count > 0) parts.Add(NoneFound.Say(isChinese, result.IsFoodOnly ? Food.Pick(isChinese) : Join(result.Missing, names, isChinese)));
+
+        if (result.TooHeavy > 0) parts.Add(TooHeavy.Say(isChinese, result.TooHeavy));
 
         return parts.Count == 0 ? Full.Pick(isChinese) : string.Join(" ", parts);
     }

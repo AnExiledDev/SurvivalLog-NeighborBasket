@@ -1,7 +1,7 @@
-// Neighbor Basket's web half. Runs in Root.html, the document every game page iframe sits in. Puts Fill (and, when
-// turned on, Call back) beside the game's Send button on the basket panel, and shows a short toast when Exiled's
-// Toolkit is not there to. Talks to the plugin through vuplex.postMessage("slmod|neighborbasket|<verb>") and is driven
-// by window.__slneighborbasket.
+// Neighbor Basket's web half. Runs in Root.html, the document every game page iframe sits in. Puts Fill, Put away
+// (with Storage Hub) and, when turned on, Call back beside the game's Send button on the basket panel, adds the
+// Neighbor app to the phone, and shows a short toast when Exiled's Toolkit is not there to. Talks to the plugin through
+// vuplex.postMessage("slmod|neighborbasket|<verb>") and is driven by window.__slneighborbasket.
 (function () {
   if (window.__slneighborbasket) return;
 
@@ -10,8 +10,17 @@
   var TOAST_MS = 4500;
   var FILL_ID = 'slnb-fill';
   var CALLBACK_ID = 'slnb-callback';
+  var PUTAWAY_ID = 'slnb-putaway';
+  var APP_CLASS = 'slnb-app';
+  var SCREEN_CLASS = 'slnb-phone';
+  var PHONE_STYLE_ID = 'slnb-phone-style';
+  var APP_REFRESH_MS = 5000;
+  var SVG_NS = 'http://www.w3.org/2000/svg';
+  // A basket: the body and its handle.
+  var BASKET_STROKES = ['M4 10h16l-2 9H6z', 'M8 10l4-6 4 6', 'M9 13v3', 'M15 13v3'];
 
-  var settings = { fill: true, callBack: false, fillLabel: 'Fill', fillTitle: '', callBackLabel: 'Call back', callBackTitle: '' };
+  var settings = { fill: true, callBack: false, putAway: false, app: true, fillLabel: 'Fill', fillTitle: '', callBackLabel: 'Call back', callBackTitle: '', putAwayLabel: 'Put away', putAwayTitle: '', appLabel: 'Neighbor' };
+  var phone = { screen: null, data: null, refreshAt: 0 };
   var isBusy = false;
   var busyTimer = 0;
   var toastTimer = 0;
@@ -77,9 +86,10 @@
     toastTimer = setTimeout(function () { node.style.display = 'none'; }, TOAST_MS);
   }
 
-  function setup(fill, callBack, fillLabel, fillTitle, callBackLabel, callBackTitle) {
-    settings = { fill: !!fill, callBack: !!callBack, fillLabel: fillLabel, fillTitle: fillTitle, callBackLabel: callBackLabel, callBackTitle: callBackTitle };
+  function setup(next) {
+    settings = next || settings;
     isBusy = false;
+    removeApps();
   }
 
   // The basket panel's Vue state; a game update could rename it, so a failure hides the buttons and is reported once.
@@ -153,16 +163,233 @@
 
       addStyle(doc);
       place(doc, FILL_ID, settings.fill && state.isBasket && !state.isAway, settings.fillLabel, settings.fillTitle, 'fill');
+      place(doc, PUTAWAY_ID, settings.putAway && state.isBasket && !state.isAway, settings.putAwayLabel, settings.putAwayTitle, 'putaway');
       place(doc, CALLBACK_ID, settings.callBack && state.isBasket && state.isAway, settings.callBackLabel, settings.callBackTitle, 'callback');
     }
+  }
+
+  // ===== The phone app =====
+
+  var PHONE_CSS = [
+    '.app.' + APP_CLASS + ' .app-icon{background:linear-gradient(180deg,#e7b46a,#8a5a22)}',
+    '.' + SCREEN_CLASS + '{position:absolute;left:0;top:0;right:0;bottom:0;z-index:50;display:flex;flex-direction:column;background:#16130f}',
+    '.slnb-phone-bar{flex:none;display:flex;align-items:center;gap:10px;height:40px;padding:0 10px;background:#2a2016;color:#fbb034;font-size:15px}',
+    '.slnb-phone-back{background:transparent;border:1px solid rgba(251,176,52,.45);border-radius:4px;color:#fbb034;padding:3px 10px;font-size:13px;cursor:pointer}',
+    '.slnb-phone-title{flex:1}',
+    '.slnb-phone-x{background:transparent;border:none;color:#fbb034;font-size:20px;line-height:16px;padding:4px 6px;cursor:pointer}',
+    '.slnb-phone-body{flex:1;overflow-y:auto;padding:8px 12px;color:#ddd;font-size:13px;line-height:1.45}',
+    '.slnb-rows{margin-bottom:10px;border-bottom:1px solid rgba(251,176,52,.25);padding-bottom:6px}',
+    '.slnb-row{display:flex;justify-content:space-between;gap:10px;padding:2px 0}',
+    '.slnb-row-value{color:#fbb034;text-align:right}',
+    '.slnb-day{margin:10px 0 4px;color:#fbb034;font-weight:600}',
+    '.slnb-entry{padding:3px 0 3px 8px;border-left:2px solid rgba(251,176,52,.3);margin-bottom:4px}',
+    '.slnb-entry.is-said{border-left-color:rgba(160,200,255,.45);color:#c8d8ee}',
+    '.slnb-entry-head{color:#aaa;font-size:12px}',
+    '.slnb-entry-note{color:#9fd77a;font-size:12px}',
+    '.slnb-empty{color:#aaa;padding:12px 0;text-align:center}'
+  ].join('\n');
+
+  function make(doc, tag, className, text) {
+    var node = doc.createElement(tag);
+
+    if (className) node.className = className;
+    if (text != null) node.textContent = text;
+
+    return node;
+  }
+
+  function removeApps() {
+    var frames = document.querySelectorAll('iframe');
+
+    for (var i = 0; i < frames.length; i++) {
+      var doc = null;
+
+      try {
+        doc = frames[i].contentDocument;
+      } catch (e) {}
+
+      if (!doc || !/PhoneSMS\.html/.test(frames[i].src || '')) continue;
+
+      var tiles = doc.querySelectorAll('.' + APP_CLASS);
+
+      for (var j = 0; j < tiles.length; j++) tiles[j].remove();
+    }
+  }
+
+  function addPhoneStyle(doc) {
+    if (doc.getElementById(PHONE_STYLE_ID)) return;
+
+    var style = doc.createElement('style');
+
+    style.id = PHONE_STYLE_ID;
+    style.textContent = PHONE_CSS;
+    (doc.head || doc.body).appendChild(style);
+  }
+
+  // The markup of the phone's own apps: an icon square with a stroked glyph, and the label under it.
+  function phoneApp(doc) {
+    var app = make(doc, 'div', 'app ' + APP_CLASS);
+    var icon = make(doc, 'div', 'app-icon');
+    var glyph = make(doc, 'div', 'icon-glyph');
+    var svg = doc.createElementNS(SVG_NS, 'svg');
+
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('fill', 'none');
+    BASKET_STROKES.forEach(function (d) {
+      var stroke = doc.createElementNS(SVG_NS, 'path');
+
+      stroke.setAttribute('d', d);
+      stroke.setAttribute('stroke-linejoin', 'round');
+      svg.appendChild(stroke);
+    });
+    glyph.appendChild(svg);
+    icon.appendChild(glyph);
+    app.appendChild(icon);
+    app.appendChild(make(doc, 'div', 'app-label', settings.appLabel));
+    app.addEventListener('click', function (e) {
+      e.stopPropagation();
+      openPhone(doc);
+    });
+
+    return app;
+  }
+
+  function patchPhone(doc, frame) {
+    var grid = doc.querySelector('.app-grid');
+
+    if (settings.app && grid && !grid.querySelector('.' + APP_CLASS)) {
+      addPhoneStyle(doc);
+      grid.appendChild(phoneApp(doc));
+    }
+
+    if (phone.screen && phone.screen.ownerDocument === doc) {
+      if (frame.style.display === 'none' || !phone.screen.isConnected) closePhone();
+      else if (Date.now() >= phone.refreshAt) askForData();
+    }
+  }
+
+  function openPhone(doc) {
+    var panel = doc.querySelector('.sms-panel');
+
+    if (!panel) return;
+
+    closePhone();
+
+    var screen = make(doc, 'div', SCREEN_CLASS);
+    var bar = make(doc, 'div', 'slnb-phone-bar');
+    var back = make(doc, 'button', 'slnb-phone-back', (phone.data && phone.data.back) || 'Back');
+    var title = make(doc, 'span', 'slnb-phone-title', settings.appLabel);
+    var close = make(doc, 'button', 'slnb-phone-x', '\u00d7');
+
+    back.addEventListener('click', function (e) { e.stopPropagation(); closePhone(); });
+    close.addEventListener('click', function (e) { e.stopPropagation(); closePhone(); });
+    bar.appendChild(back);
+    bar.appendChild(title);
+    bar.appendChild(close);
+    screen.appendChild(bar);
+    screen.appendChild(make(doc, 'div', 'slnb-phone-body'));
+    screen.addEventListener('mousedown', function (e) { e.stopPropagation(); });
+    panel.appendChild(screen);
+    phone.screen = screen;
+
+    if (phone.data) render();
+
+    askForData();
+  }
+
+  function closePhone() {
+    if (phone.screen) phone.screen.remove();
+
+    phone.screen = null;
+  }
+
+  function askForData() {
+    phone.refreshAt = Date.now() + APP_REFRESH_MS;
+    send('app');
+  }
+
+  // The plugin's answer to 'app': the tracker rows and the log, grouped by day, newest first.
+  function app(data) {
+    phone.data = data;
+
+    if (phone.screen) render();
+  }
+
+  function render() {
+    var doc = phone.screen.ownerDocument;
+    var body = phone.screen.querySelector('.slnb-phone-body');
+    var data = phone.data;
+
+    if (!body || !data) return;
+
+    var scroll = body.scrollTop;
+
+    phone.screen.querySelector('.slnb-phone-title').textContent = data.title;
+    phone.screen.querySelector('.slnb-phone-back').textContent = data.back;
+    body.textContent = '';
+
+    var rows = make(doc, 'div', 'slnb-rows');
+
+    (data.rows || []).forEach(function (row) {
+      var line = make(doc, 'div', 'slnb-row');
+
+      line.appendChild(make(doc, 'span', 'slnb-row-label', row.label));
+      line.appendChild(make(doc, 'span', 'slnb-row-value', row.value));
+      rows.appendChild(line);
+    });
+    body.appendChild(rows);
+
+    if (!data.days || !data.days.length) body.appendChild(make(doc, 'div', 'slnb-empty', data.empty));
+
+    (data.days || []).forEach(function (day) {
+      body.appendChild(make(doc, 'div', 'slnb-day', day.label));
+      day.entries.forEach(function (entry) {
+        var node = make(doc, 'div', 'slnb-entry is-' + entry.kind);
+
+        node.appendChild(make(doc, 'div', 'slnb-entry-head', entry.time + '  ' + entry.label));
+        node.appendChild(make(doc, 'div', 'slnb-entry-text', entry.text));
+
+        if (entry.note) node.appendChild(make(doc, 'div', 'slnb-entry-note', entry.note));
+
+        body.appendChild(node);
+      });
+    });
+    body.scrollTop = scroll;
+  }
+
+  function patchPhones() {
+    var frames = document.querySelectorAll('iframe');
+    var isOpenSomewhere = false;
+
+    for (var i = 0; i < frames.length; i++) {
+      if (!/PhoneSMS\.html/.test(frames[i].src || '')) continue;
+
+      var doc = null;
+
+      try {
+        doc = frames[i].contentDocument;
+      } catch (e) {}
+
+      if (!doc || !doc.body) continue;
+
+      patchPhone(doc, frames[i]);
+
+      if (phone.screen && phone.screen.ownerDocument === doc) isOpenSomewhere = true;
+    }
+
+    if (phone.screen && !isOpenSomewhere) closePhone();
   }
 
   setInterval(function () {
     try {
       patchBasket();
     } catch (e) {}
+
+    try {
+      patchPhones();
+    } catch (e) {}
   }, 400);
 
-  window.__slneighborbasket = { status: status, setup: setup };
+  window.__slneighborbasket = { status: status, setup: setup, app: app };
   send('ready');
 })();

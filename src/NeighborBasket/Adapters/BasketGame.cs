@@ -11,8 +11,11 @@ namespace NeighborBasket.Adapters;
 /// <summary>The open basket screen: the basket's owner id, her wish as the screen shows it, and the names it gives each wished category.</summary>
 internal sealed record BasketScreen(long BasketId, BasketWish Wish, Dictionary<int, string> Names);
 
-/// <summary>What the player holds that could go in the basket, what is already in it, and how many cells are left.</summary>
-internal sealed record BasketStock(List<Candidate> Sources, HashSet<int> CategoriesInBasket, int FreeCells);
+/// <summary>
+/// What the player holds that could go in the basket, what is already in it, and the cells and weight left. WeightNote
+/// says why the weight could not be read (the fill then ignores weight and the game refuses what does not fit).
+/// </summary>
+internal sealed record BasketStock(List<Candidate> Sources, HashSet<int> CategoriesInBasket, int FreeCells, float FreeWeight, string? WeightNote);
 
 /// <summary>The only code that reads or moves the game's items, or calls the basket back.</summary>
 internal sealed class BasketGame
@@ -49,6 +52,20 @@ internal sealed class BasketGame
 
         if (agents == null || items == null || config == null) return null;
 
+        var weigh = true;
+        string? weightNote = null;
+        var freeWeight = float.PositiveInfinity;
+
+        try
+        {
+            freeWeight = FreeWeight(items, basketId);
+        }
+        catch (Exception ex)
+        {
+            weigh = false;
+            weightNote = ex.Message;
+        }
+
         var sources = new List<Candidate>();
         var owners = new List<long>();
 
@@ -58,7 +75,7 @@ internal sealed class BasketGame
 
         foreach (var ownerId in owners)
         {
-            foreach (var item in Held(items, ownerId)) sources.Add(CandidateOf(config, item, ownerId));
+            foreach (var item in Held(items, ownerId)) sources.Add(CandidateOf(config, item, ownerId, weigh ? items.GetItemActualWeight(item) : 0));
         }
 
         var inBasket = new HashSet<int>();
@@ -71,7 +88,51 @@ internal sealed class BasketGame
             if (config.Get_Config_Item(item.ItemConfigId) is { } row) inBasket.Add(row.Category);
         }
 
-        return new BasketStock(sources, inBasket, MaxCells(config) - used);
+        return new BasketStock(sources, inBasket, MaxCells(config) - used, freeWeight, weightNote);
+    }
+
+    /// <summary>The satiety the game's rescue rule counts for what the basket holds now; null with no rescue going.</summary>
+    public float? BasketSatiety(long basketId)
+    {
+        var held = GameSingleton.Existing<BattleLogicWorld>()?._ItemManager?.GetItemDataList(basketId);
+
+        return held == null ? null : NeedReader.Satiety(held);
+    }
+
+    /// <summary>The basket's owner id in the home, whether or not its screen is open; 0 when there is none.</summary>
+    public long HomeBasketId()
+    {
+        var agents = GameSingleton.Existing<BattleLogicWorld>()?._AgentManager;
+
+        if (agents == null || NeighborRules.GetBasketFurnitureId() <= 0) return 0;
+
+        var found = agents.GetFurnituresWithBag(agents.GetHomeMapId(), true, true);
+
+        for (var i = 0; found != null && i < found.Count; i++)
+        {
+            if (IsBasket(found[i])) return found[i].InstanceId;
+        }
+
+        return 0;
+    }
+
+    /// <summary>What the basket holds, as "name x count" in the game's language, in a stable order.</summary>
+    public string BasketContents(long basketId)
+    {
+        var items = GameSingleton.Existing<BattleLogicWorld>()?._ItemManager;
+        var config = GameSingleton.Existing<ConfigManager>();
+
+        if (items == null || config == null || basketId == 0) return "";
+
+        var counts = new SortedDictionary<int, int>();
+
+        foreach (var item in Held(items, basketId)) counts[item.ItemConfigId] = (counts.TryGetValue(item.ItemConfigId, out var count) ? count : 0) + item.ItemCount;
+
+        var parts = new List<string>();
+
+        foreach (var entry in counts) parts.Add(ItemName(config, entry.Key) + " x" + entry.Value);
+
+        return string.Join(", ", parts);
     }
 
     /// <summary>
@@ -107,11 +168,37 @@ internal sealed class BasketGame
         return true;
     }
 
-    private static Candidate CandidateOf(ConfigManager config, ItemData item, long ownerId)
+    private static Candidate CandidateOf(ConfigManager config, ItemData item, long ownerId, int weight)
     {
         var row = config.Get_Config_Item(item.ItemConfigId);
 
-        return new Candidate(item.InstanceId, ownerId, item.ItemConfigId, row?.Category ?? 0, row?.TradeValue ?? 0, item.ItemCount, NeighborRules.IsBasketForbidItem(item.ItemConfigId));
+        return new Candidate(item.InstanceId, ownerId, item.ItemConfigId, row?.Category ?? 0, row?.TradeValue ?? 0, item.ItemCount, NeighborRules.IsBasketForbidItem(item.ItemConfigId), Math.Max(0, weight));
+    }
+
+    /// <summary>
+    /// The weight the basket still takes, by the same numbers the game's quick-move checks: its max weight less what it
+    /// holds. Infinite when the game does not weigh the basket.
+    /// </summary>
+    private static float FreeWeight(ItemManager items, long basketId)
+    {
+        if (!items.TryGetTargetBagConfig(basketId, out _, out var maxWeight, out var checkBurden) || !checkBurden) return float.PositiveInfinity;
+
+        return Math.Max(0f, maxWeight - items.GetBagCurrentWeight(basketId));
+    }
+
+    private static string ItemName(ConfigManager config, int configId)
+    {
+        var row = config.Get_Config_Item(configId);
+
+        if (row == null) return "#" + configId;
+
+        var key = row.ItemName;
+        var text = string.IsNullOrEmpty(key) ? null : config.GetLocalTxt(key);
+
+        if (!string.IsNullOrEmpty(text) && text != key) return text!;
+        if (!string.IsNullOrEmpty(row.ItemName_Local)) return row.ItemName_Local;
+
+        return string.IsNullOrEmpty(key) ? "#" + configId : key!;
     }
 
     /// <summary>The game's own cell count for the basket, as its bag screen reads it.</summary>

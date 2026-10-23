@@ -71,6 +71,38 @@ public class WarningsTests
         Assert.Equal(10, warning.HoursLeft);
     }
 
+    // Day 5 at the given hour, two sends in a row, the last one yesterday; the streak pays at 3.
+    private static NeedState Streak(int hour24) => State(5 * 24 + hour24) with { TierAnchorSeconds = 5 * 24 * Hour + hour24 * Hour, LastSendDay = 4, ConsecutiveSendDays = 2, StreakDays = 3 };
+
+    [Fact]
+    public void A_streak_kept_yesterday_is_warned_when_the_day_runs_low()
+    {
+        Assert.Empty(Check(Streak(11)));
+
+        var warning = Assert.Single(Check(Streak(12)));
+
+        Assert.Equal(WarningKind.Streak, warning.Kind);
+        Assert.Equal(12, warning.HoursLeft);
+        Assert.Equal(2, warning.A);
+        Assert.Equal(3, warning.B);
+    }
+
+    [Fact]
+    public void No_streak_warning_once_today_is_sent_or_the_streak_already_broke()
+    {
+        Assert.Empty(Check(Streak(20) with { LastSendDay = 5 }));
+        Assert.Empty(Check(Streak(20) with { LastSendDay = 3 }));
+        Assert.Empty(Check(Streak(20) with { ConsecutiveSendDays = 0 }));
+    }
+
+    [Fact]
+    public void A_struggle_warning_carries_the_satiety_she_needs()
+    {
+        var warning = Assert.Single(Check(State(40) with { StruggleState = 1, StruggleDeadlineSeconds = 45 * Hour, SatietyMin = 10, SatietyHigh = 100 }));
+
+        Assert.Equal((10, 100), (warning.A, warning.B));
+    }
+
     [Fact]
     public void No_rescue_no_warnings()
     {

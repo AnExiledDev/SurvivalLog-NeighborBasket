@@ -7,23 +7,29 @@ using UnityEngine;
 
 namespace NeighborBasket.Adapters;
 
-/// <summary>Runs the buttons' presses and the warning checks, one frame at a time on the game's thread.</summary>
+/// <summary>Runs the buttons' presses, the warning checks and the gift log, one frame at a time on the game's thread.</summary>
 internal sealed class BasketSession
 {
     private const float WarningCheckSeconds = 5f;
+    private const float GiftPollSeconds = 1f;
 
     private readonly BasketGame _game;
+    private readonly GiftJournal _journal;
     private readonly WebPage _page;
     private readonly Toasts _toasts;
     private readonly Action<string> _log;
     private readonly HashSet<string> _shownWarnings = new();
     private float _nextWarningCheckAt;
+    private float _nextGiftPollAt;
     private bool? _lastIsChinese;
     private bool _hasWarningsFailed;
+    private bool _hasGiftLogFailed;
+    private bool _hasReportedWeight;
 
-    public BasketSession(BasketGame game, WebPage page, Toasts toasts, Action<string> log)
+    public BasketSession(BasketGame game, GiftJournal journal, WebPage page, Toasts toasts, Action<string> log)
     {
         _game = game;
+        _journal = journal;
         _page = page;
         _toasts = toasts;
         _log = log;
@@ -33,7 +39,15 @@ internal sealed class BasketSession
 
     public bool ShowCallBack { get; set; }
 
+    public bool ShowPutAway { get; set; } = true;
+
+    public bool ShowApp { get; set; } = true;
+
+    public int FillExtra { get; set; } = 5;
+
     public bool AreWarningsOn { get; set; } = true;
+
+    public bool WarnStreak { get; set; } = true;
 
     public int WarnHours { get; set; } = 12;
 
@@ -50,7 +64,7 @@ internal sealed class BasketSession
         if (_lastIsChinese != isChinese)
         {
             _lastIsChinese = isChinese;
-            _page.Setup(ShowFill, ShowCallBack, isChinese);
+            Setup(isChinese);
         }
 
         while (PageMessages.TryTake(out var command)) Handle(command, isChinese);
@@ -60,7 +74,16 @@ internal sealed class BasketSession
             _nextWarningCheckAt = now + WarningCheckSeconds;
             CheckWarnings(isChinese);
         }
+
+        if (now >= _nextGiftPollAt)
+        {
+            _nextGiftPollAt = now + GiftPollSeconds;
+            PollGifts();
+        }
     }
+
+    // Put away shows only with Storage Hub there to do it.
+    private void Setup(bool isChinese) => _page.Setup(ShowFill, ShowCallBack, ShowPutAway && StorageHubLink.IsAvailable, ShowApp, isChinese);
 
     private void Handle(PageCommand command, bool isChinese)
     {
@@ -72,9 +95,15 @@ internal sealed class BasketSession
             case PageCommand.CallBack:
                 RunGuarded("call back", () => CallBack(isChinese), isChinese);
                 break;
+            case PageCommand.PutAway:
+                RunGuarded("put away", () => PutAway(isChinese), isChinese);
+                break;
+            case PageCommand.App:
+                RunGuarded("phone app", () => _page.App(AppView.Json(ReadLine()?.Tracker, _journal.Entries, isChinese)), isChinese);
+                break;
             case PageCommand.Ready:
                 _log("page script ready");
-                _page.Setup(ShowFill, ShowCallBack, isChinese);
+                Setup(isChinese);
                 break;
             case PageCommand.NoScript:
                 _page.Install();
@@ -105,18 +134,90 @@ internal sealed class BasketSession
             return;
         }
 
-        var plan = FillPlan.Plan(screen.Wish, stock.Sources, stock.CategoriesInBasket, stock.FreeCells, StackingUnits.IsAvailable);
+        if (stock.WeightNote != null && !_hasReportedWeight)
+        {
+            _hasReportedWeight = true;
+            _log("reading the basket's weight failed, fill ignores weight and the game refuses what does not fit (reported once): " + stock.WeightNote);
+        }
+
+        var room = new Room(stock.FreeCells, stock.FreeWeight, FillExtra);
+        var plan = FillPlan.Plan(screen.Wish, stock.Sources, stock.CategoriesInBasket, room, StackingUnits.IsAvailable);
         var failed = plan.Picks.Count(pick => !_game.Move(pick, screen.BasketId));
 
         _log($"fill: wish [{string.Join(",", screen.Wish.Categories)}] crisis {screen.Wish.CrisisCategory?.ToString() ?? "-"} dying {screen.Wish.IsDying}, " +
-             $"{stock.Sources.Count} stacks at hand, {stock.FreeCells} cells free, picked {string.Join(",", plan.Picks.Select(pick => $"{pick.Item.ConfigId}x{(pick.IsOneUnit ? 1 : pick.Item.Count)}"))}, " +
-             $"missing [{string.Join(",", plan.Missing)}], stop {plan.Stop}, failed {failed}");
+             $"{stock.Sources.Count} stacks at hand, {stock.FreeCells} cells and {stock.FreeWeight} weight free, extras {FillExtra}, " +
+             $"picked {string.Join(",", plan.Picks.Select(pick => $"{pick.Item.ConfigId}x{(pick.IsOneUnit ? 1 : pick.Item.Count)}w{pick.Weight}"))}, " +
+             $"missing [{string.Join(",", plan.Missing)}], too heavy {plan.TooHeavy}, stop {plan.Stop}, failed {failed}");
 
         var names = new Dictionary<int, string>(screen.Names);
 
         if (!names.ContainsKey(FillPlan.FoodCategory)) names[FillPlan.FoodCategory] = Texts.Food.Pick(isChinese);
 
-        _toasts.Show(Texts.Outcome(plan, failed, names, isChinese), failed > 0 || plan.Picks.Count == 0, isChinese);
+        var text = Texts.Outcome(plan, failed, names, isChinese);
+
+        if (StruggleNeed() is { } need && _game.BasketSatiety(screen.BasketId) is { } satiety) text += " " + Texts.BasketSatiety.Say(isChinese, (int)Math.Floor(satiety), need);
+
+        _toasts.Show(text, failed > 0 || plan.Picks.Count == 0, isChinese);
+    }
+
+    /// <summary>The least satiety that pulls her through, while she struggles; null otherwise or when it cannot be read.</summary>
+    private int? StruggleNeed()
+    {
+        try
+        {
+            return ReadLine()?.Need is { StruggleState: 1 } need ? need.SatietyMin : null;
+        }
+        catch (Exception ex)
+        {
+            _log("reading the satiety she needs failed: " + ex.Message);
+
+            return null;
+        }
+    }
+
+    private void PutAway(bool isChinese)
+    {
+        if (!StorageHubLink.IsAvailable)
+        {
+            _toasts.Show(Texts.NoStorageHub.Pick(isChinese), true, isChinese);
+
+            return;
+        }
+
+        if (_game.OpenBasket() == null)
+        {
+            _toasts.Show(Texts.NotOpen.Pick(isChinese), true, isChinese);
+
+            return;
+        }
+
+        var said = StorageHubLink.PutAwayBasket();
+
+        _log("put away: " + (said ?? "Storage Hub is not ready"));
+
+        if (!string.IsNullOrEmpty(said)) _toasts.Show(said!, false, isChinese);
+    }
+
+    private LineRead? ReadLine() => GameSingleton.Existing<BattleLogicWorld>() == null ? null : NeedReader.Read();
+
+    private void PollGifts()
+    {
+        if (_hasGiftLogFailed) return;
+
+        try
+        {
+            if (GameSingleton.Existing<BattleLogicWorld>()?._GameTimeManager is not { } time || !_journal.FollowSave()) return;
+
+            var line = NeedReader.Read();
+
+            _journal.See(new BasketLook(_game.IsBasketAway(), _game.BasketContents(_game.HomeBasketId()), line?.Progress ?? 0, line?.Affinity ?? 0, time.GetDay(), time.GetHour24()));
+        }
+        catch (Exception ex)
+        {
+            // A renamed field would fail here every second; one line is enough.
+            _hasGiftLogFailed = true;
+            _log("the gift log failed and is off until the next start: " + ex);
+        }
     }
 
     private void CallBack(bool isChinese)
@@ -144,7 +245,7 @@ internal sealed class BasketSession
 
         try
         {
-            read = NeedReader.Read();
+            read = NeedReader.Read()?.Need;
         }
         catch (Exception ex)
         {
@@ -156,6 +257,8 @@ internal sealed class BasketSession
         }
 
         if (read is not { } state) return;
+
+        if (!WarnStreak) state = state with { StreakDays = 0 };
 
         foreach (var warning in Warnings.Check(state, WarnHours, _shownWarnings))
         {

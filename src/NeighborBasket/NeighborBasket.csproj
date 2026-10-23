@@ -37,7 +37,7 @@
   <!-- What the Mod Manager's Mods screen shows about this mod. -->
   <ItemGroup>
     <AssemblyMetadata Include="ModManager.Name" Value="Neighbor Basket&#10;邻居篮子" />
-    <AssemblyMetadata Include="ModManager.Description" Value="Helps you look after the neighbor through her basket. A Fill button puts one cheap item for each thing she wants in the basket from your home storage and bag, and warnings come before her condition drops, before her trouble runs out of time, and while she struggles. An optional Call back button brings the basket home early.&#10;帮你通过篮子照顾邻居。「装篮」按钮从家中储物和背包里为她想要的每一类物品各放一件便宜的进篮子；在她的状态下降之前、她遇到的麻烦快要超时之前以及她挣扎时都会提醒你。可选的「召回」按钮能让篮子提前回来。" />
+    <AssemblyMetadata Include="ModManager.Description" Value="Helps you look after the neighbor through her basket. A Fill button puts one cheap item for each thing she wants in the basket, then more of what she wants within its weight limit. Warnings come before her condition drops, before her trouble runs out of time, before the send streak breaks, and while she struggles. A Neighbor phone app logs what you sent and got back, and with Storage Hub a Put away button empties the basket into storage.&#10;帮你通过篮子照顾邻居。「装篮」按钮为她想要的每一类物品各放一件便宜的进篮子，再在承重内多放一些她想要的。在她的状态下降、麻烦快要超时、连续赠送快要中断之前以及她挣扎时都会提醒你。手机上的「邻居」应用记录送出和送回的物品；安装储物中心后，「收纳」按钮能把篮子里的东西收进储物。" />
     <AssemblyMetadata Include="ModManager.Author" Value="AnExiledDev" />
     <AssemblyMetadata Include="ModManager.Category" Value="QualityOfLife" />
     <AssemblyMetadata Include="ModManager.GameVersion" Value="1.1.19131" />

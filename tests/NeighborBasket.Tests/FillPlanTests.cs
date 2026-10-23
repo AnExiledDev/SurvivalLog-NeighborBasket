@@ -12,10 +12,13 @@ public class FillPlanTests
 
     private static BasketWish Wish(params int[] categories) => new(true, false, false, false, categories, null);
 
-    private static Candidate Item(long id, int category, int unitValue, int count = 1, bool isForbidden = false) => new(id, 100, (int)id, category, unitValue, count, isForbidden);
+    private static Candidate Item(long id, int category, int unitValue, int count = 1, bool isForbidden = false, int weight = 0) => new(id, 100, (int)id, category, unitValue, count, isForbidden, weight);
 
     private static FillResult Plan(BasketWish wish, Candidate[] sources, int freeCells = 5, bool movesOneUnit = true, params int[] inBasket) =>
-        FillPlan.Plan(wish, sources, inBasket, freeCells, movesOneUnit);
+        FillPlan.Plan(wish, sources, inBasket, new Room(freeCells, float.PositiveInfinity, 0), movesOneUnit);
+
+    private static FillResult Plan(BasketWish wish, Candidate[] sources, Room room, bool movesOneUnit = true, params int[] inBasket) =>
+        FillPlan.Plan(wish, sources, inBasket, room, movesOneUnit);
 
     [Fact]
     public void Each_wished_category_gets_its_cheapest_item_since_a_hit_is_worth_more_than_value()
@@ -118,5 +121,68 @@ public class FillPlanTests
     public void A_basket_that_already_has_every_wish_says_so()
     {
         Assert.Equal(FillStop.AllThere, Plan(Wish(Tools), new[] { Item(1, Tools, 1) }, 5, true, Tools).Stop);
+    }
+
+    [Fact]
+    public void After_one_of_each_wished_kind_the_extras_fill_by_value_for_their_weight()
+    {
+        // Item 2 is dearer, but item 3 gives far more value for its weight.
+        var sources = new[] { Item(1, Tools, 5, weight: 1), Item(2, Tools, 40, weight: 20), Item(3, Tools, 30, weight: 2), Item(4, Cloth, 50, weight: 5), Item(5, Medicine, 900, weight: 1) };
+
+        Assert.Equal(new long[] { 1, 4, 3 }, Plan(Wish(Tools, Cloth), sources, new Room(10, float.PositiveInfinity, 1)).Picks.Select(pick => pick.Item.ItemId));
+        Assert.Equal(new long[] { 1, 4, 3, 2 }, Plan(Wish(Tools, Cloth), sources, new Room(10, float.PositiveInfinity, 2)).Picks.Select(pick => pick.Item.ItemId));
+    }
+
+    [Fact]
+    public void Extras_never_pass_the_configured_count_or_take_other_kinds()
+    {
+        var sources = new[] { Item(1, Tools, 5), Item(2, Tools, 40), Item(3, Tools, 30), Item(4, Medicine, 900) };
+        var result = Plan(Wish(Tools), sources, new Room(10, float.PositiveInfinity, 1));
+
+        Assert.Equal(new long[] { 1, 2 }, result.Picks.Select(pick => pick.Item.ItemId));
+    }
+
+    [Fact]
+    public void The_weight_left_is_never_passed()
+    {
+        var sources = new[] { Item(1, Tools, 5, weight: 3), Item(2, Tools, 40, weight: 4), Item(3, Tools, 30, weight: 2), Item(4, Cloth, 9, weight: 2) };
+        var result = Plan(Wish(Tools, Cloth), sources, new Room(10, 8, 5));
+
+        Assert.Equal(new long[] { 1, 4, 3 }, result.Picks.Select(pick => pick.Item.ItemId));
+        Assert.True(result.Picks.Sum(pick => pick.Weight) <= 8);
+    }
+
+    [Fact]
+    public void A_wished_kind_whose_items_are_all_too_heavy_is_counted_apart_from_missing()
+    {
+        var result = Plan(Wish(Tools, Cloth), new[] { Item(1, Tools, 5, weight: 20), Item(2, Cloth, 5, weight: 1) }, new Room(10, 5, 0));
+
+        Assert.Equal(2, Assert.Single(result.Picks).Item.ItemId);
+        Assert.Empty(result.Missing);
+        Assert.Equal(1, result.TooHeavy);
+    }
+
+    [Fact]
+    public void One_unit_of_a_stack_weighs_its_share_rounded_up()
+    {
+        Assert.Equal(4, Item(1, Tools, 5, count: 3, weight: 10).UnitWeight);
+        Assert.Equal(10, new Pick(Item(1, Tools, 5, count: 3, weight: 10), false).Weight);
+    }
+
+    [Fact]
+    public void With_every_wish_in_the_basket_the_extras_still_add_more()
+    {
+        var result = Plan(Wish(Tools), new[] { Item(1, Tools, 5) }, new Room(5, float.PositiveInfinity, 3), true, Tools);
+
+        Assert.Equal(1, Assert.Single(result.Picks).Item.ItemId);
+    }
+
+    [Fact]
+    public void Food_for_a_dying_neighbor_stops_at_the_weight_left()
+    {
+        var wish = new BasketWish(true, false, false, true, new[] { Tools }, null);
+        var result = Plan(wish, new[] { Item(1, Food, 50, weight: 6), Item(2, Food, 20, weight: 3), Item(3, Food, 10, weight: 3) }, new Room(5, 7, 0));
+
+        Assert.Equal(new long[] { 1 }, result.Picks.Select(pick => pick.Item.ItemId));
     }
 }

@@ -7,7 +7,9 @@ namespace NeighborBasket.Core;
 /// The neighbor's survival clock as the game keeps it. Seconds are the game clock's total seconds. A tier drops each
 /// time TierDropHours pass from TierAnchorSeconds without a basket (a send moves the anchor); at a floor of 1 the drop
 /// starts a struggle instead. StruggleState is 0 for none, 1 while she struggles (until StruggleDeadlineSeconds) and 2
-/// while she is dying. A crisis fails at the start of CrisisDeadlineDay.
+/// while she is dying. A crisis fails at the start of CrisisDeadlineDay. The send streak counts days in a row with a
+/// send (LastSendDay is the last day one went out); it pays at StreakDays and breaks when a day is skipped. A struggle
+/// is pulled through by a basket with at least SatietyMin satiety, and recovers better from SatietyHigh.
 /// </summary>
 public sealed record NeedState(
     bool IsActive,
@@ -21,7 +23,12 @@ public sealed record NeedState(
     int CrisisDeadlineDay,
     int NowSeconds,
     int Day,
-    int Hour24);
+    int Hour24,
+    int LastSendDay = -1,
+    int ConsecutiveSendDays = 0,
+    int StreakDays = 0,
+    int SatietyMin = 0,
+    int SatietyHigh = 0);
 
 public enum WarningKind
 {
@@ -30,10 +37,14 @@ public enum WarningKind
     CrisisDeadline,
     Struggle,
     Dying,
+    Streak,
 }
 
-/// <summary>One warning; Key is unique to the event, so each is shown once.</summary>
-public sealed record Warning(WarningKind Kind, int HoursLeft, string Key);
+/// <summary>
+/// One warning; Key is unique to the event, so each is shown once. A and B carry the numbers the text needs: the
+/// satiety a struggle needs (least, and for the better recovery), or the streak so far and the days it pays at.
+/// </summary>
+public sealed record Warning(WarningKind Kind, int HoursLeft, string Key, int A = 0, int B = 0);
 
 public static class Warnings
 {
@@ -58,7 +69,7 @@ public static class Warnings
     {
         if (state.StruggleState == 1)
         {
-            yield return new Warning(WarningKind.Struggle, HoursUntil(state.StruggleDeadlineSeconds, state.NowSeconds), "struggle:" + state.StruggleDeadlineSeconds);
+            yield return new Warning(WarningKind.Struggle, HoursUntil(state.StruggleDeadlineSeconds, state.NowSeconds), "struggle:" + state.StruggleDeadlineSeconds, state.SatietyMin, state.SatietyHigh);
         }
         else if (state.StruggleState == 2)
         {
@@ -77,7 +88,18 @@ public static class Warnings
 
             if (hoursLeft <= warnHours) yield return new Warning(WarningKind.CrisisDeadline, hoursLeft, "crisis:" + state.CrisisDeadlineDay);
         }
+
+        if (StreakAtRisk(state))
+        {
+            var hoursLeft = Math.Max(0, 24 - state.Hour24);
+
+            if (hoursLeft <= warnHours) yield return new Warning(WarningKind.Streak, hoursLeft, "streak:" + state.Day, state.ConsecutiveSendDays, state.StreakDays);
+        }
     }
+
+    /// <summary>A streak is running, yesterday's send kept it, and nothing has gone out today, so it breaks at midnight.</summary>
+    private static bool StreakAtRisk(NeedState state) =>
+        state.StreakDays > 0 && state.ConsecutiveSendDays >= 1 && state.LastSendDay >= 0 && state.LastSendDay == state.Day - 1;
 
     /// <summary>What the next missed drop does: lowers the tier, starts a struggle at a floor of 1, or nothing at a higher floor.</summary>
     private static WarningKind? DropKind(NeedState state)

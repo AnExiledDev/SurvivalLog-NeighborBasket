@@ -50,4 +50,26 @@ public class TextsTests
         Assert.Equal("About 7 h until her condition drops a step. Send the basket to hold it.", Texts.Warn(new Warning(WarningKind.TierDrop, 7, "k"), false));
         Assert.Contains("7", Texts.Warn(new Warning(WarningKind.Struggle, 7, "k"), true));
     }
+
+    [Fact]
+    public void A_struggle_warning_names_the_satiety_she_needs()
+    {
+        Assert.Equal(
+            "She is struggling. About 5 h left to send her food: at least 10 satiety pulls her through, 100 or more for a better recovery.",
+            Texts.Warn(new Warning(WarningKind.Struggle, 5, "k", 10, 100), false));
+    }
+
+    [Fact]
+    public void The_streak_warning_says_how_far_it_has_come_and_the_hours_left_today()
+    {
+        Assert.Equal("Send the basket today to keep the streak (2 of 3 days). About 4 h left today.", Texts.Warn(new Warning(WarningKind.Streak, 4, "k", 2, 3), false));
+    }
+
+    [Fact]
+    public void Kinds_too_heavy_for_the_basket_are_counted_in_the_toast()
+    {
+        var result = new FillResult(new[] { new Pick(Item(1, 4), true) }, new int[0], FillStop.None, false, 2);
+
+        Assert.Equal("Put 1 in the basket for: Tools. Too heavy for the weight left: 2.", Texts.Outcome(result, 0, Names, false));
+    }
 }

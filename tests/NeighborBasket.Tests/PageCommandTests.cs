@@ -12,6 +12,8 @@ public class PageCommandTests
         Assert.Equal(new PageCommand.CallBack(), PageCommand.Parse("slmod|neighborbasket|callback"));
         Assert.Equal(new PageCommand.Ready(), PageCommand.Parse("slmod|neighborbasket|ready"));
         Assert.Equal(new PageCommand.NoScript(), PageCommand.Parse("slmod|neighborbasket|noscript"));
+        Assert.Equal(new PageCommand.PutAway(), PageCommand.Parse("slmod|neighborbasket|putaway"));
+        Assert.Equal(new PageCommand.App(), PageCommand.Parse("slmod|neighborbasket|app"));
     }
 
     [Theory]
