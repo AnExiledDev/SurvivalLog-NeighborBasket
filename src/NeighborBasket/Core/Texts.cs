@@ -43,6 +43,8 @@ public static class Texts
 
     public static readonly Phrase Full = new("The basket is full.", "篮子已经满了。");
 
+    public static readonly Phrase Capped = new("Every stack Fill could use is more than FillShare lets it take. Click stacks in yourself.", "装篮能用的每组物品都超过了 FillShare 允许拿走的数量，请自己点击放入。");
+
     public static readonly Phrase GoalMet = new("The basket already holds enough. Shift-click Fill to pack it full.", "篮子里的东西已经够了。按住 Shift 单击「装篮」可以装满。");
 
     public static readonly Phrase ProgressOne = new("+{0} progress", "+{0} 进度");
@@ -95,7 +97,7 @@ public static class Texts
 
     public static readonly Phrase BreakStarted = new("Breaking down {0} by hand.", "正在手工拆解 {0} 件。");
 
-    public static readonly Phrase BreakShort = new("{0} of {1} could not be broken down (bag full, or the game refused). They stay where they are.", "有 {0}/{1} 件无法拆解（背包已满或游戏不允许），留在原处。");
+    public static readonly Phrase BreakShort = new("{0} of {1} could not be broken down (bag full, or the game refused). Any that reached your bag are still there.", "有 {0}/{1} 件无法拆解（背包已满或游戏不允许），已移到背包的仍在背包里。");
 
     public static readonly Phrase AppTile = new("Neighbor", "邻居");
 
@@ -220,7 +222,7 @@ public static class Texts
     public static IReadOnlyList<Phrase> All { get; } = new[]
     {
         Source, FillButton, FillTitle, CallBackButton, CallBackTitle, Filled, FilledFood, NoneFound, NotMoved, NoNeighbor, Away, Pending, Full, GoalMet, ProgressOne, ProgressEach, NotOpen, Food, CalledBack, NotAway, Failed,
-        TierDrop, StruggleSoon, CrisisDeadline, Struggle, StruggleNeed, Streak, BasketSatiety, PutAwayButton, PutAwayTitle, NoStorageHub, TakeAllButton, TakeAllTitle, TakeAllShort, BreakButton, BreakTitle, BreakStarted, BreakShort, Dying,
+        TierDrop, StruggleSoon, CrisisDeadline, Struggle, StruggleNeed, Streak, BasketSatiety, PutAwayButton, PutAwayTitle, NoStorageHub, TakeAllButton, TakeAllTitle, TakeAllShort, BreakButton, BreakTitle, BreakStarted, BreakShort, Capped, Dying,
         AppTile, AppTitle, AppBack, AppEmpty, AppNoRescue, AppAffinity, AppAffinityValue, AppProgress, AppStreak, AppStrugglesLeft, AppDay, AppSent, AppReturned, AppSaid, AppGained, AppNothing,
         CardCondition, CardTier, CardDrops, CardStruggleIn, CardStruggling, CardDying, CardSatiety, CardSatietyValue, CardTrouble, CardTroubleOf, CardDue, CardStreakToday, CardStreakSent,
         CardProgressValue, CardFills, CardFillsFood, CardFillsNothing,
@@ -252,6 +254,7 @@ public static class Texts
             case FillStop.Pending: return Pending.Pick(isChinese);
             case FillStop.Full: return Full.Pick(isChinese);
             case FillStop.GoalMet: return GoalMet.Pick(isChinese);
+            case FillStop.Capped: return Capped.Pick(isChinese);
         }
 
         var parts = new List<string>();

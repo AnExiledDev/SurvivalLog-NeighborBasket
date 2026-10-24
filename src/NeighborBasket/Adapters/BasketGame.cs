@@ -287,7 +287,7 @@ internal sealed class BasketGame
             for (var j = 0; package.ItemIdList != null && j < package.ItemIdList.Count; j++) outputs.Add(config.Get_Config_Item(package.ItemIdList[j])?.Category ?? 0);
         }
 
-        return new UseInfo(item.CantUse, item.UseAction, hasOther, isRandom, outputs);
+        return new UseInfo(item.CantUse, item.UseAction, hasOther, isRandom, outputs, item.StackLimit);
     }
 
     /// <summary>
@@ -320,8 +320,30 @@ internal sealed class BasketGame
         return true;
     }
 
-    /// <summary>Clears the character's not-yet-started action line, as the game does before a Use.</summary>
-    public void ClearLine() => GameSingleton.Existing<BattleLogicWorld>()?._AgentManager?.GetLeadingRole()?.ClearLeadingRoleActionCache();
+    /// <summary>
+    /// Clears the character's not-yet-started action line, as the game does before a Use: only when what the character
+    /// is doing now may be interrupted.
+    /// </summary>
+    public void ClearLine()
+    {
+        var world = GameSingleton.Existing<BattleLogicWorld>();
+        var role = world?._AgentManager?.GetLeadingRole();
+
+        if (world == null || role == null) return;
+
+        try
+        {
+            if (!world.IsCurrentBehaviorInterruptible(role)) return;
+        }
+        catch (Exception ex)
+        {
+            _log($"break down: the interrupt check failed, the line is kept: {ex.Message}");
+
+            return;
+        }
+
+        role.ClearLeadingRoleActionCache();
+    }
 
     /// <summary>Starts the lined-up actions as one batch; on failure the line is cleared so nothing is left stranded.</summary>
     public bool StartLine()

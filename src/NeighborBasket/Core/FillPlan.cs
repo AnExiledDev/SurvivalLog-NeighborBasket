@@ -66,6 +66,8 @@ public enum FillStop
     Full,
     // What the basket holds already reaches the goal.
     GoalMet,
+    // Every stack Fill could use is held back by the FillShare cap.
+    Capped,
 }
 
 /// <summary>
@@ -119,8 +121,9 @@ public static class FillPlan
 
         if (grid.FreeCount == 0 || basket.FreeWeight <= 0) return Stopped(FillStop.Full);
 
-        var usable = sources.Where(item => item.IsUsable && Allowed(limits, item.ConfigId) > 0).ToList();
-        var missing = wished.Where(category => !basket.CategoriesInBasket.Contains(category) && usable.All(item => item.Category != category)).ToList();
+        var owned = sources.Where(item => item.IsUsable).ToList();
+        var usable = owned.Where(item => Allowed(limits, item.ConfigId) > 0).ToList();
+        var missing = wished.Where(category => !basket.CategoriesInBasket.Contains(category) && owned.All(item => item.Category != category)).ToList();
         var scorer = new Scorer(wished, basket.CategoriesInBasket, rates, false);
         var packer = new Packer(grid, basket.FreeWeight, scorer, limits, canSplit);
 
@@ -160,7 +163,7 @@ public static class FillPlan
 
         var picks = packer.Picks();
 
-        if (picks.Count == 0 && missing.Count == 0) return Stopped(FillStop.Full);
+        if (picks.Count == 0 && missing.Count == 0) return Stopped(owned.Any(item => item.Count > Allowed(limits, item.ConfigId)) ? FillStop.Capped : FillStop.Full);
 
         return new FillResult(picks, missing, FillStop.None, false, (int)Math.Round(scorer.Score(picks.Select(pick => pick.Item))));
     }
@@ -225,15 +228,20 @@ public static class FillPlan
 
         if (grid.FreeCount == 0 || basket.FreeWeight <= 0) return Stopped(FillStop.Full);
 
-        var usable = sources.Where(item => item.IsUsable && item.Count <= Allowed(limits, item.ConfigId) && (!wish.IsDying || item.Category == FoodCategory)).ToList();
+        // The cap guards the player's stock in a normal round. While she is dying, food is what keeps her alive, so it
+        // does not apply.
+        if (wish.IsDying) limits = null;
+
+        var owned = sources.Where(item => item.IsUsable && (!wish.IsDying || item.Category == FoodCategory)).ToList();
+        var usable = owned.Where(item => item.Count <= Allowed(limits, item.ConfigId)).ToList();
         var missing = wish.IsDying
-            ? (usable.Count == 0 ? new List<int> { FoodCategory } : new List<int>())
-            : wished.Where(category => !basket.CategoriesInBasket.Contains(category) && usable.All(item => item.Category != category)).ToList();
+            ? (owned.Count == 0 ? new List<int> { FoodCategory } : new List<int>())
+            : wished.Where(category => !basket.CategoriesInBasket.Contains(category) && owned.All(item => item.Category != category)).ToList();
         var scorer = new Scorer(wished, basket.CategoriesInBasket, rates, wish.IsDying);
         var picks = new Search(grid, Shortlist(usable, scorer, grid), scorer, basket.FreeWeight, limits).Run();
         var gain = (int)Math.Round(scorer.Score(picks.Select(pick => pick.Item)));
 
-        if (picks.Count == 0 && missing.Count == 0) return Stopped(FillStop.Full);
+        if (picks.Count == 0 && missing.Count == 0) return Stopped(owned.Any(item => item.Count > Allowed(limits, item.ConfigId)) ? FillStop.Capped : FillStop.Full);
 
         return new FillResult(picks, missing, FillStop.None, wish.IsDying, gain);
     }

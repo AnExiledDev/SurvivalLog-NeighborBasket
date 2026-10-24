@@ -30,6 +30,8 @@ public class BreakdownTests
         Assert.False(Breakdown.IsBreakable(new UseInfo(false, 1, false, true, new[] { Material })));
         Assert.False(Breakdown.IsBreakable(new UseInfo(true, 1, false, false, new[] { Material })));
         Assert.False(Breakdown.IsBreakable(new UseInfo(false, 0, false, false, new[] { Material })));
+        // A stackable item would merge into a bag stack, and one Use takes apart only one of it.
+        Assert.False(Breakdown.IsBreakable(new UseInfo(false, 1, false, false, new[] { Material }, 5)));
         Assert.False(Breakdown.IsBreakable(new UseInfo(false, 1, false, false, new int[0])));
         Assert.False(Breakdown.IsBreakable(null));
     }

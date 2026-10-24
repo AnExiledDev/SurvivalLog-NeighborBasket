@@ -213,4 +213,37 @@ public class GoalFillTests
         // 70% of 9 is 6: two of the three stacks.
         Assert.Equal(2, result.Picks.Count);
     }
+
+    // The cap guards stock in a normal round; a dying neighbour needs the food, and one stack of it is the usual shape.
+    [Fact]
+    public void While_she_is_dying_the_cap_does_not_hold_back_her_food()
+    {
+        var dying = new BasketWish(true, false, false, true, new[] { Tools }, null);
+        var sources = new[] { Stack(1, Food, 30, 15) };
+        var limits = FillPlan.Limits(sources, new Candidate[0], 30);
+
+        var goal = Goal(dying, sources, limits: limits);
+        var shift = FillPlan.Plan(dying, sources, Basket(), Rates.Game, limits);
+
+        Assert.Equal(15, PickOf(goal, 1).Item.Count);
+        Assert.Empty(goal.Missing);
+        Assert.Equal(15, PickOf(shift, 1).Item.Count);
+    }
+
+    // A kind the cap holds back is at home, so Fill must not tell the player there is none of it.
+    [Fact]
+    public void A_kind_held_back_by_the_cap_is_reported_as_capped_not_missing()
+    {
+        var sources = new[] { Seed(1, 501, 10), Stack(2, Tools, 300, 10) };
+        var limits = FillPlan.Limits(sources, new Candidate[0], 30);
+
+        var shift = FillPlan.Plan(Wish(Seeds, Tools), sources, Basket(), Rates.Game, limits);
+        var whole = Goal(Wish(Seeds, Tools), sources, limits: new Dictionary<int, int>(), canSplit: false);
+
+        Assert.Empty(shift.Picks);
+        Assert.Empty(shift.Missing);
+        Assert.Equal(FillStop.Capped, shift.Stop);
+        Assert.Empty(whole.Missing);
+        Assert.Equal(FillStop.Capped, whole.Stop);
+    }
 }

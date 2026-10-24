@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.2
+
+- While she is dying, the FillShare cap no longer holds back her food. Before, a kind of food kept in one big stack could be left out completely, and Fill said there was none at home.
+- When the cap holds back everything Fill could use, it says so instead of saying nothing of that kind is at home.
+- Break down no longer clears what your character is busy with when the game would not interrupt it, and only items that do not stack count as breakable.
+- If a gift could not be broken down after it went to your bag, the message now says it is in your bag.
+- Made for Survival Log 1.1.19611.
+
 ## 0.6.1
 
 - New Break down button at the basket station. It shows when the basket holds gifts you can take apart by hand (wind chimes, star jars, notes and the like), and takes them apart the game's own way: each goes to your bag, then your character uses it, one after another, in the game's own time. Only items whose Use gives back nothing but materials count, so food, flowers and packages are never touched.

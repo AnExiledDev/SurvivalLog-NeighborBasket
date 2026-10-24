@@ -10,7 +10,7 @@ Keeping a neighbour alive means opening the basket, reading her wishes, then hun
 - **Click to move**: click a stack to put one in the basket, Shift-click for the whole stack. Click a stack in the basket to put it back where it came from.
 - **Fill button**: puts in enough from your home storage for 80 progress (`FillGoal`), the amount that lifts her condition two steps: one of each kind she wants first for its bonus, then more of what you have most of, only as many as it takes. With Stacking it takes part of a stack, so your piles are not emptied. Shift-click packs the basket as full as it goes for the most progress. What Fill would do shows faintly in the free cells. Your bag is never touched.
 - **Progress per item**: every stack shows the progress one more of it adds; its tooltip shows that and the whole stack's. Each item of a stack adds the same. The list puts the stacks that add the most at the top, and holds still while you click.
-- **A cap per item**: Fill takes at most 30% of any one item you have at home (`FillShare`), so your last seeds of a kind stay home.
+- **A cap per item**: Fill takes at most 30% of any one item you have at home (`FillShare`), so your last seeds of a kind stay home. While she is dying the cap does not apply to food.
 - **Never what you locked**: items the basket refuses are skipped, and nothing goes past the basket's cells or its weight limit.
 - **Food when she is dying**: while she is dying, Fill packs food only, the most valuable it can fit.
 - **Warnings**: a message a few hours before her condition drops a step (or before she starts to struggle), before her trouble's deadline, late in the day when today's send would keep the send streak going, and once when she starts to struggle or is dying (with how filling the basket must be). Each warning shows once.
@@ -76,7 +76,7 @@ Settings live in `BepInEx\config\com.dev.survivallog.neighborbasket.cfg`, create
 
 ## Troubleshooting
 
-Check `BepInEx\LogOutput.log` for `===== Neighbor Basket 0.6.1 started`. The same line, plus every press and what it moved or why it moved nothing, is in `BepInEx\neighbor-basket.log`, which survives restarts.
+Check `BepInEx\LogOutput.log` for `===== Neighbor Basket 0.6.2 started`. The same line, plus every press and what it moved or why it moved nothing, is in `BepInEx\neighbor-basket.log`, which survives restarts.
 
 If the station does not show, open the basket from the neighbour's gift basket at home; if you pressed Game screen, press Basket station at the top right. If the Fill button does not show, check that `FillButton` is `true`. If Fill says nothing is in home storage for a kind, nothing of that kind is in the storages at home, or all of it is locked.
 

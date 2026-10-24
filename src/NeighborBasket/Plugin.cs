@@ -14,7 +14,7 @@ namespace NeighborBasket;
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.neighborbasket";
-    private const string Version = "0.6.1";
+    private const string Version = "0.6.2";
     private const string StackingGuid = "com.dev.survivallog.stacking";
 
     public override void Load()
@@ -29,8 +29,8 @@ public sealed class Plugin : BasePlugin
                 new AcceptableValueRange<int>(0, 500)));
         var fillShare = Config.Bind("Basket", "FillShare", 30,
             new ConfigDescription(
-                "The most of any one item Fill takes, in percent of how many you have at home (what is already in the basket counts). At 30, Fill takes at most 4 of 16 tomato seeds, and none of an item you have only 1 to 3 of. Shift-click Fill keeps to it too. Clicking items yourself is never limited. 100 means no limit.\n" +
-                "「装篮」对同一种物品最多拿走家中数量的百分之几（篮子里已有的也算）。设为 30 时，16 个番茄种子最多拿 4 个，只有 1 到 3 个的物品一个都不拿。按住 Shift 单击「装篮」也遵守此限制。自己单击放入物品不受限制。设为 100 表示不限制。",
+                "The most of any one item Fill takes, in percent of how many you have at home (what is already in the basket counts). At 30, Fill takes at most 4 of 16 tomato seeds, and none of an item you have only 1 to 3 of. Shift-click Fill keeps to it too. While she is dying it does not apply, so Fill packs the food she needs. Clicking items yourself is never limited. 100 means no limit.\n" +
+                "「装篮」对同一种物品最多拿走家中数量的百分之几（篮子里已有的也算）。设为 30 时，16 个番茄种子最多拿 4 个，只有 1 到 3 个的物品一个都不拿。按住 Shift 单击「装篮」也遵守此限制。她濒死时不受此限制，「装篮」会放入她需要的食物。自己单击放入物品不受限制。设为 100 表示不限制。",
                 new AcceptableValueRange<int>(1, 100)));
         var putAwayButton = Config.Bind("Basket", "PutAwayButton", true,
             "Shows a To storage button on the basket while it is home, which puts what the basket holds into your home storage the way Storage Hub puts the bag away. Needs Storage Hub; without it the button does not show.\n" +
