@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.6
+
+- The Neighbor app is on the phone the moment the phone opens, instead of showing up a moment later.
+- Made for Survival Log 1.1.19611.
+
 ## 0.6.5
 
 - The basket station opens every time now. Before, closing and opening the basket quickly could leave the game's own screen up instead.

@@ -13,7 +13,14 @@
     <Compile Include="..\..\src\NeighborBasket\Core\*.cs" Link="Core\%(Filename)%(Extension)" />
   </ItemGroup>
 
+  <!-- The page script, as the plugin ships it, run in Jint against a fake root page. -->
   <ItemGroup>
+    <EmbeddedResource Include="..\..\src\NeighborBasket\page.js" LogicalName="NeighborBasket.page.js" Link="page.js" />
+    <EmbeddedResource Include="PhoneFake.js" LogicalName="NeighborBasket.Tests.PhoneFake.js" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Jint" Version="4.17.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />

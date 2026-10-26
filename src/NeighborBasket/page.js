@@ -27,6 +27,8 @@
   var SCREEN_CLASS = 'slnb-phone';
   var PHONE_STYLE_ID = 'slnb-phone-style';
   var APP_REFRESH_MS = 5000;
+  var PHONE_PAGE = /PhoneSMS\.html/;
+  var CHASE_FRAMES = 120;
   var SVG_NS = 'http://www.w3.org/2000/svg';
   // A basket: the body and its handle.
   var BASKET_STROKES = ['M4 10h16l-2 9H6z', 'M8 10l4-6 4 6', 'M9 13v3', 'M15 13v3'];
@@ -1073,7 +1075,7 @@
     return app;
   }
 
-  function patchPhone(doc, frame) {
+  function addApp(doc) {
     var grid = doc.querySelector('.app-grid');
 
     // Exiled's Toolkit moves the app into the phone's dock, so look for it anywhere on the page, not only in the grid.
@@ -1081,6 +1083,91 @@
       addPhoneStyle(doc);
       grid.appendChild(phoneApp(doc));
     }
+  }
+
+  function addAppSafely(doc) {
+    try {
+      addApp(doc);
+    } catch (e) {}
+  }
+
+  // The game builds a new phone page every time the phone opens and shows it two frames after the page starts, long
+  // before the next page check. So a phone page is watched from the moment its frame appears, and the app goes in
+  // while the game builds the page. The observer runs before the next paint; addApp only adds what is missing.
+  function watchPhonePage(frame) {
+    try {
+      var doc = frame.contentDocument;
+      var win = doc && doc.defaultView;
+
+      if (!doc || !win || !PHONE_PAGE.test(String(win.location.href))) return false;
+
+      if (!doc.slnbPhoneWatched && typeof win.MutationObserver !== 'undefined') {
+        doc.slnbPhoneWatched = true;
+        new win.MutationObserver(function () { addAppSafely(doc); }).observe(doc, { childList: true, subtree: true });
+      }
+
+      addAppSafely(doc);
+
+      return true;
+    } catch (e) {
+      // A page from another origin, or one being torn down: the page check tries again.
+      return true;
+    }
+  }
+
+  // A new frame first holds an empty document; the phone page replaces it a moment later. Look each frame until it is
+  // there, for about two seconds at most.
+  function chasePhonePage(frame, framesLeft) {
+    if (watchPhonePage(frame) || framesLeft <= 0 || typeof requestAnimationFrame === 'undefined') return;
+
+    requestAnimationFrame(function () { chasePhonePage(frame, framesLeft - 1); });
+  }
+
+  function onFrame(frame) {
+    if (!PHONE_PAGE.test(String(frame.src || ''))) return;
+
+    if (!frame.slnbPhoneFrame) {
+      frame.slnbPhoneFrame = true;
+      frame.addEventListener('load', function () { chasePhonePage(frame, CHASE_FRAMES); });
+    }
+
+    chasePhonePage(frame, CHASE_FRAMES);
+  }
+
+  // Every game page is an iframe in this document: a new one, or one sent to a new address, is looked at at once.
+  function watchFrames() {
+    if (typeof MutationObserver === 'undefined') return;
+
+    new MutationObserver(function (records) {
+      for (var i = 0; i < records.length; i++) {
+        var record = records[i];
+
+        if (record.type === 'attributes') {
+          if (record.target.tagName === 'IFRAME') onFrame(record.target);
+
+          continue;
+        }
+
+        for (var j = 0; j < record.addedNodes.length; j++) {
+          var node = record.addedNodes[j];
+
+          if (node.nodeType !== 1) continue;
+
+          if (node.tagName === 'IFRAME') {
+            onFrame(node);
+            continue;
+          }
+
+          var inner = node.getElementsByTagName('iframe');
+
+          for (var k = 0; k < inner.length; k++) onFrame(inner[k]);
+        }
+      }
+    }).observe(document, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
+  }
+
+  function patchPhone(doc, frame) {
+    addApp(doc);
 
     if (phone.screen && phone.screen.ownerDocument === doc) {
       if (frame.style.display === 'none' || !phone.screen.isConnected) closePhone();
@@ -1322,6 +1409,8 @@
       patchHudIn(doc);
     }
   }
+
+  watchFrames();
 
   // The station is checked more often than the rest, so it opens and closes with the basket.
   setInterval(function () {
