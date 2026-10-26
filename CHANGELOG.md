@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.7
+
+- The phone runs smoother: once the Neighbor app is on the phone, the mod no longer searches the phone's screen every time something on it changes.
+- Made for Survival Log 1.1.19611.
+
 ## 0.6.6
 
 - The Neighbor app is on the phone the moment the phone opens, instead of showing up a moment later.

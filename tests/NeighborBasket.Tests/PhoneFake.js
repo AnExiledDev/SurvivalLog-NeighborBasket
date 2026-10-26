@@ -268,3 +268,35 @@ function navigate(frame, url) {
 function apps(doc) {
   return doc.querySelectorAll('.slnb-app').length;
 }
+
+// Counts the searches a document is asked for from now on.
+function countSearches(doc) {
+  var searches = { count: 0 };
+
+  ['querySelector', 'querySelectorAll', 'getElementById', 'getElementsByTagName'].forEach(function (name) {
+    var search = doc[name];
+
+    doc[name] = function (selector) {
+      searches.count++;
+      return search(selector);
+    };
+  });
+
+  return searches;
+}
+
+// Counts the layout and style reads asked of a frame from now on.
+function countLayoutReads(frame) {
+  var reads = { count: 0 };
+  var computed = window.getComputedStyle;
+
+  ['offsetWidth', 'offsetHeight'].forEach(function (name) {
+    Object.defineProperty(frame, name, { get: function () { reads.count++; return 100; } });
+  });
+  window.getComputedStyle = function (el) {
+    if (el === frame) reads.count++;
+    return computed(el);
+  };
+
+  return reads;
+}

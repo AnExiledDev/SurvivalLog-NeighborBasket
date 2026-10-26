@@ -927,7 +927,10 @@
     } catch (e) {}
   }
 
+  // Checked every 150 ms. The game hides a page by its frame's own style, which costs nothing to read, so a hidden page
+  // never makes the browser work out the layout.
   function isFrameShown(frame) {
+    if (frame.style.display === 'none') return false;
     if (frame.offsetWidth === 0 && frame.offsetHeight === 0) return false;
 
     var style = window.getComputedStyle(frame);
@@ -1075,14 +1078,33 @@
     return app;
   }
 
+  // The app this page was given, while it is still on the page. Exiled's Toolkit moves it into the phone's dock, which
+  // keeps it on the page.
+  function hasApp(doc) {
+    var app = doc.slnbApp;
+
+    return !!app && app.isConnected === true;
+  }
+
+  // The game and other mods change the phone page constantly while it is open, so once the app is in, each change
+  // costs one check that it is still on the page, and no search.
   function addApp(doc) {
+    if (!settings.app || hasApp(doc)) return;
+
+    // Look for an app anywhere on the page, not only in the grid, in case one went in before this page was known.
+    var found = doc.querySelector('.' + APP_CLASS);
+
+    if (found) {
+      doc.slnbApp = found;
+      return;
+    }
+
     var grid = doc.querySelector('.app-grid');
 
-    // Exiled's Toolkit moves the app into the phone's dock, so look for it anywhere on the page, not only in the grid.
-    if (settings.app && grid && !doc.querySelector('.' + APP_CLASS)) {
-      addPhoneStyle(doc);
-      grid.appendChild(phoneApp(doc));
-    }
+    if (!grid) return;
+
+    addPhoneStyle(doc);
+    doc.slnbApp = grid.appendChild(phoneApp(doc));
   }
 
   function addAppSafely(doc) {
@@ -1116,11 +1138,18 @@
   }
 
   // A new frame first holds an empty document; the phone page replaces it a moment later. Look each frame until it is
-  // there, for about two seconds at most.
-  function chasePhonePage(frame, framesLeft) {
-    if (watchPhonePage(frame) || framesLeft <= 0 || typeof requestAnimationFrame === 'undefined') return;
+  // there, for about two seconds at most. A new look at a frame ends the one before it, so a frame has one chase.
+  function chasePhonePage(frame) {
+    var chase = frame.slnbPhoneChase = (frame.slnbPhoneChase || 0) + 1;
+    var framesLeft = CHASE_FRAMES;
 
-    requestAnimationFrame(function () { chasePhonePage(frame, framesLeft - 1); });
+    function step() {
+      if (frame.slnbPhoneChase !== chase || watchPhonePage(frame) || --framesLeft <= 0 || typeof requestAnimationFrame === 'undefined') return;
+
+      requestAnimationFrame(step);
+    }
+
+    step();
   }
 
   function onFrame(frame) {
@@ -1128,10 +1157,10 @@
 
     if (!frame.slnbPhoneFrame) {
       frame.slnbPhoneFrame = true;
-      frame.addEventListener('load', function () { chasePhonePage(frame, CHASE_FRAMES); });
+      frame.addEventListener('load', function () { chasePhonePage(frame); });
     }
 
-    chasePhonePage(frame, CHASE_FRAMES);
+    chasePhonePage(frame);
   }
 
   // Every game page is an iframe in this document: a new one, or one sent to a new address, is looked at at once.
@@ -1310,11 +1339,13 @@
     '#' + HUD_ID + ' .slnb-hud-tip div.is-bad{border-left-color:#ff5a4d}',
     '@keyframes slnb-hud-pulse{0%,100%{opacity:1}50%{opacity:.35}}'
   ].join('\n');
-  var hud = { data: null, drawn: '' };
+  var hud = { data: null, key: '', drawn: '' };
   var hasReportedHud = false;
 
   function setHud(data) {
     hud.data = data || null;
+    // Kept with the data, so the 400 ms check compares it without building it again.
+    hud.key = hud.data ? JSON.stringify(hud.data) : '';
 
     try {
       patchHud();
@@ -1367,7 +1398,7 @@
       (doc.head || doc.documentElement).appendChild(style);
     }
 
-    var key = JSON.stringify(hud.data);
+    var key = hud.key;
 
     if (!line || line.parentNode !== panel) {
       if (line) line.parentNode.removeChild(line);
