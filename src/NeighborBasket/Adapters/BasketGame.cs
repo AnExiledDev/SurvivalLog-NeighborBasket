@@ -207,21 +207,38 @@ internal sealed class BasketGame
     /// Moves this many items of a stack into another bag one at a time with Stacking's unit move, never the whole stack;
     /// returns how many moved. Stops when the stack is gone, has one item left, or Stacking refuses.
     /// </summary>
-    public int MoveUnits(long itemId, long fromOwnerId, long toOwnerId, int count)
+    public int MoveUnits(long itemId, long fromOwnerId, long toOwnerId, int count) =>
+        UnitSteps.Move(itemId, count, id => MoveOneUnit(id, fromOwnerId, toOwnerId));
+
+    private static UnitStep MoveOneUnit(long itemId, long fromOwnerId, long toOwnerId)
     {
         var items = GameSingleton.Existing<BattleLogicWorld>()?._ItemManager;
-        var moved = 0;
+        var item = items?.GetItemData(itemId);
 
-        for (; moved < count; moved++)
+        if (items == null || item == null || item.OwnerId != fromOwnerId || item.ItemCount <= 1) return new UnitStep(false, null);
+
+        var configId = item.ItemConfigId;
+        var pos = item.BagPos;
+
+        if (StackingUnits.MoveOne(itemId, fromOwnerId, toOwnerId) != true) return new UnitStep(false, null);
+
+        return new UnitStep(true, RestOf(items, itemId, fromOwnerId, configId, pos));
+    }
+
+    /// <summary>
+    /// The stack left behind after one unit moved: the same item if it stayed, otherwise the stack of the same kind
+    /// Stacking put back on the cell it stood on (it moves the stack's own item and leaves the rest under a new id).
+    /// </summary>
+    private static long? RestOf(ItemManager items, long itemId, long ownerId, int configId, UnityEngine.Vector2Int pos)
+    {
+        if (items.GetItemData(itemId) is { } same && same.OwnerId == ownerId) return itemId;
+
+        foreach (var other in Held(items, ownerId))
         {
-            var item = items?.GetItemData(itemId);
-
-            if (item == null || item.OwnerId != fromOwnerId || item.ItemCount <= 1) break;
-
-            if (StackingUnits.MoveOne(itemId, fromOwnerId, toOwnerId) != true) break;
+            if (other.ItemConfigId == configId && other.BagPos.x == pos.x && other.BagPos.y == pos.y) return other.InstanceId;
         }
 
-        return moved;
+        return null;
     }
 
     /// <summary>The owner, config and name of a stack, by its id; null when it is gone.</summary>

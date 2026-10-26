@@ -76,7 +76,7 @@ Settings live in `BepInEx\config\com.dev.survivallog.neighborbasket.cfg`, create
 
 ## Troubleshooting
 
-Check `BepInEx\LogOutput.log` for `===== Neighbor Basket 0.6.2 started`. The same line, plus every press and what it moved or why it moved nothing, is in `BepInEx\neighbor-basket.log`, which survives restarts.
+Check `BepInEx\LogOutput.log` for `===== Neighbor Basket 0.6.3 started`. The same line, plus every press and what it moved or why it moved nothing, is in `BepInEx\neighbor-basket.log`, which survives restarts.
 
 If the station does not show, open the basket from the neighbour's gift basket at home; if you pressed Game screen, press Basket station at the top right. If the Fill button does not show, check that `FillButton` is `true`. If Fill says nothing is in home storage for a kind, nothing of that kind is in the storages at home, or all of it is locked.
 

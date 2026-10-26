@@ -52,7 +52,7 @@ public class StationViewTests
     {
         var inBasket = Item(10, Tools, 5, x: 2, y: 1);
         var source = Item(11, Tools, 30);
-        var data = new StationData(5, 3, 0, 0, new[] { inBasket }, new[] { source, Item(12, Cloth, 3) }, new[] { new Place(7, "") }, 7);
+        var data = new StationData(5, 3, 0, 0, new[] { inBasket }, new[] { source, Item(12, Cloth, 3, x: 4, y: 2) }, new[] { new Place(7, "") }, 7);
         var plan = new FillResult(new[] { new Pick(source.ToCandidate(), 3, 0) }, new int[0], FillStop.None, false, 21);
         var json = StationView.Json(data, new BasketWish(true, false, false, false, new[] { Tools }, null), null, null, null, plan, 12, false);
 
@@ -61,6 +61,9 @@ public class StationViewTests
         Assert.Contains("\"id\":10,", json);
         Assert.Contains("\"wanted\":true,\"no\":false,\"x\":2,\"y\":1}", json);
         Assert.Contains("\"id\":12,\"owner\":7,\"cfg\":12,\"n\":\"x\",\"ic\":\"../../Res/i.png\",\"v\":3,\"q\":1,\"kg\":2,\"w\":1,\"h\":1,\"wanted\":false", json);
+        // A source stack carries its cell too: the page keeps a row by where the stack sits, because taking one unit
+        // with Stacking leaves the rest on that cell under a new id.
+        Assert.Matches("\"id\":12,[^}]*\"x\":4,\"y\":2}", json);
         Assert.Contains("\"gain\":21", json);
         Assert.Contains("\"send\":\"Send basket\"", json);
     }
@@ -76,9 +79,9 @@ public class StationViewTests
 
         // Tools are not in the basket yet: the first brings the bonus (15.2, whole above 10). Cloth is there already: 0.2 an item.
         Assert.Contains("\"id\":11,\"owner\":7,\"cfg\":501,", json);
-        Assert.Contains("\"g1\":15,\"gs\":21}", json);
-        Assert.Contains("\"g1\":0.2,\"gs\":6}", json);
-        Assert.Contains("\"no\":true}", json);
+        Assert.Contains("\"g1\":15,\"gs\":21,\"x\":0,\"y\":0}", json);
+        Assert.Contains("\"g1\":0.2,\"gs\":6,\"x\":0,\"y\":0}", json);
+        Assert.Contains("\"no\":true,\"x\":0,\"y\":0}", json);
         Assert.Equal("1.5", StationView.Gain(1.46));
         Assert.Equal("15", StationView.Gain(15.4));
     }

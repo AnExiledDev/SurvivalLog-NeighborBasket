@@ -113,7 +113,7 @@ public static class StationView
 
         if (gain is { } g) json.Append(",\"g1\":").Append(Gain(g.One)).Append(",\"gs\":").Append(Gain(g.Stack));
 
-        if (isInBasket) json.Append(",\"x\":").Append(item.X).Append(",\"y\":").Append(item.Y);
+        json.Append(",\"x\":").Append(item.X).Append(",\"y\":").Append(item.Y);
 
         if (isInBasket && item.Breaks) json.Append(",\"br\":true");
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.3
+
+- With Stacking, Fill now puts in every unit it planned from a stack in one press. Before, it moved only the first unit of each part stack, so you had to press Fill over and over.
+- Adding one item from a stack at the station no longer greys out its row. The rest of the stack stays on the same row, so you can keep clicking it.
+- Made for Survival Log 1.1.19611.
+
 ## 0.6.2
 
 - While she is dying, the FillShare cap no longer holds back her food. Before, a kind of food kept in one big stack could be left out completely, and Fill said there was none at home.

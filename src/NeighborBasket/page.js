@@ -507,28 +507,36 @@
 
   // Keeps the rows where they were while items go in and out, so a click lands on the row that was under the mouse.
   // The order is set when the list is first shown and again when the place, tab or search changes; a stack that went
-  // in whole keeps its row, greyed out at x0, and one new to the list joins at the bottom.
+  // in whole keeps its row, greyed out at x0, and one new to the list joins at the bottom. A row belongs to a cell, not
+  // an item id: taking one unit with Stacking sends the stack's own item into the basket and leaves the rest on the
+  // same cell under a new id, and that rest has to stay on its row.
+  function rowKey(item) {
+    return item.owner + ':' + item.cfg + ':' + item.x + ',' + item.y;
+  }
+
   function steady(items, key) {
     if (!station.order || station.orderKey !== key) {
-      station.order = items.map(function (item) { return String(item.id); });
+      station.order = items.map(rowKey);
       station.orderKey = key;
     }
 
-    var byId = {};
+    var byKey = {};
 
     items.forEach(function (item) {
-      byId[String(item.id)] = item;
-      station.seen[String(item.id)] = item;
+      var row = rowKey(item);
 
-      if (station.order.indexOf(String(item.id)) < 0) station.order.push(String(item.id));
+      byKey[row] = item;
+      station.seen[row] = item;
+
+      if (station.order.indexOf(row) < 0) station.order.push(row);
     });
 
-    return station.order.map(function (id) {
-      if (byId[id]) return byId[id];
+    return station.order.map(function (row) {
+      if (byKey[row]) return byKey[row];
 
-      var last = station.seen[id];
+      var last = station.seen[row];
 
-      return last ? { id: id, n: last.n, ic: last.ic, gone: true } : null;
+      return last ? { id: last.id, n: last.n, ic: last.ic, gone: true } : null;
     }).filter(function (item) { return item; });
   }
 
