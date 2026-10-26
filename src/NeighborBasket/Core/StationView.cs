@@ -90,9 +90,10 @@ public static class StationView
     }
 
     /// <summary>
-    /// One stack. cfg is its item kind, for Info Pack's tooltip. g1 and gs are the progress one item and the whole stack
-    /// would add on top of the basket as it is, left out while she is dying (only food counts then) and for what she
-    /// refuses.
+    /// One stack. cfg is its item kind, for Info Pack's tooltip. Its value stays out: the page never shows it, and food
+    /// loses value as it spoils, which would make every answer new and redraw the station each time. g1 and gs are the
+    /// progress one item and the whole stack would add on top of the basket as it is, left out while she is dying (only
+    /// food counts then) and for what she refuses.
     /// </summary>
     private static string ItemJson(StationItem item, ISet<int> wanted, bool isInBasket, (double One, double Stack)? gain)
     {
@@ -103,7 +104,6 @@ public static class StationView
         json.Append(",\"cfg\":").Append(item.ConfigId);
         json.Append(",\"n\":").Append(JsText.Literal(item.Name));
         json.Append(",\"ic\":").Append(JsText.Literal(item.Icon));
-        json.Append(",\"v\":").Append(item.Value);
         json.Append(",\"q\":").Append(item.Count);
         json.Append(",\"kg\":").Append(item.Weight);
         json.Append(",\"w\":").Append(item.Width);

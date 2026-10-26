@@ -19,6 +19,8 @@ public class PageCommandTests
         Assert.Equal(new PageCommand.BreakDown(), PageCommand.Parse("slmod|neighborbasket|breakdown"));
         Assert.Equal(new PageCommand.App(), PageCommand.Parse("slmod|neighborbasket|app"));
         Assert.Equal(new PageCommand.Station(), PageCommand.Parse("slmod|neighborbasket|station"));
+        Assert.Equal(new PageCommand.Station(true), PageCommand.Parse("slmod|neighborbasket|station|new"));
+        Assert.False(((PageCommand.Station)PageCommand.Parse("slmod|neighborbasket|station")).IsFresh);
         Assert.Equal(new PageCommand.Add(42, false), PageCommand.Parse("slmod|neighborbasket|add|42|one"));
         Assert.Equal(new PageCommand.Add(42, true), PageCommand.Parse("slmod|neighborbasket|add|42|all"));
         Assert.Equal(new PageCommand.Take(42), PageCommand.Parse("slmod|neighborbasket|take|42"));

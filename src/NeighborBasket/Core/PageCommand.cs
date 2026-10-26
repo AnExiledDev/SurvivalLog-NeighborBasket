@@ -23,8 +23,8 @@ public abstract record PageCommand
     /// <summary>Put away was clicked.</summary>
     public sealed record PutAway : PageCommand;
 
-    /// <summary>The basket station is showing and wants fresh data.</summary>
-    public sealed record Station : PageCommand;
+    /// <summary>The basket station is showing and wants fresh data; IsFresh when it holds none, so even an unchanged answer goes out.</summary>
+    public sealed record Station(bool IsFresh = false) : PageCommand;
 
     /// <summary>A stack was clicked in the station: one item of it, or the whole stack, goes in the basket.</summary>
     public sealed record Add(long ItemId, bool IsWholeStack) : PageCommand;
@@ -71,6 +71,7 @@ public abstract record PageCommand
             "breakdown" => new BreakDown(),
             "app" => new App(),
             "station" => new Station(),
+            "station|new" => new Station(true),
             "ready" => new Ready(),
             "noscript" => new NoScript(),
             _ => new Unknown(message),

@@ -14,7 +14,12 @@
   var STATION_ID = 'slnb-station';
   var OPEN_ID = 'slnb-station-open';
   var STATION_REFRESH_MS = 1000;
+  var FIRST_ASK_MS = 300;
   var AFTER_MOVE_MS = 250;
+  // How long an opening station waits for its first answer before it lets the game's own screen show.
+  var LOADING_MS = 3000;
+  // How long a fill's planned stacks show as landing without an answer.
+  var FILL_SHOW_MS = 3000;
   // One basket cell on screen, and the gap between cells.
   var CELL = 70;
   var PITCH = 74;
@@ -28,9 +33,13 @@
 
   var settings = { fill: true, callBack: false, putAway: false, app: true, fillLabel: 'Fill', fillTitle: '', callBackLabel: 'Call back', callBackTitle: '', putAwayLabel: 'To storage', putAwayTitle: '', appLabel: 'Neighbor' };
   var phone = { screen: null, data: null, refreshAt: 0 };
-  // The station's data from the plugin and the player's own choices in it. isOff is the Game screen button; it lasts
-  // until the basket closes.
-  var station = { data: null, json: '', askAt: 0, isOff: false, isDead: false, sel: 'all', filt: '', query: '', drawn: '', order: null, orderKey: '', seen: {} };
+  // The station's data from the plugin and the player's own choices in it, for the one basket opening under way
+  // (isOpen, in doc). isOff is the Game screen button; it lasts until the basket closes. isGuess is set while the
+  // station shows a move the plugin has not answered yet. version counts what changed the drawing.
+  var station = {
+    data: null, labels: null, byId: {}, names: {}, state: null, isOpen: false, doc: null, askAt: 0, isOff: false, isDead: false, isGuess: false,
+    sel: 'all', filt: '', query: '', order: null, orderSet: {}, orderKey: '', seen: {}, version: 0, filling: 0, waitSince: 0, hovered: null
+  };
   var isBusy = false;
   var busyTimer = 0;
   var toastTimer = 0;
@@ -96,6 +105,7 @@
     '.nbs-cell.is-w::after{content:"";position:absolute;top:3px;left:3px;width:6px;height:6px;border-radius:50%;background:#FFC83A;box-shadow:0 0 5px #FFC83A}',
     '.nbs-cell.is-ghost{z-index:1;border:1px dashed rgba(140,197,106,.7);background:rgba(140,197,106,.07)}',
     '.nbs-cell.is-ghost img{opacity:.4}',
+    '.nbs-cell.is-landing{z-index:1;background:rgba(40,30,18,.9);border-color:rgba(140,197,106,.8)}',
     '.nbs-chips{display:flex;flex-wrap:wrap;gap:6px}',
     '.nbs-chip{display:flex;align-items:center;gap:5px;padding:3px 9px;border-radius:12px;font-size:12px;border:1px solid rgba(220,188,120,.25);color:#cbbfa8}',
     '.nbs-chip.is-hit{border-color:#8cc56a;color:#8cc56a;background:rgba(140,197,106,.1)}',
@@ -186,16 +196,21 @@
   function setup(next) {
     settings = next || settings;
     isBusy = false;
+    station.version++;
     removeApps();
   }
 
   // The basket panel's Vue state; a game update could rename it, so a failure keeps the station hidden and is
-  // reported once. Her wish chips, progress and the basket's kg come from the game's own panel.
+  // reported once. A page that is still loading has no app yet and is simply not the basket. Her wish chips, progress
+  // and the basket's kg come from the game's own panel.
   function basketState(doc) {
     var state = { isBasket: false, setup: null, wish: null, maxKg: 0, usedKg: 0 };
+    var app = doc.getElementById('app');
+
+    if (!app || !app._vnode || !app._vnode.component) return state;
 
     try {
-      var setup = doc.getElementById('app')._vnode.component.setupState;
+      var setup = app._vnode.component.setupState;
 
       state.isBasket = !!setup.isBasket;
       state.setup = setup;
@@ -244,21 +259,13 @@
   function kgOf(units, state) {
     var data = station.data;
 
-    if (!data || !(data.max > 0) || !(state.maxKg > 0)) return '';
+    if (!data || !state || !(data.max > 0) || !(state.maxKg > 0)) return '';
 
     return (units * state.maxKg / data.max).toFixed(1) + ' kg';
   }
 
   function placeName(id) {
-    var data = station.data;
-
-    if (id === data.bag) return data.labels.bag;
-
-    for (var i = 0; i < data.places.length; i++) {
-      if (data.places[i].id === id) return data.places[i].name;
-    }
-
-    return '';
+    return station.names[id] || '';
   }
 
   // The stacks in the chosen place ("all" is every storage, without the bag), before the wanted filter and search.
@@ -274,16 +281,6 @@
     if (station.filt) return station.filt;
 
     return scope.some(function (item) { return item.wanted; }) ? 'wanted' : 'all';
-  }
-
-  function shown() {
-    var scope = inScope();
-    var filt = filterOf(scope);
-    var query = station.query.toLowerCase();
-
-    return scope.filter(function (item) {
-      return (filt !== 'wanted' || item.wanted) && (!query || String(item.n).toLowerCase().indexOf(query) >= 0);
-    });
   }
 
   // Info Pack draws its own item tooltip on any element tagged data-slip-item, and data-slip-note adds a line under
@@ -317,56 +314,135 @@
   }
 
   function itemById(id) {
-    var data = station.data;
-    var all = data.items.concat(data.basket);
-
-    for (var i = 0; i < all.length; i++) {
-      if (String(all[i].id) === String(id)) return all[i];
-    }
-
-    return null;
+    return station.byId[id] || null;
   }
 
-  function sourceHtml(state) {
+  // The station is drawn into fixed slots, and each slot is only touched when its own html changed, so a new answer
+  // that moves one stack leaves the other few hundred rows, and their icons, alone.
+  var FRAME_HTML =
+    '<div class="nbs-pane nbs-source"><div class="nbs-head"><span class="nbs-title" data-s="srctitle"></span><span class="nbs-sub" data-s="srcsub"></span></div>' +
+    '<div class="nbs-split"><div class="nbs-places" data-s="places"></div><div class="nbs-col">' +
+    '<div class="nbs-search"><span>&#9906;</span><input data-q="1"></div><div class="nbs-scope" data-s="scope"></div>' +
+    '<div class="nbs-list" data-s="list"></div><div class="nbs-hint" data-s="addhint"></div></div></div></div>' +
+    '<div class="nbs-pane nbs-basketpane"><div class="nbs-head"><span class="nbs-title" data-s="btitle"></span><span class="nbs-sub" data-s="bsub"></span></div>' +
+    '<div class="nbs-basket" data-s="grid"></div><div class="nbs-hint" style="text-align:center" data-s="takehint"></div>' +
+    '<div data-s="wishes"></div><div data-s="meters"></div><div class="nbs-plan" data-s="plan"></div>' +
+    '<div class="nbs-btns" style="margin-top:14px" data-s="btns"></div><div class="nbs-btns" data-s="send"></div></div>' +
+    '<div class="nbs-side"><div class="nbs-pane" data-s="side"></div><button class="nbs-btn is-quiet" data-act="game" style="flex:none" data-s="game"></button></div>' +
+    '<div class="nbs-tip"></div>';
+
+  function fill(node, name, html) {
+    var el = node.__slots[name];
+
+    if (el.__html === html) return;
+
+    el.innerHTML = html;
+    el.__html = html;
+  }
+
+  // Puts the rows in el in order, reusing every node whose key and html are unchanged.
+  function patchKeyed(doc, el, rows) {
+    var old = {};
+    var tmp = doc.createElement('div');
+    var prev = null;
+
+    for (var child = el.firstElementChild; child; child = child.nextElementSibling) {
+      if (child.__k !== undefined) old[child.__k] = child;
+    }
+
+    rows.forEach(function (row) {
+      var node = old[row.k];
+
+      if (node && node.__h === row.h) {
+        delete old[row.k];
+      } else {
+        tmp.innerHTML = row.h;
+        node = tmp.firstElementChild;
+        node.__k = row.k;
+        node.__h = row.h;
+      }
+
+      var at = prev ? prev.nextSibling : el.firstChild;
+
+      if (at !== node) el.insertBefore(node, at);
+
+      prev = node;
+    });
+
+    var rest = prev ? prev.nextSibling : el.firstChild;
+
+    while (rest) {
+      var next = rest.nextSibling;
+
+      el.removeChild(rest);
+      rest = next;
+    }
+  }
+
+  function rowHtml(item, state) {
+    var labels = station.data.labels;
+
+    if (item.gone) return '<div class="nbs-row is-gone"><img src="' + esc(item.ic) + '"><span class="nbs-nm">' + esc(item.n) + '</span><span class="nbs-meta">x0</span></div>';
+
+    var kg = kgOf(item.kg, state);
+
+    return '<div class="nbs-row' + (item.no ? ' is-no' : '') + '" data-add="' + item.id + '"' + infoAttrs(item) + '><img src="' + esc(item.ic) + '"><span class="nbs-nm">' + esc(item.n) + '</span>' +
+      (item.wanted ? '<span class="nbs-tag">' + esc(labels.wanted) + '</span>' : '') +
+      (item.g1 > 0 ? '<span class="nbs-gain">+' + item.g1 + '</span>' : '') +
+      '<span class="nbs-meta">' + item.w + 'x' + item.h + ' &middot; x' + item.q + (kg ? ' &middot; ' + kg : '') + '</span>' +
+      (station.sel === 'all' ? '<span class="nbs-where">' + esc(placeName(item.owner)) + '</span>' : '') + '</div>';
+  }
+
+  function drawSource(doc, node, state) {
     var data = station.data;
     var labels = data.labels;
-    var storages = data.places.filter(function (place) { return place.id !== data.bag; });
-    var countOf = function (id) { return data.items.filter(function (item) { return item.owner === id; }).length; };
-    var hasWant = function (id) { return data.items.some(function (item) { return item.owner === id && item.wanted; }); };
+    var counts = {};
+    var wants = {};
+    var storageN = 0;
+
+    data.items.forEach(function (item) {
+      counts[item.owner] = (counts[item.owner] || 0) + 1;
+
+      if (item.wanted) wants[item.owner] = true;
+      if (item.owner !== data.bag) storageN++;
+    });
+
     var place = function (key, name, count, isWant) {
-      return '<div class="nbs-place' + (station.sel === key ? ' is-on' : '') + '" data-p="' + esc(key) + '"><span class="nbs-dot' + (isWant ? ' is-w' : '') + '"></span><span class="nbs-pname">' + esc(name) + '</span><span class="nbs-cnt">' + count + '</span></div>';
+      return { k: 'p' + key, h: '<div class="nbs-place' + (station.sel === key ? ' is-on' : '') + '" data-p="' + esc(key) + '"><span class="nbs-dot' + (isWant ? ' is-w' : '') + '"></span><span class="nbs-pname">' + esc(name) + '</span><span class="nbs-cnt">' + count + '</span></div>' };
     };
-    var html = '<div class="nbs-sep">' + esc(labels.storage) + '</div>';
+    var places = [{ k: 'sep-s', h: '<div class="nbs-sep">' + esc(labels.storage) + '</div>' }, place('all', labels.allStorage, storageN, true)];
 
-    html += place('all', labels.allStorage, data.items.filter(function (item) { return item.owner !== data.bag; }).length, true);
-    storages.forEach(function (p) { html += place(String(p.id), p.name, countOf(p.id), hasWant(p.id)); });
+    data.places.forEach(function (p) {
+      if (p.id !== data.bag) places.push(place(String(p.id), p.name, counts[p.id] || 0, !!wants[p.id]));
+    });
 
-    if (data.bag) html += '<div class="nbs-sep">' + esc(labels.onYou) + '</div>' + place(String(data.bag), labels.bag, countOf(data.bag), hasWant(data.bag));
+    if (data.bag) places.push({ k: 'sep-b', h: '<div class="nbs-sep">' + esc(labels.onYou) + '</div>' }, place(String(data.bag), labels.bag, counts[data.bag] || 0, !!wants[data.bag]));
+
+    patchKeyed(doc, node.__slots.places, places);
 
     var scope = inScope();
     var filt = filterOf(scope);
-    var wantN = scope.filter(function (item) { return item.wanted; }).length;
-    var items = steady(shown(), station.sel + '|' + filt + '|' + station.query);
-    var list = items.map(function (item) {
-      if (item.gone) {
-        return '<div class="nbs-row is-gone"><img src="' + esc(item.ic) + '"><span class="nbs-nm">' + esc(item.n) + '</span><span class="nbs-meta">x0</span></div>';
-      }
+    var query = station.query.toLowerCase();
+    var wantN = 0;
+    var visible = scope.filter(function (item) {
+      if (item.wanted) wantN++;
 
-      return '<div class="nbs-row' + (item.no ? ' is-no' : '') + '" data-add="' + item.id + '"' + infoAttrs(item) + '><img src="' + esc(item.ic) + '"><span class="nbs-nm">' + esc(item.n) + '</span>' +
-        (item.wanted ? '<span class="nbs-tag">' + esc(labels.wanted) + '</span>' : '') +
-        (item.g1 > 0 ? '<span class="nbs-gain">+' + item.g1 + '</span>' : '') +
-        '<span class="nbs-meta">' + item.w + 'x' + item.h + ' &middot; x' + item.q + (kgOf(item.kg, state) ? ' &middot; ' + kgOf(item.kg, state) : '') + '</span>' +
-        (station.sel === 'all' ? '<span class="nbs-where">' + esc(placeName(item.owner)) + '</span>' : '') + '</div>';
-    }).join('');
+      return (filt !== 'wanted' || item.wanted) && (!query || String(item.n).toLowerCase().indexOf(query) >= 0);
+    });
+    var rows = steady(visible, station.sel + '|' + filt + '|' + station.query).map(function (item) {
+      return { k: item.gone ? item.k : rowKey(item), h: rowHtml(item, state) };
+    });
 
-    if (!items.length) list = '<div class="nbs-hint">' + esc(filt === 'wanted' ? labels.nothingWanted : labels.nothing) + '</div>';
+    if (!rows.length) rows = [{ k: 'hint', h: '<div class="nbs-hint">' + esc(filt === 'wanted' ? labels.nothingWanted : labels.nothing) + '</div>' }];
 
-    return '<div class="nbs-pane nbs-source"><div class="nbs-head"><span class="nbs-title">' + esc(labels.takeFrom) + '</span><span class="nbs-sub">' + esc(labels.takeFromSub) + '</span></div>' +
-      '<div class="nbs-split"><div class="nbs-places">' + html + '</div><div class="nbs-col">' +
-      '<div class="nbs-search"><span>&#9906;</span><input data-q="1" placeholder="' + esc(labels.search) + '" value="' + esc(station.query) + '"></div>' +
-      '<div class="nbs-scope"><button data-f="wanted" class="' + (filt === 'wanted' ? 'is-on' : '') + '">' + esc(labels.sheWants) + ' <b>' + wantN + '</b></button>' +
-      '<button data-f="all" class="' + (filt === 'all' ? 'is-on' : '') + '">' + esc(labels.everything) + ' <b>' + scope.length + '</b></button></div>' +
-      '<div class="nbs-list">' + list + '</div><div class="nbs-hint">' + esc(labels.addHint) + '</div></div></div></div>';
+    patchKeyed(doc, node.__slots.list, rows);
+    fill(node, 'srctitle', esc(labels.takeFrom));
+    fill(node, 'srcsub', esc(labels.takeFromSub));
+    fill(node, 'scope', '<button data-f="wanted" class="' + (filt === 'wanted' ? 'is-on' : '') + '">' + esc(labels.sheWants) + ' <b>' + wantN + '</b></button>' +
+      '<button data-f="all" class="' + (filt === 'all' ? 'is-on' : '') + '">' + esc(labels.everything) + ' <b>' + scope.length + '</b></button>');
+    fill(node, 'addhint', esc(labels.addHint));
+
+    if (node.__input.placeholder !== labels.search) node.__input.placeholder = labels.search;
   }
 
   function cellHtml(item, className, attr) {
@@ -378,28 +454,43 @@
       '<img src="' + esc(item.ic) + '" style="width:' + size + 'px;height:' + size + 'px"><span class="nbs-q">' + (item.q > 1 ? item.q : '') + '</span></div>';
   }
 
-  function basketHtml(state) {
+  // While a fill is on its way, its planned stacks show solid in their cells; the plugin's answer replaces them with
+  // what really went in.
+  function drawBasket(doc, node, state, isFilling) {
     var data = station.data;
     var labels = data.labels;
     var wish = state.wish || {};
     var cols = data.cols || 5;
     var rows = data.gridRows || 3;
-    var cells = '';
+    var cells = [];
     var used = 0;
 
-    for (var c = 0; c < cols * rows; c++) cells += '<div class="nbs-cell" style="left:' + (c % cols) * PITCH + 'px;top:' + Math.floor(c / cols) * PITCH + 'px"></div>';
+    for (var c = 0; c < cols * rows; c++) cells.push({ k: 'c' + c, h: '<div class="nbs-cell" style="left:' + (c % cols) * PITCH + 'px;top:' + Math.floor(c / cols) * PITCH + 'px"></div>' });
 
     data.basket.forEach(function (item) {
       used += item.w * item.h;
-      cells += cellHtml(item, 'is-item' + (item.wanted ? ' is-w' : ''), ' data-take="' + item.id + '"' + infoAttrs(item));
+      cells.push({ k: 'i' + item.id, h: cellHtml(item, 'is-item' + (item.wanted ? ' is-w' : ''), ' data-take="' + item.id + '"' + infoAttrs(item)) });
     });
 
     // Where Fill would put each stack, drawn faintly in the free cells.
     (data.picks || []).forEach(function (pick) {
       var item = itemById(pick.id);
 
-      if (item) cells += cellHtml({ x: pick.x, y: pick.y, w: item.w, h: item.h, ic: item.ic, q: pick.q || item.q }, 'is-ghost', '');
+      if (item) cells.push({ k: 'g' + pick.id, h: cellHtml({ x: pick.x, y: pick.y, w: item.w, h: item.h, ic: item.ic, q: pick.q || item.q }, isFilling ? 'is-landing' : 'is-ghost', '') });
     });
+
+    var grid = node.__slots.grid;
+    var size = 'width:' + (cols * PITCH - (PITCH - CELL)) + 'px;height:' + (rows * PITCH - (PITCH - CELL)) + 'px';
+
+    if (grid.__size !== size) {
+      grid.style.cssText = size;
+      grid.__size = size;
+    }
+
+    patchKeyed(doc, grid, cells);
+    fill(node, 'btitle', esc(labels.basket));
+    fill(node, 'bsub', esc(labels.cells.replace('{0}', used).replace('{1}', cols * rows)));
+    fill(node, 'takehint', esc(labels.takeHint));
 
     var chips = (wish.chips || []).map(function (chip) {
       return '<span class="nbs-chip ' + (chip.hit ? 'is-hit' : 'is-miss') + '">' + (chip.hit ? '&#10003; ' : '') + esc(chip.name) + '</span>';
@@ -407,17 +498,14 @@
 
     if (wish.crisisShow && wish.crisisChipName) chips += '<span class="nbs-chip ' + (wish.crisisHit ? 'is-hit' : 'is-miss') + '">' + (wish.crisisHit ? '&#10003; ' : '') + esc(wish.crisisChipName) + '</span>';
 
-    var html = '<div class="nbs-pane nbs-basketpane"><div class="nbs-head"><span class="nbs-title">' + esc(labels.basket) + '</span><span class="nbs-sub">' +
-      esc(labels.cells.replace('{0}', used).replace('{1}', cols * rows)) + '</span></div>' +
-      '<div class="nbs-basket" style="width:' + (cols * PITCH - (PITCH - CELL)) + 'px;height:' + (rows * PITCH - (PITCH - CELL)) + 'px">' + cells + '</div>' +
-      '<div class="nbs-hint" style="text-align:center">' + esc(labels.takeHint) + '</div>';
+    fill(node, 'wishes', chips ? '<div class="nbs-lbl">' + esc(labels.sheWants) + '</div><div class="nbs-chips">' + chips + '</div>' : '');
 
-    if (chips) html += '<div class="nbs-lbl">' + esc(labels.sheWants) + '</div><div class="nbs-chips">' + chips + '</div>';
+    var meters = '';
 
     if (state.maxKg > 0) {
       var kw = Math.min(100, state.usedKg / state.maxKg * 100);
 
-      html += '<div class="nbs-lbl">' + esc(labels.weight) + '</div><div class="nbs-meter"><i style="width:' + kw + '%"></i></div>' +
+      meters += '<div class="nbs-lbl">' + esc(labels.weight) + '</div><div class="nbs-meter"><i style="width:' + kw + '%"></i></div>' +
         '<div class="nbs-mline"><span><b>' + state.usedKg.toFixed(1) + '</b> / ' + state.maxKg.toFixed(1) + ' kg</span><span>' + esc(labels.kgFree.replace('{0}', Math.max(0, state.maxKg - state.usedKg).toFixed(1))) + '</span></div>';
     }
 
@@ -429,31 +517,28 @@
       var pw = Math.min(cur, max) / max * 100;
       var gw = Math.max(0, Math.min(gain, max - cur)) / max * 100;
 
-      html += '<div class="nbs-lbl">' + esc(labels.progress) + '</div><div class="nbs-meter"><i style="width:' + pw + '%"></i><i class="is-gain" style="width:' + gw + '%"></i></div>' +
+      meters += '<div class="nbs-lbl">' + esc(labels.progress) + '</div><div class="nbs-meter"><i style="width:' + pw + '%"></i><i class="is-gain" style="width:' + gw + '%"></i></div>' +
         '<div class="nbs-mline"><span><b>' + cur + '</b> / ' + max + '</span><span class="nbs-g">' + (gain > 0 ? esc(labels.ifSent.replace('{0}', gain)) : '') + '</span></div>';
     }
 
-    html += '<div class="nbs-plan">' + esc(data.plan || '') + '</div>';
+    fill(node, 'meters', meters);
+    fill(node, 'plan', esc(data.plan || ''));
 
     var buttons = '';
-
-    if (settings.fill && !data.away) buttons += '<button class="nbs-btn" data-act="fill" title="' + esc(labels.fillTitle) + '">' + esc(labels.fill) + '</button>';
     var isEmpty = !data.basket.length;
-
-    if (!data.away) buttons += '<button class="nbs-btn is-quiet" data-act="takeall" title="' + esc(labels.toBagTitle) + '"' + (isEmpty ? ' disabled' : '') + '>' + esc(labels.toBag) + '</button>';
     var breakable = data.basket.filter(function (it) { return it.br; }).length;
 
+    if (settings.fill && !data.away) buttons += '<button class="nbs-btn" data-act="fill" title="' + esc(labels.fillTitle) + '">' + esc(labels.fill) + '</button>';
+    if (!data.away) buttons += '<button class="nbs-btn is-quiet" data-act="takeall" title="' + esc(labels.toBagTitle) + '"' + (isEmpty ? ' disabled' : '') + '>' + esc(labels.toBag) + '</button>';
     if (breakable && !data.away) buttons += '<button class="nbs-btn is-quiet" data-act="breakdown" title="' + esc(labels.breakDownTitle) + '">' + esc(labels.breakDown) + ' (' + breakable + ')</button>';
     if (settings.putAway && !data.away) buttons += '<button class="nbs-btn is-quiet" data-act="putaway" title="' + esc(labels.putAwayTitle) + '"' + (isEmpty ? ' disabled' : '') + '>' + esc(labels.putAway) + '</button>';
     if (settings.callBack && data.away) buttons += '<button class="nbs-btn is-quiet" data-act="callback" title="' + esc(labels.callBackTitle) + '">' + esc(labels.callBack) + '</button>';
 
-    html += '<div class="nbs-btns" style="margin-top:14px">' + buttons + '</div>';
-    html += '<div class="nbs-btns"><button class="nbs-btn is-main" data-act="send"' + (data.away || !data.basket.length ? ' disabled' : '') + '>' + esc(data.away ? labels.away : labels.send) + '</button></div>';
-
-    return html + '</div>';
+    fill(node, 'btns', buttons);
+    fill(node, 'send', '<button class="nbs-btn is-main" data-act="send"' + (data.away || isEmpty ? ' disabled' : '') + '>' + esc(data.away ? labels.away : labels.send) + '</button>');
   }
 
-  function sideHtml(state) {
+  function drawSide(node, state) {
     var data = station.data;
     var labels = data.labels;
     var tierName = state.wish && state.wish.tierName ? String(state.wish.tierName) : '';
@@ -464,42 +549,82 @@
       return '<div class="nbs-stat"><span>' + esc(row.label) + '</span><span class="' + (row.tone ? 'is-' + row.tone : '') + '">' + esc(value) + '</span></div>';
     }).join('');
 
-    return '<div class="nbs-side"><div class="nbs-pane"><div class="nbs-head"><span class="nbs-title">' + esc(labels.nextDoor) + '</span><span class="nbs-sub">' + esc(data.day) + '</span></div>' + rows + '</div>' +
-      '<button class="nbs-btn is-quiet" data-act="game" style="flex:none">' + esc(labels.game) + '</button></div>';
+    fill(node, 'side', '<div class="nbs-head"><span class="nbs-title">' + esc(labels.nextDoor) + '</span><span class="nbs-sub">' + esc(data.day) + '</span></div>' + rows);
+    fill(node, 'game', esc(labels.game));
+  }
+
+  // The station before its first answer: the frame and its titles, so opening the basket shows it at once.
+  function drawEmpty(doc, node) {
+    if (node.__drawn === 'empty') return;
+
+    var labels = station.labels || {};
+
+    node.__drawn = 'empty';
+    ['places', 'list', 'grid'].forEach(function (name) { patchKeyed(doc, node.__slots[name], []); });
+    ['srcsub', 'scope', 'addhint', 'bsub', 'takehint', 'wishes', 'meters', 'plan', 'btns', 'send'].forEach(function (name) { fill(node, name, ''); });
+    fill(node, 'srctitle', esc(labels.takeFrom));
+    fill(node, 'btitle', esc(labels.basket));
+    fill(node, 'side', '<div class="nbs-head"><span class="nbs-title">' + esc(labels.nextDoor) + '</span></div>');
+    fill(node, 'game', esc(labels.game || settings.gameLabel || 'Game screen'));
+  }
+
+  // Redraws only when the data, the panel's own numbers or the player's choices changed.
+  function draw(doc, node) {
+    if (!station.data) return;
+
+    var state = station.state || {};
+    var wish = state.wish || {};
+    var isFilling = station.filling > Date.now();
+    var key = [station.version, station.sel, station.filt, station.query, state.maxKg, state.usedKg, wish.cur, wish.max, wish.gain, wish.tierName,
+      JSON.stringify(wish.chips || []), wish.crisisShow, wish.crisisHit, wish.crisisChipName, isFilling, infoTags().join(',')].join('|');
+
+    if (key === node.__drawn) return;
+
+    node.__drawn = key;
+    drawSource(doc, node, state);
+    drawBasket(doc, node, state, isFilling);
+    drawSide(node, state);
   }
 
   // The station lives in the page's body, outside the game's Vue app, so a re-render of the inventory leaves it alone.
   function stationNode(doc) {
     var node = doc.getElementById(STATION_ID);
 
-    if (node) return node;
+    if (node && node.__slots) return node;
+    if (node) node.parentNode.removeChild(node);
 
     node = doc.createElement('div');
     node.id = STATION_ID;
     node.className = 'unity-interactive';
+    node.innerHTML = FRAME_HTML;
+    node.__slots = {};
+    node.querySelectorAll('[data-s]').forEach(function (el) { node.__slots[el.getAttribute('data-s')] = el; });
+    node.__input = node.querySelector('[data-q]');
+    node.__tip = node.querySelector('.nbs-tip');
     // Clicks and keys stay in the station, so the inventory never reads them as its own.
     node.addEventListener('mousedown', function (e) { e.stopPropagation(); });
     node.addEventListener('keydown', function (e) { if (e.key !== 'Escape') e.stopPropagation(); });
-    node.addEventListener('click', function (e) { e.stopPropagation(); onClick(doc, e); });
-    node.addEventListener('input', function (e) {
-      if (!e.target.getAttribute('data-q')) return;
-
-      station.query = e.target.value;
-      draw(doc, true);
+    node.addEventListener('click', function (e) { e.stopPropagation(); onClick(doc, node, e); });
+    node.__input.addEventListener('input', function () {
+      station.query = node.__input.value;
+      draw(doc, node);
     });
-    node.addEventListener('mousemove', function (e) { onHover(doc, e); });
+    node.addEventListener('mousemove', function (e) { onHover(doc, node, e); });
     doc.body.appendChild(node);
 
-    var open = doc.createElement('button');
+    var open = doc.getElementById(OPEN_ID);
 
+    if (open) open.parentNode.removeChild(open);
+
+    open = doc.createElement('button');
     open.id = OPEN_ID;
     open.className = 'unity-interactive';
     open.addEventListener('mousedown', function (e) { e.stopPropagation(); });
     open.addEventListener('click', function (e) {
       e.stopPropagation();
       station.isOff = false;
-      station.drawn = '';
       station.askAt = 0;
+      node.__drawn = '';
     });
     doc.body.appendChild(open);
 
@@ -518,6 +643,8 @@
   function steady(items, key) {
     if (!station.order || station.orderKey !== key) {
       station.order = items.map(rowKey);
+      station.orderSet = {};
+      station.order.forEach(function (row) { station.orderSet[row] = true; });
       station.orderKey = key;
     }
 
@@ -529,7 +656,10 @@
       byKey[row] = item;
       station.seen[row] = item;
 
-      if (station.order.indexOf(row) < 0) station.order.push(row);
+      if (!station.orderSet[row]) {
+        station.orderSet[row] = true;
+        station.order.push(row);
+      }
     });
 
     return station.order.map(function (row) {
@@ -537,23 +667,22 @@
 
       var last = station.seen[row];
 
-      return last ? { id: last.id, n: last.n, ic: last.ic, gone: true } : null;
+      return last ? { k: row, id: last.id, n: last.n, ic: last.ic, gone: true } : null;
     }).filter(function (item) { return item; });
   }
 
-  function onClick(doc, e) {
+  function onClick(doc, node, e) {
     var target = e.target.closest('[data-p],[data-f],[data-add],[data-take],[data-act]');
-
-    if (!target) return;
-
     var data = station.data;
+
+    if (!target || !data) return;
 
     if (target.hasAttribute('data-p')) {
       station.sel = target.getAttribute('data-p');
-      draw(doc, true);
+      draw(doc, node);
     } else if (target.hasAttribute('data-f')) {
       station.filt = target.getAttribute('data-f');
-      draw(doc, true);
+      draw(doc, node);
     } else if (target.hasAttribute('data-add')) {
       var item = itemById(target.getAttribute('data-add'));
 
@@ -565,14 +694,12 @@
       }
 
       send('add|' + item.id + '|' + (e.shiftKey ? 'all' : 'one'));
-      shownMoved(doc, item, e.shiftKey);
-      askSoon();
+      shownMoved(doc, node, item, e.shiftKey);
     } else if (target.hasAttribute('data-take')) {
       var taken = itemById(target.getAttribute('data-take'));
 
       send('take|' + target.getAttribute('data-take'));
-      if (taken) shownMoved(doc, taken, true);
-      askSoon();
+      if (taken) shownMoved(doc, node, taken, true);
     } else {
       var act = target.getAttribute('data-act');
 
@@ -582,9 +709,17 @@
       } else if (act === 'send') {
         sendBasket(doc);
       } else {
-        // Shift+Fill packs the basket as full as it goes instead of to the goal.
-        press(act === 'fill' && e.shiftKey ? 'fillmax' : act);
-        askSoon();
+        // Shift+Fill packs the basket as full as it goes instead of to the goal, so only a plain Fill shows its picks
+        // landing.
+        var isMax = act === 'fill' && e.shiftKey;
+
+        if (act === 'fill' && !isMax && !isBusy && (data.picks || []).length) {
+          station.filling = Date.now() + FILL_SHOW_MS;
+          station.isGuess = true;
+        }
+
+        press(isMax ? 'fillmax' : act);
+        draw(doc, node);
       }
     }
   }
@@ -603,13 +738,13 @@
       send('diag|send failed: ' + err);
     }
 
-    askSoon();
+    station.askAt = Date.now() + AFTER_MOVE_MS;
   }
 
   // Shows the click at once instead of waiting for the plugin's answer: one fewer in the stack, or the stack gone. The
-  // answer redraws everything right after (it is let through even when it matches the last one), so a refused move
-  // comes back.
-  function shownMoved(doc, item, isWhole) {
+  // plugin answers every move right after it runs, even when nothing changed, so a refused move comes back; until that
+  // answer lands the station asks afresh.
+  function shownMoved(doc, node, item, isWhole) {
     var data = station.data;
 
     if (isWhole || item.q <= 1) {
@@ -619,41 +754,37 @@
       item.q -= 1;
     }
 
-    station.json = '';
-    draw(doc, true);
+    station.isGuess = true;
+    station.version++;
+    draw(doc, node);
   }
 
-  function askSoon() {
-    station.askAt = Date.now() + AFTER_MOVE_MS;
-  }
-
-  function onHover(doc, e) {
-    var tip = doc.querySelector('.nbs-tip');
-
-    if (!tip) return;
-
+  // The tip's text is built when the mouse reaches a new stack; moving within it only moves the tip.
+  function onHover(doc, node, e) {
+    var tip = node.__tip;
     var target = e.target.closest('[data-add],[data-take]');
-    var item = target && itemById(target.getAttribute('data-add') || target.getAttribute('data-take'));
 
-    if (!item) {
-      tip.style.display = 'none';
+    if (target !== station.hovered) {
+      station.hovered = target;
 
-      return;
+      var item = target && itemById(target.getAttribute('data-add') || target.getAttribute('data-take'));
+
+      if (!item || hasInfoTip(item)) {
+        station.hovered = null;
+        tip.style.display = 'none';
+
+        return;
+      }
+
+      var kg = kgOf(item.kg, station.state);
+      var gain = gainText(item);
+
+      tip.innerHTML = '<b>' + esc(item.n) + '</b><span>' + item.w + 'x' + item.h + ' &middot; x' + item.q + (kg ? ' &middot; ' + kg : '') + '<br>' + esc(placeName(item.owner)) + '</span>' +
+        (gain ? '<span class="nbs-gain" style="display:block;margin-top:3px">' + esc(gain) + '</span>' : '');
+      tip.style.display = 'block';
     }
 
-    if (hasInfoTip(item)) {
-      tip.style.display = 'none';
-
-      return;
-    }
-
-    var state = basketState(doc);
-    var kg = kgOf(item.kg, state);
-    var gain = gainText(item);
-
-    tip.innerHTML = '<b>' + esc(item.n) + '</b><span>' + item.w + 'x' + item.h + ' &middot; x' + item.q + (kg ? ' &middot; ' + kg : '') + '<br>' + esc(placeName(item.owner)) + '</span>' +
-      (gain ? '<span class="nbs-gain" style="display:block;margin-top:3px">' + esc(gain) + '</span>' : '');
-    tip.style.display = 'block';
+    if (!target) return;
 
     var view = doc.defaultView;
     var left = e.clientX + 14;
@@ -666,111 +797,148 @@
     tip.style.top = top + 'px';
   }
 
-  // Redraws only when the data, the panel's own numbers or the player's choices changed, keeping the search box's
-  // focus and the lists' scroll.
-  function draw(doc, isForced) {
-    var node = stationNode(doc);
-    var state = basketState(doc);
-    var wish = state.wish || {};
-    var key = station.json + '|' + station.sel + '|' + station.filt + '|' + station.query + '|' + state.maxKg + '|' + state.usedKg + '|' +
-      [wish.cur, wish.max, wish.gain, wish.tierName, JSON.stringify(wish.chips || []), wish.crisisShow, wish.crisisHit].join('|');
-
-    if (!isForced && key === station.drawn) return;
-
-    station.drawn = key;
-
-    var list = node.querySelector('.nbs-list');
-    var places = node.querySelector('.nbs-places');
-    var scroll = list ? list.scrollTop : 0;
-    var placeScroll = places ? places.scrollTop : 0;
-    var input = node.querySelector('[data-q]');
-    var hasFocus = !!input && doc.activeElement === input;
-
-    node.innerHTML = sourceHtml(state) + basketHtml(state) + sideHtml(state) + '<div class="nbs-tip"></div>';
-
-    list = node.querySelector('.nbs-list');
-    places = node.querySelector('.nbs-places');
-
-    if (list) list.scrollTop = scroll;
-    if (places) places.scrollTop = placeScroll;
-
-    if (hasFocus) {
-      input = node.querySelector('[data-q]');
-      input.focus();
-      input.setSelectionRange(input.value.length, input.value.length);
-    }
+  function show(el, display) {
+    if (el && el.style.display !== display) el.style.display = display;
   }
 
   function hideStation(doc) {
-    var node = doc.getElementById(STATION_ID);
-    var open = doc.getElementById(OPEN_ID);
+    show(doc.getElementById(STATION_ID), 'none');
+    show(doc.getElementById(OPEN_ID), 'none');
+  }
 
-    if (node) node.style.display = 'none';
-    if (open) open.style.display = 'none';
+  // Each time the basket opens, the station opens with it, on all storage, and asks afresh: nothing from the last
+  // opening is kept but the labels.
+  function openSession(doc) {
+    station.isOpen = true;
+    station.doc = doc;
+    station.isOff = false;
+    station.sel = 'all';
+    station.filt = '';
+    station.query = '';
+    station.data = null;
+    station.byId = {};
+    station.names = {};
+    station.isGuess = false;
+    station.order = null;
+    station.seen = {};
+    station.askAt = 0;
+    station.filling = 0;
+    station.hovered = null;
+    station.waitSince = Date.now();
+    station.version++;
+
+    var node = stationNode(doc);
+
+    node.__input.value = '';
+    node.__tip.style.display = 'none';
   }
 
   function patchStation(doc, state) {
-    if (!state.isBasket || station.isDead) {
-      hideStation(doc);
+    var node = stationNode(doc);
+    var open = doc.getElementById(OPEN_ID);
+    var now = Date.now();
 
-      // Each time the basket opens, the station opens with it, on all storage.
-      if (!state.isBasket) {
-        station.isOff = false;
-        station.sel = 'all';
-        station.filt = '';
-        station.query = '';
-        station.data = null;
-        station.json = '';
-        station.order = null;
-        station.seen = {};
-      }
+    station.state = state;
+
+    if (station.isDead) {
+      hideStation(doc);
 
       return;
     }
 
     if (station.isOff) {
-      var open = stationNode(doc) && doc.getElementById(OPEN_ID);
-
-      doc.getElementById(STATION_ID).style.display = 'none';
-      open.textContent = station.data ? station.data.labels.station : 'Basket station';
-      open.style.display = 'block';
+      show(node, 'none');
+      open.textContent = station.labels ? station.labels.station : settings.stationLabel || 'Basket station';
+      show(open, 'block');
 
       return;
     }
 
-    if (Date.now() >= station.askAt) {
-      station.askAt = Date.now() + STATION_REFRESH_MS;
-      send('station');
+    show(open, 'none');
+
+    // Asks quickly until the first answer, then about once a second; afresh while it holds nothing or a guessed move.
+    if (now >= station.askAt) {
+      station.askAt = now + (station.data ? STATION_REFRESH_MS : FIRST_ASK_MS);
+      send(station.data && !station.isGuess ? 'station' : 'station|new');
     }
 
-    if (!station.data) return;
+    if (!station.data) {
+      // An answer that does not come leaves the game's own screen, still asking.
+      if (now - station.waitSince > LOADING_MS) {
+        show(node, 'none');
 
-    var node = stationNode(doc);
+        return;
+      }
 
-    doc.getElementById(OPEN_ID).style.display = 'none';
-    draw(doc, false);
-    node.style.display = 'flex';
+      drawEmpty(doc, node);
+      show(node, 'flex');
+
+      return;
+    }
+
+    draw(doc, node);
+    show(node, 'flex');
   }
 
-  // The plugin's answer to 'station'; null turns the station off until the next start, leaving the game's screen.
+  // The plugin's answer to 'station'; false turns the station off until the next start, leaving the game's screen.
+  // Any answer ends a fill's landing view. One that arrives while the basket is closed is dropped: the next opening
+  // asks afresh.
   function setStation(data) {
-    if (!data) {
+    if (data === false) {
       station.isDead = true;
       station.data = null;
 
       return;
     }
 
-    var json = JSON.stringify(data);
+    if (!data || typeof data !== 'object' || !data.labels) return;
 
-    if (json === station.json) return;
+    station.filling = 0;
+    station.labels = data.labels;
 
-    station.json = json;
+    if (!station.isOpen) return;
+
+    var byId = {};
+    var names = {};
+
+    data.items.forEach(function (item) { byId[item.id] = item; });
+    data.basket.forEach(function (item) { byId[item.id] = item; });
+    data.places.forEach(function (place) { names[place.id] = place.name; });
+    names[data.bag] = data.labels.bag;
+
     station.data = data;
+    station.byId = byId;
+    station.names = names;
+    station.isGuess = false;
+    station.hovered = null;
+    station.version++;
+
+    // Drawn now rather than on the next tick, so a move shows its answer at once.
+    try {
+      var doc = station.doc;
+      var node = doc && doc.getElementById(STATION_ID);
+
+      if (node && node.__slots && !station.isOff && !station.isDead) {
+        draw(doc, node);
+        show(node, 'flex');
+      }
+    } catch (e) {}
   }
 
+  function isFrameShown(frame) {
+    if (frame.offsetWidth === 0 && frame.offsetHeight === 0) return false;
+
+    var style = window.getComputedStyle(frame);
+
+    return style.display !== 'none' && style.visibility !== 'hidden';
+  }
+
+  // The game can keep an old inventory page hidden next to a new one; only a shown page with the basket open counts,
+  // and the station in any other is hidden.
   function patchBasket() {
     var frames = document.querySelectorAll('iframe');
+    var active = null;
+    var activeState = null;
 
     for (var i = 0; i < frames.length; i++) {
       if (!/BackpackUI\.html/.test(frames[i].src || '')) continue;
@@ -781,17 +949,36 @@
         doc = frames[i].contentDocument;
       } catch (e) {}
 
-      if (!doc || !doc.head) {
+      if (!doc) {
         if (!hasReportedAccess) send('diag|cannot reach the inventory page document (iframe ' + frames[i].src + ')');
         hasReportedAccess = true;
         continue;
       }
 
-      var state = basketState(doc);
+      if (!doc.head || !doc.body) continue;
 
-      addStyle(doc);
-      patchStation(doc, state);
+      var state = !active && isFrameShown(frames[i]) ? basketState(doc) : null;
+
+      if (state && state.isBasket) {
+        active = doc;
+        activeState = state;
+      } else {
+        hideStation(doc);
+      }
     }
+
+    if (!active) {
+      station.isOpen = false;
+      station.doc = null;
+
+      return;
+    }
+
+    addStyle(active);
+
+    if (!station.isOpen || station.doc !== active) openSession(active);
+
+    patchStation(active, activeState);
   }
 
 
@@ -1136,11 +1323,14 @@
     }
   }
 
+  // The station is checked more often than the rest, so it opens and closes with the basket.
   setInterval(function () {
     try {
       patchBasket();
     } catch (e) {}
+  }, 150);
 
+  setInterval(function () {
     try {
       patchPhones();
     } catch (e) {}

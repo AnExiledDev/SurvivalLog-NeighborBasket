@@ -14,7 +14,7 @@ namespace NeighborBasket;
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.neighborbasket";
-    private const string Version = "0.6.4";
+    private const string Version = "0.6.5";
     private const string StackingGuid = "com.dev.survivallog.stacking";
 
     public override void Load()

@@ -25,7 +25,12 @@ internal sealed class BasketGame
     private const int DefaultRows = 3;
 
     private readonly Dictionary<int, bool> _breakable = new();
+    private readonly Dictionary<int, Kind> _kinds = new();
     private readonly Action<string> _log;
+    private IntPtr _kindsConfig;
+
+    /// <summary>What every stack of one item kind shares: its table row, name, icon, category and whether she refuses it.</summary>
+    private sealed record Kind(Config_Item? Row, string Name, string Icon, int Category, bool IsForbidden);
 
     public BasketGame(Action<string> log) => _log = log;
 
@@ -162,7 +167,7 @@ internal sealed class BasketGame
 
         var parts = new List<string>();
 
-        foreach (var entry in counts) parts.Add(ItemName(config, entry.Key) + " x" + entry.Value);
+        foreach (var entry in counts) parts.Add(KindOf(config, entry.Key).Name + " x" + entry.Value);
 
         return string.Join(", ", parts);
     }
@@ -249,8 +254,17 @@ internal sealed class BasketGame
 
         if (item == null || config == null || item.ItemCount <= 0) return null;
 
-        return (item.OwnerId, item.ItemConfigId, ItemName(config, item.ItemConfigId));
+        return (item.OwnerId, item.ItemConfigId, KindOf(config, item.ItemConfigId).Name);
     }
+
+    /// <summary>The player's own bag; 0 when there is no player.</summary>
+    public long BagId() => GameSingleton.Existing<BattleLogicWorld>()?._AgentManager?.GetLeadingRole()?.InstanceId ?? 0;
+
+    /// <summary>
+    /// Drops the kinds read so far, so names follow the game's language. Called when the basket screen opens; the
+    /// language cannot change while it is open.
+    /// </summary>
+    public void ForgetKinds() => _kinds.Clear();
 
     /// <summary>
     /// Whether the game's own Use takes this item apart into materials and nothing else (see Breakdown). Read once per
@@ -403,10 +417,11 @@ internal sealed class BasketGame
     /// A stack as the station and the fill see it. Its value is what the game counts when she scores the basket: count
     /// times trade value times the uses it still has, with fuel scaled the way the neighbor rule scales it.
     /// </summary>
-    private static StationItem StationItemOf(ConfigManager config, ItemManager items, ItemData item, long ownerId, bool weigh)
+    private StationItem StationItemOf(ConfigManager config, ItemManager items, ItemData item, long ownerId, bool weigh)
     {
-        var row = config.Get_Config_Item(item.ItemConfigId);
-        var category = row?.Category ?? 0;
+        var kind = KindOf(config, item.ItemConfigId);
+        var row = kind.Row;
+        var category = kind.Category;
         var value = 0;
 
         if (row != null)
@@ -419,14 +434,32 @@ internal sealed class BasketGame
         var size = item.ItemSize;
         var pos = item.BagPos;
 
-        return new StationItem(item.InstanceId, ownerId, item.ItemConfigId, ItemName(config, item.ItemConfigId), row?.WebIcon ?? "", category, Math.Max(0, value), item.ItemCount,
-            weigh ? Math.Max(0, items.GetItemActualWeight(item)) : 0, Math.Max(1, size.x), Math.Max(1, size.y), NeighborRules.IsBasketForbidItem(item.ItemConfigId), pos.x, pos.y);
+        return new StationItem(item.InstanceId, ownerId, item.ItemConfigId, kind.Name, kind.Icon, category, Math.Max(0, value), item.ItemCount,
+            weigh ? Math.Max(0, items.GetItemActualWeight(item)) : 0, Math.Max(1, size.x), Math.Max(1, size.y), kind.IsForbidden, pos.x, pos.y);
     }
 
-    private static string ItemName(ConfigManager config, int configId)
+    // The station reads a few hundred stacks each time; most share a kind, and a kind's table row and name never change
+    // while the game runs, so each is read once. A new ConfigManager (the configs reloaded) starts over.
+    private Kind KindOf(ConfigManager config, int configId)
     {
-        var row = config.Get_Config_Item(configId);
+        if (config.Pointer != _kindsConfig)
+        {
+            _kinds.Clear();
+            _kindsConfig = config.Pointer;
+        }
 
+        if (_kinds.TryGetValue(configId, out var known)) return known;
+
+        var row = config.Get_Config_Item(configId);
+        var kind = new Kind(row, ItemName(config, row, configId), row?.WebIcon ?? "", row?.Category ?? 0, NeighborRules.IsBasketForbidItem(configId));
+
+        _kinds[configId] = kind;
+
+        return kind;
+    }
+
+    private static string ItemName(ConfigManager config, Config_Item? row, int configId)
+    {
         if (row == null) return "#" + configId;
 
         var key = row.ItemName;

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.5
+
+- The basket station opens every time now. Before, closing and opening the basket quickly could leave the game's own screen up instead.
+- The station opens at once and only redraws what changed, so clicking items, searching and scrolling no longer stutter with a lot of storage.
+- Fill shows its stacks landing in the basket as soon as you click, and finishes the moment they are in instead of after a fixed wait.
+- Made for Survival Log 1.1.19611.
+
 ## 0.6.4
 
 - The game's Rescue panel now shows the most urgent warning under Relief Progress, with the hours left. It is red when her life is at stake (struggling, dying, or about to struggle) and amber otherwise, and it stays up until the warning no longer applies. When more than one is due it says how many more; hover the line to see them all.

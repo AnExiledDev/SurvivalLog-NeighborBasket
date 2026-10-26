@@ -60,7 +60,7 @@ public class StationViewTests
         Assert.Contains("\"picks\":[{\"id\":11,\"x\":3,\"y\":0,\"q\":1}]", json);
         Assert.Contains("\"id\":10,", json);
         Assert.Contains("\"wanted\":true,\"no\":false,\"x\":2,\"y\":1}", json);
-        Assert.Contains("\"id\":12,\"owner\":7,\"cfg\":12,\"n\":\"x\",\"ic\":\"../../Res/i.png\",\"v\":3,\"q\":1,\"kg\":2,\"w\":1,\"h\":1,\"wanted\":false", json);
+        Assert.Contains("\"id\":12,\"owner\":7,\"cfg\":12,\"n\":\"x\",\"ic\":\"../../Res/i.png\",\"q\":1,\"kg\":2,\"w\":1,\"h\":1,\"wanted\":false", json);
         // A source stack carries its cell too: the page keeps a row by where the stack sits, because taking one unit
         // with Stacking leaves the rest on that cell under a new id.
         Assert.Matches("\"id\":12,[^}]*\"x\":4,\"y\":2}", json);

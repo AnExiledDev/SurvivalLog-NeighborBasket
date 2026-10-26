@@ -41,8 +41,11 @@ internal sealed class WebPage
         if (Run(Script())) _log("page script sent to the web UI");
     }
 
-    /// <summary>A toast over the game; the script travels with it, so a page that just reloaded still shows it.</summary>
-    public void Status(string text) => Run(Script() + "\n;window.__slneighborbasket&&window.__slneighborbasket.status(" + JsText.Literal(text) + ");");
+    /// <summary>
+    /// A toast over the game; the script travels with it, so a page that just reloaded still shows it. An empty one only
+    /// frees the page's buttons, which a page without the script has no use for, so it goes alone.
+    /// </summary>
+    public void Status(string text) => Run((text.Length > 0 ? Script() + "\n;" : "") + "window.__slneighborbasket&&window.__slneighborbasket.status(" + JsText.Literal(text) + ");");
 
     /// <summary>Which buttons and whether the phone app show, with their labels and tooltips in the game's language.</summary>
     public void Setup(bool showFill, bool showCallBack, bool showPutAway, bool showApp, bool isChinese) =>
@@ -51,7 +54,8 @@ internal sealed class WebPage
             ",fillLabel:" + JsText.Literal(Texts.FillButton.Pick(isChinese)) + ",fillTitle:" + JsText.Literal(Texts.FillTitle.Pick(isChinese)) +
             ",callBackLabel:" + JsText.Literal(Texts.CallBackButton.Pick(isChinese)) + ",callBackTitle:" + JsText.Literal(Texts.CallBackTitle.Pick(isChinese)) +
             ",putAwayLabel:" + JsText.Literal(Texts.PutAwayButton.Pick(isChinese)) + ",putAwayTitle:" + JsText.Literal(Texts.PutAwayTitle.Pick(isChinese)) +
-            ",appLabel:" + JsText.Literal(Texts.AppTile.Pick(isChinese)) + "})");
+            ",appLabel:" + JsText.Literal(Texts.AppTile.Pick(isChinese)) +
+            ",stationLabel:" + JsText.Literal(Texts.StationButton.Pick(isChinese)) + ",gameLabel:" + JsText.Literal(Texts.GameScreen.Pick(isChinese)) + "})");
 
     /// <summary>The phone app's data, as AppView builds it.</summary>
     public void App(string json) => Run("window.__slneighborbasket&&window.__slneighborbasket.app(" + json + ")");
@@ -59,7 +63,7 @@ internal sealed class WebPage
     /// <summary>The alert line on the game's Rescue panel; "null" takes it away.</summary>
     public void Hud(string json) => Run("window.__slneighborbasket&&window.__slneighborbasket.hud(" + json + ")");
 
-    /// <summary>The basket station's data, as StationView builds it; null turns the station off.</summary>
+    /// <summary>The basket station's data, as StationView builds it; false turns the station off.</summary>
     public void Station(string json) => Run("window.__slneighborbasket&&window.__slneighborbasket.station(" + json + ")");
 
     private static string Bool(bool value) => value ? "true" : "false";

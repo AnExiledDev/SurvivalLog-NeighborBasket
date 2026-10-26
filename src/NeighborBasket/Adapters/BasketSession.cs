@@ -12,10 +12,9 @@ internal sealed class BasketSession
 {
     private const float WarningCheckSeconds = 5f;
     private const float GiftPollSeconds = 1f;
-    // The game runs a placing move a moment after it is sent, so the fill looks at the basket again after this long.
-    private const float FillCheckSeconds = 0.6f;
-    // The station asks about once a second; the same answer goes out again only after this long.
-    private const float StationResendSeconds = 5f;
+    // The game runs a placing move a moment after it is sent. The fill finishes as soon as every placed stack is in the
+    // basket, and after this long at most when some never arrive.
+    private const float FillWaitSeconds = 0.6f;
 
     private readonly BasketGame _game;
     private readonly GiftJournal _journal;
@@ -31,15 +30,17 @@ internal sealed class BasketSession
     private bool _hasReportedWeight;
     private bool _hasStationFailed;
     private PendingFill? _pendingFill;
-    private string? _lastStation;
-    private float _lastStationAt;
+    private readonly StationFeed _feed = new();
+    // The station's answer is built once at the end of the frame, however many asks and moves came in during it.
+    private bool _isStationWanted;
+    private bool _isStationFresh;
     private string? _planKey;
     private FillResult? _planCache;
     // Where each stack the station put in the basket came from, by item id and by item kind, so Take puts it back there.
     private readonly Dictionary<long, long> _originById = new();
     private readonly Dictionary<int, long> _originByConfig = new();
 
-    private sealed record PendingFill(long BasketId, FillResult Plan, Dictionary<int, string> Names, bool IsChinese, float CheckAt);
+    private sealed record PendingFill(long BasketId, FillResult Plan, List<long> Placed, Dictionary<int, string> Names, bool IsChinese, float Deadline);
 
     public BasketSession(BasketGame game, GiftJournal journal, WebPage page, Toasts toasts, Action<string> log)
     {
@@ -90,10 +91,20 @@ internal sealed class BasketSession
 
         while (PageMessages.TryTake(out var command)) Handle(command, isChinese);
 
-        if (_pendingFill is { } pending && now >= pending.CheckAt)
+        if (_pendingFill is { } pending && FillWait.IsDone(pending.Placed, _game.BasketItemIds(pending.BasketId), now, pending.Deadline))
         {
             _pendingFill = null;
             RunGuarded("fill check", () => FinishFill(pending), isChinese);
+        }
+
+        // While a fill is under way the basket is half moved, so the station waits for the finished one.
+        if (_isStationWanted && _pendingFill == null)
+        {
+            var isFresh = _isStationFresh;
+
+            _isStationWanted = false;
+            _isStationFresh = false;
+            ShowStation(isFresh, isChinese);
         }
 
         if (now >= _nextWarningCheckAt)
@@ -118,18 +129,31 @@ internal sealed class BasketSession
         {
             case PageCommand.Fill fill:
                 RunGuarded("fill", () => Fill(fill.IsMax, isChinese), isChinese);
+
+                // The page drew the planned stacks as landing; a fill that placed none answers now.
+                if (_pendingFill == null) PushStation();
+
                 break;
             case PageCommand.CallBack:
                 RunGuarded("call back", () => CallBack(isChinese), isChinese);
+                PushStation();
                 break;
             case PageCommand.PutAway:
                 RunGuarded("put away", () => PutAway(isChinese), isChinese);
+                PushStation();
                 break;
             case PageCommand.App:
                 RunGuarded("phone app", () => AppJson(isChinese), isChinese);
                 break;
-            case PageCommand.Station:
-                ShowStation(isChinese);
+            case PageCommand.Station station:
+                _isStationWanted = true;
+
+                if (station.IsFresh)
+                {
+                    _isStationFresh = true;
+                    _game.ForgetKinds();
+                }
+
                 break;
             case PageCommand.Add add:
                 RunGuarded("add", () => Add(add, isChinese), isChinese);
@@ -201,8 +225,9 @@ internal sealed class BasketSession
 
         foreach (var pick in plan.Picks) Remember(pick.Item.ItemId, pick.Item.ConfigId, pick.Item.OwnerId);
 
-        _pendingFill = new PendingFill(screen.BasketId, plan, Names(screen, isChinese), isChinese, Time.unscaledTime + FillCheckSeconds);
-        _lastStation = null;
+        var placed = plan.Picks.Where(pick => !pick.IsPart).Select(pick => pick.Item.ItemId).ToList();
+
+        _pendingFill = new PendingFill(screen.BasketId, plan, placed, Names(screen, isChinese), isChinese, Time.unscaledTime + FillWaitSeconds);
     }
 
     /// <summary>
@@ -232,7 +257,7 @@ internal sealed class BasketSession
         if (StruggleNeed() is { } need && _game.BasketSatiety(pending.BasketId) is { } satiety) text += " " + Texts.BasketSatiety.Say(pending.IsChinese, (int)Math.Floor(satiety), need);
 
         _toasts.Show(text, failed > 0, pending.IsChinese);
-        _lastStation = null;
+        PushStation();
     }
 
     /// <summary>One item of a stack, or all of it, from wherever it sits into the basket.</summary>
@@ -263,9 +288,7 @@ internal sealed class BasketSession
         if (isMoved) Remember(add.ItemId, item.ConfigId, item.OwnerId);
         else _toasts.Show(Texts.AddFailed.Say(isChinese, item.Name), true, isChinese);
 
-        // The page waits for this answer to show the move, so it goes out now rather than on the next ask.
-        _lastStation = null;
-        ShowStation(isChinese);
+        PushStation();
     }
 
     /// <summary>A stack from the basket back where the station took it from, or to the bag when that is unknown or full.</summary>
@@ -275,7 +298,7 @@ internal sealed class BasketSession
 
         if (screen == null || _game.Find(take.ItemId) is not { } item || item.OwnerId != screen.BasketId) return;
 
-        var bagId = ReadStock(screen.BasketId)?.Station.BagId ?? 0;
+        var bagId = _game.BagId();
         var origin = _originById.TryGetValue(take.ItemId, out var byId) ? byId : _originByConfig.TryGetValue(item.ConfigId, out var byConfig) ? byConfig : bagId;
         var isMoved = origin != 0 && _game.Move(take.ItemId, screen.BasketId, origin, true);
 
@@ -286,8 +309,7 @@ internal sealed class BasketSession
         if (isMoved) _originById.Remove(take.ItemId);
         else _toasts.Show(Texts.TakeFailed.Say(isChinese, item.Name), true, isChinese);
 
-        _lastStation = null;
-        ShowStation(isChinese);
+        PushStation();
     }
 
     /// <summary>Everything in the basket, her gifts included, into the bag; what does not fit stays and is reported.</summary>
@@ -318,8 +340,7 @@ internal sealed class BasketSession
 
         if (failed > 0) _toasts.Show(Texts.TakeAllShort.Say(isChinese, failed, station.InBasket.Count), true, isChinese);
 
-        _lastStation = null;
-        ShowStation(isChinese);
+        PushStation();
     }
 
     /// <summary>
@@ -364,8 +385,17 @@ internal sealed class BasketSession
         if (done > 0) _toasts.Show(Texts.BreakStarted.Say(isChinese, done), false, isChinese);
         if (done < gifts.Count) _toasts.Show(Texts.BreakShort.Say(isChinese, gifts.Count - done, gifts.Count), true, isChinese);
 
-        _lastStation = null;
-        ShowStation(isChinese);
+        PushStation();
+    }
+
+    /// <summary>
+    /// The page already drew the move and waits for this answer to confirm it, or to put back a refused one, so it goes
+    /// out at the end of this frame even when it matches the last one.
+    /// </summary>
+    private void PushStation()
+    {
+        _isStationWanted = true;
+        _feed.Forget();
     }
 
     private void Remember(long itemId, int configId, long ownerId)
@@ -431,29 +461,28 @@ internal sealed class BasketSession
     }
 
     /// <summary>
-    /// Answers the station's once-a-second ask with everything it draws. A failure turns the station off quietly (it
-    /// asks every second, so a toast each time would bury the screen) and is logged once; the game's own screen stays.
+    /// Answers the station's once-a-second ask with everything it draws, only when something changed or the page holds
+    /// nothing yet. A failure turns the station off quietly (it asks every second, so a toast each time would bury the
+    /// screen) and is logged once; the game's own screen stays.
     /// </summary>
-    private void ShowStation(bool isChinese)
+    private void ShowStation(bool isFresh, bool isChinese)
     {
-        if (_hasStationFailed) return;
+        if (_hasStationFailed)
+        {
+            if (isFresh) _page.Station("false");
+
+            return;
+        }
 
         try
         {
-            var json = StationJson(isChinese);
-            var now = Time.unscaledTime;
-
-            if (json == _lastStation && now - _lastStationAt < StationResendSeconds) return;
-
-            _lastStation = json;
-            _lastStationAt = now;
-            _page.Station(json);
+            if (_feed.Next(StationJson(isChinese), isFresh) is { } json) _page.Station(json);
         }
         catch (Exception ex)
         {
             _hasStationFailed = true;
             _log("the basket station failed and is off until the next start: " + ex);
-            _page.Station("null");
+            _page.Station("false");
         }
     }
 
@@ -465,15 +494,16 @@ internal sealed class BasketSession
         _page.App(AppView.Json(line?.Need, line?.Tracker, null, WarnHours, _journal.Entries, isChinese));
     }
 
-    private string StationJson(bool isChinese)
+    // Null while the basket screen is not open: the page may still be closing, and nothing is the right answer then.
+    private string? StationJson(bool isChinese)
     {
         var screen = _game.OpenBasket();
 
-        if (screen == null) return "null";
+        if (screen == null) return null;
 
         var stock = ReadStock(screen.BasketId);
 
-        if (stock == null) return "null";
+        if (stock == null) return null;
 
         var line = ReadLine();
         string? troubleName = null;
