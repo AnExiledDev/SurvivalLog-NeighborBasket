@@ -18,8 +18,14 @@ internal sealed class WebPage
     private const string ScriptResource = "NeighborBasket.page.js";
     private const string NoScriptReply = "window.vuplex&&window.vuplex.postMessage('" + PageCommand.Prefix + "noscript')";
 
+    // How long the page shows a toast (TOAST_MS in page.js).
+    private const double ToastSeconds = 4.5;
+    private static readonly System.Diagnostics.Stopwatch Clock = System.Diagnostics.Stopwatch.StartNew();
+
     private readonly Action<string> _log;
     private string? _script;
+    private string? _lastToast;
+    private double _lastToastAt;
     private float _nextCheckAt;
     private bool _hasReportedRunFailure;
 
@@ -36,16 +42,35 @@ internal sealed class WebPage
         Run("window.__slneighborbasket||" + NoScriptReply);
     }
 
+    /// <summary>
+    /// Puts the script in the page. A toast sent in the last few seconds goes with it, so a page that reloaded just
+    /// before the toast still shows it.
+    /// </summary>
     public void Install()
     {
-        if (Run(Script())) _log("page script sent to the web UI");
+        var script = Script();
+
+        if (_lastToast != null && Clock.Elapsed.TotalSeconds - _lastToastAt < ToastSeconds) script += "\n;" + StatusCall(_lastToast);
+
+        if (Run(script)) _log("page script sent to the web UI");
     }
 
     /// <summary>
-    /// A toast over the game; the script travels with it, so a page that just reloaded still shows it. An empty one only
-    /// frees the page's buttons, which a page without the script has no use for, so it goes alone.
+    /// A toast over the game. An empty one only frees the page's buttons. The script never travels with a toast: a page
+    /// that lost the script says so at the next check, and Install sends a recent toast along.
     /// </summary>
-    public void Status(string text) => Run((text.Length > 0 ? Script() + "\n;" : "") + "window.__slneighborbasket&&window.__slneighborbasket.status(" + JsText.Literal(text) + ");");
+    public void Status(string text)
+    {
+        if (text.Length > 0)
+        {
+            _lastToast = text;
+            _lastToastAt = Clock.Elapsed.TotalSeconds;
+        }
+
+        Run(StatusCall(text));
+    }
+
+    private static string StatusCall(string text) => "window.__slneighborbasket&&window.__slneighborbasket.status(" + JsText.Literal(text) + ");";
 
     /// <summary>Which buttons and whether the phone app show, with their labels and tooltips in the game's language.</summary>
     public void Setup(bool showFill, bool showCallBack, bool showPutAway, bool showApp, bool isChinese) =>

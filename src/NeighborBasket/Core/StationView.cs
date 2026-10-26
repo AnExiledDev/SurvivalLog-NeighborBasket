@@ -55,13 +55,27 @@ public static class StationView
         json.Append(",\"max\":").Append(Number(data.MaxWeight));
         json.Append(",\"used\":").Append(Number(data.UsedWeight));
         json.Append(",\"bag\":").Append(data.BagId);
-        json.Append(",\"basket\":[").Append(string.Join(",", data.InBasket.Select(item => ItemJson(item, wanted, true, null)))).Append(']');
+        json.Append(",\"basket\":[");
+
+        for (var i = 0; i < data.InBasket.Count; i++) ItemJson(json, i > 0, data.InBasket[i], wanted, true, null);
+
+        json.Append(']');
         json.Append(",\"places\":[").Append(string.Join(",", data.Places.Select(place => "{\"id\":" + place.Id + ",\"name\":" + JsText.Literal(place.Name) + "}"))).Append(']');
-        var gains = new Dictionary<long, (double One, double Stack)?>();
+        var gains = new Dictionary<long, (double One, double Stack)?>(data.Sources.Count);
 
         foreach (var item in data.Sources) gains[item.Id] = wish.IsDying || item.IsForbidden ? null : FillPlan.ItemGain(item.ToCandidate(), wish, held, Rates.Game);
 
-        json.Append(",\"items\":[").Append(string.Join(",", Ordered(data.Sources, wanted, id => gains[id]).Select(item => ItemJson(item, wanted, false, gains[item.Id])))).Append(']');
+        json.Append(",\"items\":[");
+
+        var isFirst = true;
+
+        foreach (var item in Ordered(data.Sources, wanted, id => gains[id]))
+        {
+            ItemJson(json, !isFirst, item, wanted, false, gains[item.Id]);
+            isFirst = false;
+        }
+
+        json.Append(']');
         json.Append(",\"labels\":").Append(Labels(isChinese));
 
         return json.Append('}').ToString();
@@ -95,11 +109,11 @@ public static class StationView
     /// progress one item and the whole stack would add on top of the basket as it is, left out while she is dying (only
     /// food counts then) and for what she refuses.
     /// </summary>
-    private static string ItemJson(StationItem item, ISet<int> wanted, bool isInBasket, (double One, double Stack)? gain)
+    private static void ItemJson(StringBuilder json, bool isAfterAnother, StationItem item, ISet<int> wanted, bool isInBasket, (double One, double Stack)? gain)
     {
-        var json = new StringBuilder("{");
+        if (isAfterAnother) json.Append(',');
 
-        json.Append("\"id\":").Append(item.Id);
+        json.Append("{\"id\":").Append(item.Id);
         json.Append(",\"owner\":").Append(item.OwnerId);
         json.Append(",\"cfg\":").Append(item.ConfigId);
         json.Append(",\"n\":").Append(JsText.Literal(item.Name));
@@ -117,10 +131,16 @@ public static class StationView
 
         if (isInBasket && item.Breaks) json.Append(",\"br\":true");
 
-        return json.Append('}').ToString();
+        json.Append('}');
     }
 
-    private static string Labels(bool isChinese)
+    private static string? _englishLabels;
+    private static string? _chineseLabels;
+
+    /// <summary>The station's labels in one language; they never change while the game runs, so each is built once.</summary>
+    public static string Labels(bool isChinese) => isChinese ? _chineseLabels ??= BuildLabels(true) : _englishLabels ??= BuildLabels(false);
+
+    private static string BuildLabels(bool isChinese)
     {
         var labels = new (string Key, Phrase Text)[]
         {

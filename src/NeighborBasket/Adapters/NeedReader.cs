@@ -64,7 +64,39 @@ internal static class NeedReader
     private static Tracker TrackerOf(string prefix, NeedState need, int affinity, int progress, int progressMax, int struggles) =>
         new(affinity, Setting(prefix, "AffinityThresholdEnding", 50), progress, progressMax, need.ConsecutiveSendDays, need.StreakDays, Setting(prefix, "StruggleMaxCount", 3) - struggles);
 
-    /// <summary>The game's own global setting, read the way its rescue code reads it, with the same fallback.</summary>
-    private static int Setting(string prefix, string name, int fallback) =>
-        GameSingleton.Existing<ConfigManager>()?.Get_Config_GlobalSetting(prefix + name) is { } row ? row.Params1 : fallback;
+    /// <summary>
+    /// The game's own global setting, read the way its rescue code reads it, with the same fallback. Read every second,
+    /// so each row is looked up once per settings table (a config reload swaps the table) under a key built once, and
+    /// only its value is read each time: other mods change a value while the game runs, never the row.
+    /// </summary>
+    private static int Setting(string prefix, string name, int fallback)
+    {
+        var table = GameSingleton.Existing<ConfigManager>()?._Config_GlobalSetting_Dict;
+
+        if (table == null) return fallback;
+
+        if (_table == null || table.Pointer != _table.Pointer)
+        {
+            // The table it compared is held, so its address cannot be reused by a new one.
+            _table = table;
+            Rows.Clear();
+        }
+
+        var keys = prefix == GirlPrefix ? GirlKeys : BoyKeys;
+
+        if (!keys.TryGetValue(name, out var key)) keys[name] = key = prefix + name;
+
+        if (!Rows.TryGetValue(key, out var row))
+        {
+            row = table.TryGetValue(key, out var found) ? found : null;
+            Rows[key] = row;
+        }
+
+        return row?._Params1_k__BackingField ?? fallback;
+    }
+
+    private static Il2CppSystem.Collections.Generic.Dictionary<string, Config_GlobalSetting>? _table;
+    private static readonly System.Collections.Generic.Dictionary<string, Config_GlobalSetting?> Rows = new();
+    private static readonly System.Collections.Generic.Dictionary<string, string> GirlKeys = new();
+    private static readonly System.Collections.Generic.Dictionary<string, string> BoyKeys = new();
 }

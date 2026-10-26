@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.8
+
+- Less stutter with the inventory open: the mod only works out what the basket station shows when something in it changed, and the inventory no longer pauses when it opens.
+- The Neighbor app opens faster on a long log: her status and the newest notices show at once, and the rest follows a moment later.
+- Made for Survival Log 1.1.19611.
+
 ## 0.6.7
 
 - The phone runs smoother: once the Neighbor app is on the phone, the mod no longer searches the phone's screen every time something on it changes.

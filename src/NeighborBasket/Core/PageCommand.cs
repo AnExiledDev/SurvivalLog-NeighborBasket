@@ -38,8 +38,8 @@ public abstract record PageCommand
     /// <summary>Break down was clicked.</summary>
     public sealed record BreakDown : PageCommand;
 
-    /// <summary>The phone app opened or wants fresh data.</summary>
-    public sealed record App : PageCommand;
+    /// <summary>The phone app wants its data: only when it changed, or always with IsFresh, when the page holds none.</summary>
+    public sealed record App(bool IsFresh = false) : PageCommand;
 
     /// <summary>The page script just installed itself.</summary>
     public sealed record Ready : PageCommand;
@@ -70,6 +70,7 @@ public abstract record PageCommand
             "takeall" => new TakeAll(),
             "breakdown" => new BreakDown(),
             "app" => new App(),
+            "app|new" => new App(true),
             "station" => new Station(),
             "station|new" => new Station(true),
             "ready" => new Ready(),

@@ -27,6 +27,12 @@
   var SCREEN_CLASS = 'slnb-phone';
   var PHONE_STYLE_ID = 'slnb-phone-style';
   var APP_REFRESH_MS = 5000;
+  // The phone log's lines drawn when it opens, then per frame after that.
+  var PHONE_FIRST = 30;
+  var PHONE_CHUNK = 40;
+  // The station's list rows drawn with the rest of the station, then per frame after that.
+  var LIST_FIRST = 40;
+  var LIST_CHUNK = 60;
   var PHONE_PAGE = /PhoneSMS\.html/;
   var CHASE_FRAMES = 120;
   var SVG_NS = 'http://www.w3.org/2000/svg';
@@ -40,7 +46,8 @@
   // station shows a move the plugin has not answered yet. version counts what changed the drawing.
   var station = {
     data: null, labels: null, byId: {}, names: {}, state: null, isOpen: false, doc: null, askAt: 0, isOff: false, isDead: false, isGuess: false,
-    sel: 'all', filt: '', query: '', order: null, orderSet: {}, orderKey: '', seen: {}, version: 0, filling: 0, waitSince: 0, hovered: null
+    sel: 'all', filt: '', query: '', order: null, orderSet: {}, orderKey: '', seen: {}, version: 0, filling: 0, waitSince: 0, hovered: null,
+    listKey: null, listShown: LIST_FIRST, listRows: [], listToken: 0
   };
   var isBusy = false;
   var busyTimer = 0;
@@ -437,7 +444,12 @@
 
     if (!rows.length) rows = [{ k: 'hint', h: '<div class="nbs-hint">' + esc(filt === 'wanted' ? labels.nothingWanted : labels.nothing) + '</div>' }];
 
-    patchKeyed(doc, node.__slots.list, rows);
+    if (station.listKey !== station.orderKey) {
+      station.listKey = station.orderKey;
+      station.listShown = LIST_FIRST;
+    }
+
+    drawList(doc, node, rows);
     fill(node, 'srctitle', esc(labels.takeFrom));
     fill(node, 'srcsub', esc(labels.takeFromSub));
     fill(node, 'scope', '<button data-f="wanted" class="' + (filt === 'wanted' ? 'is-on' : '') + '">' + esc(labels.sheWants) + ' <b>' + wantN + '</b></button>' +
@@ -445,6 +457,32 @@
     fill(node, 'addhint', esc(labels.addHint));
 
     if (node.__input.placeholder !== labels.search) node.__input.placeholder = labels.search;
+  }
+
+  // The first rows of the list go in with the station; the rest follow a few dozen a frame, so a home with hundreds of
+  // stacks never holds a frame up. Rows already shown stay shown through later answers, so the list never shrinks
+  // under the mouse. A newer draw ends the steps of the one before it.
+  function drawList(doc, node, rows) {
+    var shown = station.listShown;
+
+    station.listRows = rows;
+
+    if (rows.length <= shown || typeof requestAnimationFrame === 'undefined') {
+      patchKeyed(doc, node.__slots.list, rows);
+
+      return;
+    }
+
+    patchKeyed(doc, node.__slots.list, rows.slice(0, shown));
+
+    var token = ++station.listToken;
+
+    requestAnimationFrame(function () {
+      if (station.listToken !== token || station.doc !== doc || !station.data) return;
+
+      station.listShown = shown + LIST_CHUNK;
+      drawList(doc, node, station.listRows);
+    });
   }
 
   function cellHtml(item, className, attr) {
@@ -784,6 +822,9 @@
       tip.innerHTML = '<b>' + esc(item.n) + '</b><span>' + item.w + 'x' + item.h + ' &middot; x' + item.q + (kg ? ' &middot; ' + kg : '') + '<br>' + esc(placeName(item.owner)) + '</span>' +
         (gain ? '<span class="nbs-gain" style="display:block;margin-top:3px">' + esc(gain) + '</span>' : '');
       tip.style.display = 'block';
+      // Measured once per stack: reading the size after each move would make the browser lay the page out again.
+      tip.__w = tip.offsetWidth;
+      tip.__h = tip.offsetHeight;
     }
 
     if (!target) return;
@@ -792,8 +833,8 @@
     var left = e.clientX + 14;
     var top = e.clientY + 14;
 
-    if (left + tip.offsetWidth > view.innerWidth - 8) left = e.clientX - tip.offsetWidth - 14;
-    if (top + tip.offsetHeight > view.innerHeight - 8) top = e.clientY - tip.offsetHeight - 14;
+    if (left + tip.__w > view.innerWidth - 8) left = e.clientX - tip.__w - 14;
+    if (top + tip.__h > view.innerHeight - 8) top = e.clientY - tip.__h - 14;
 
     tip.style.left = left + 'px';
     tip.style.top = top + 'px';
@@ -823,6 +864,9 @@
     station.isGuess = false;
     station.order = null;
     station.seen = {};
+    station.listKey = null;
+    station.listShown = LIST_FIRST;
+    station.listToken++;
     station.askAt = 0;
     station.filling = 0;
     station.hovered = null;
@@ -941,7 +985,7 @@
   // The game can keep an old inventory page hidden next to a new one; only a shown page with the basket open counts,
   // and the station in any other is hidden.
   function patchBasket() {
-    var frames = document.querySelectorAll('iframe');
+    var frames = document.getElementsByTagName('iframe');
     var active = null;
     var activeState = null;
 
@@ -962,9 +1006,10 @@
 
       if (!doc.head || !doc.body) continue;
 
-      var state = !active && isFrameShown(frames[i]) ? basketState(doc) : null;
+      // The panel's own state is a plain read; the layout is asked only of a page that has the basket open.
+      var state = !active && frames[i].style.display !== 'none' ? basketState(doc) : null;
 
-      if (state && state.isBasket) {
+      if (state && state.isBasket && isFrameShown(frames[i])) {
         active = doc;
         activeState = state;
       } else {
@@ -1020,7 +1065,7 @@
   }
 
   function removeApps() {
-    var frames = document.querySelectorAll('iframe');
+    var frames = document.getElementsByTagName('iframe');
 
     for (var i = 0; i < frames.length; i++) {
       var doc = null;
@@ -1239,9 +1284,10 @@
     phone.screen = null;
   }
 
+  // The plugin answers only when something changed since its last answer, so a page that holds nothing asks afresh.
   function askForData() {
     phone.refreshAt = Date.now() + APP_REFRESH_MS;
-    send('app');
+    send(phone.data ? 'app' : 'app|new');
   }
 
   // The plugin's answer to 'app': her status rows and the log, grouped by day, newest first.
@@ -1251,17 +1297,23 @@
     if (phone.screen) render();
   }
 
+  // The status rows and the newest entries go in at once; the rest of the log follows a few dozen a frame, so opening
+  // the phone on a long log never holds a frame up. A newer render, or the phone closing, ends the one before it.
   function render() {
-    var doc = phone.screen.ownerDocument;
-    var body = phone.screen.querySelector('.slnb-phone-body');
+    var screen = phone.screen;
+    var doc = screen.ownerDocument;
+    var body = screen.__slnbBody || (screen.__slnbBody = screen.querySelector('.slnb-phone-body'));
     var data = phone.data;
 
-    if (!body || !data) return;
+    if (!body || !data || screen.__slnbData === data) return;
+
+    screen.__slnbData = data;
 
     var scroll = body.scrollTop;
+    var token = phone.renderToken = (phone.renderToken || 0) + 1;
 
-    phone.screen.querySelector('.slnb-phone-title').textContent = data.title;
-    phone.screen.querySelector('.slnb-phone-back').textContent = data.back;
+    screen.querySelector('.slnb-phone-title').textContent = data.title;
+    screen.querySelector('.slnb-phone-back').textContent = data.back;
     body.textContent = '';
 
     var rows = make(doc, 'div', 'slnb-rows');
@@ -1279,24 +1331,60 @@
 
     if (!data.days || !data.days.length) body.appendChild(make(doc, 'div', 'slnb-empty', data.empty));
 
-    (data.days || []).forEach(function (day) {
-      body.appendChild(make(doc, 'div', 'slnb-day', day.label));
-      day.entries.forEach(function (entry) {
-        var node = make(doc, 'div', 'slnb-entry is-' + entry.kind);
+    var days = data.days || [];
+    var at = { day: 0, entry: -1 };
 
-        node.appendChild(make(doc, 'div', 'slnb-entry-head', entry.time + '  ' + entry.label));
-        node.appendChild(make(doc, 'div', 'slnb-entry-text', entry.text));
+    // Builds up to count more lines (a day's heading or an entry) off the page, then puts them in with one change.
+    function more(count) {
+      var chunk = make(doc, 'div', 'slnb-chunk');
 
-        if (entry.note) node.appendChild(make(doc, 'div', 'slnb-entry-note', entry.note));
+      for (var n = 0; n < count && at.day < days.length; n++) {
+        var day = days[at.day];
 
-        body.appendChild(node);
-      });
-    });
-    body.scrollTop = scroll;
+        if (at.entry < 0) {
+          chunk.appendChild(make(doc, 'div', 'slnb-day', day.label));
+        } else {
+          var entry = day.entries[at.entry];
+          var node = make(doc, 'div', 'slnb-entry is-' + entry.kind);
+
+          node.appendChild(make(doc, 'div', 'slnb-entry-head', entry.time + '  ' + entry.label));
+          node.appendChild(make(doc, 'div', 'slnb-entry-text', entry.text));
+
+          if (entry.note) node.appendChild(make(doc, 'div', 'slnb-entry-note', entry.note));
+
+          chunk.appendChild(node);
+        }
+
+        if (++at.entry >= (day.entries || []).length) {
+          at.day++;
+          at.entry = -1;
+        }
+      }
+
+      body.appendChild(chunk);
+
+      // The place the list was read to is kept as soon as the list is long enough to reach it again.
+      if (body.scrollTop < scroll) body.scrollTop = scroll;
+    }
+
+    function step() {
+      if (phone.renderToken !== token || phone.screen !== screen) return;
+
+      more(PHONE_CHUNK);
+
+      if (at.day < days.length && typeof requestAnimationFrame !== 'undefined') requestAnimationFrame(step);
+    }
+
+    more(PHONE_FIRST);
+
+    if (at.day < days.length) {
+      if (typeof requestAnimationFrame === 'undefined') more(Infinity);
+      else requestAnimationFrame(step);
+    }
   }
 
   function patchPhones() {
-    var frames = document.querySelectorAll('iframe');
+    var frames = document.getElementsByTagName('iframe');
     var isOpenSomewhere = false;
 
     for (var i = 0; i < frames.length; i++) {
@@ -1319,7 +1407,7 @@
   }
 
   // The alert line on the game's Rescue panel (the HUD page CoreUI1): the most urgent warning, "+N more", and every
-  // warning in a list that opens on hover. The plugin sends it every few seconds, or null when nothing is due. The
+  // warning in a list that opens on hover. The plugin sends it when it changes, or null when nothing is due. The
   // panel ignores the mouse, so the line takes it back and carries data-interactive, which is how the HUD tells the
   // game a pointer over it is on the UI.
   var HUD_ID = 'slnb-hud-alert';
@@ -1380,7 +1468,17 @@
       return;
     }
 
-    // The neighbor's panel is the one with her wish chips; the warehouse rescue uses the same class without them.
+    // The neighbor's panel is the one with her wish chips; the warehouse rescue uses the same class without them. While
+    // the line and the wish row it was put next to are both still on the page, the panel is not searched for again.
+    if (line && line.__slnbWish && line.__slnbWish.isConnected && line.isConnected && line.parentNode === line.__slnbPanel) {
+      if (line.__slnbDrawn !== hud.key) {
+        drawHud(doc, line);
+        line.__slnbDrawn = hud.key;
+      }
+
+      return;
+    }
+
     var wish = doc.querySelector('.rescue-panel .rescue-wishrow');
     var panel = wish && wish.closest('.rescue-panel');
 
@@ -1410,6 +1508,9 @@
       line.__slnbDrawn = '';
     }
 
+    line.__slnbWish = wish;
+    line.__slnbPanel = panel;
+
     if (line.__slnbDrawn !== key) {
       drawHud(doc, line);
       line.__slnbDrawn = key;
@@ -1417,7 +1518,7 @@
   }
 
   function patchHud() {
-    var frames = document.querySelectorAll('iframe');
+    var frames = document.getElementsByTagName('iframe');
 
     for (var i = 0; i < frames.length; i++) {
       if (!/CoreUI1\.html/.test(frames[i].src || '')) continue;

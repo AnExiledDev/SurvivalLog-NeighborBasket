@@ -30,6 +30,9 @@ internal sealed class GiftJournal
 
     public IReadOnlyList<LogEntry> Entries => _entries;
 
+    /// <summary>Goes up whenever the entries change, so the phone app is only built again when there is something new.</summary>
+    public int Version { get; private set; }
+
     /// <summary>Switches to the loaded save's log; false when no save is loaded.</summary>
     public bool FollowSave()
     {
@@ -40,6 +43,7 @@ internal sealed class GiftJournal
         _saveKey = key;
         _watch = new GiftWatch();
         _entries.Clear();
+        Version++;
 
         while (MonologueHook.TryTake(out _))
         {
@@ -86,6 +90,7 @@ internal sealed class GiftJournal
     private void Add(LogEntry entry)
     {
         _entries.Add(entry);
+        Version++;
 
         if (_entries.Count > KeepLines) _entries.RemoveRange(0, _entries.Count - KeepLines);
 

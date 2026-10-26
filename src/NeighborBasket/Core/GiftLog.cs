@@ -77,18 +77,19 @@ public sealed class GiftWatch
 
     public IReadOnlyList<LogEntry> See(BasketLook look)
     {
-        var made = new List<LogEntry>();
+        // Polled every second and almost always finds nothing; the empty answer is shared, not made each time.
+        IReadOnlyList<LogEntry> made = System.Array.Empty<LogEntry>();
 
         if (_beforeSend is { } before)
         {
             _beforeSend = null;
-            made.Add(new LogEntry(LogKind.Sent, before.Day, before.Hour, before.Items, look.Progress - before.Progress, look.Affinity - before.Affinity));
+            made = new[] { new LogEntry(LogKind.Sent, before.Day, before.Hour, before.Items, look.Progress - before.Progress, look.Affinity - before.Affinity) };
         }
         else if (_isReturnPending)
         {
             _isReturnPending = false;
 
-            if (!look.IsAway) made.Add(new LogEntry(LogKind.Returned, look.Day, look.Hour, look.Items));
+            if (!look.IsAway) made = new[] { new LogEntry(LogKind.Returned, look.Day, look.Hour, look.Items) };
         }
 
         if (_last is { } last && last.IsAway != look.IsAway)

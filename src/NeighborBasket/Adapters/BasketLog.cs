@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Concurrent;
 using System.IO;
+using System.Threading;
 using BepInEx.Logging;
 using NeighborBasket.Core;
 
@@ -7,19 +9,23 @@ namespace NeighborBasket.Adapters;
 
 /// <summary>
 /// Writes to the BepInEx log and to an append-only file that survives restarts
-/// (LogOutput.log is overwritten on the next launch).
+/// (LogOutput.log is overwritten on the next launch). The file is written on a background thread, so a line logged
+/// on a game frame never waits for the disk; each line keeps the time it was logged.
 /// </summary>
 internal sealed class BasketLog
 {
     private readonly ManualLogSource _bepinex;
     private readonly string _path;
-    private readonly object _gate = new();
+    private readonly ConcurrentQueue<(DateTime At, string Message)> _lines = new();
+    private readonly AutoResetEvent _wake = new(false);
     private StreamWriter? _file;
 
     public BasketLog(ManualLogSource bepinex, string path)
     {
         _bepinex = bepinex;
         _path = path;
+
+        new Thread(WriteLoop) { IsBackground = true, Name = "NeighborBasket log" }.Start();
     }
 
     /// <summary>Never throws: a logger that can fail would take down whatever it was asked to report on.</summary>
@@ -35,10 +41,39 @@ internal sealed class BasketLog
             // The file copy below still has a chance.
         }
 
-        lock (_gate) AppendToFile($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} {message}");
+        try
+        {
+            // UtcNow reads no time zone; the writer turns it into local time.
+            _lines.Enqueue((DateTime.UtcNow, message));
+            _wake.Set();
+        }
+        catch (Exception)
+        {
+            // The BepInEx log already has the line.
+        }
     }
 
-    /// <summary>One writer stays open so a busy frame is not paying for an open and close per line.</summary>
+    private void WriteLoop()
+    {
+        while (true)
+        {
+            try
+            {
+                _wake.WaitOne();
+
+                while (_lines.TryDequeue(out var line)) AppendToFile($"{line.At.ToLocalTime():yyyy-MM-dd HH:mm:ss.fff} {line.Message}");
+
+                // Flushed after each batch, so a crash loses at most the lines of the moment.
+                _file?.Flush();
+            }
+            catch (Exception)
+            {
+                CloseFile();
+            }
+        }
+    }
+
+    /// <summary>One writer stays open so a busy moment is not paying for an open and close per line.</summary>
     private void AppendToFile(string line)
     {
         try
@@ -53,9 +88,9 @@ internal sealed class BasketLog
         }
     }
 
-    /// <summary>Shared for reading so the log can be tailed while the game runs; flushed per line so a crash loses nothing.</summary>
+    /// <summary>Shared for reading so the log can be tailed while the game runs.</summary>
     private StreamWriter OpenFile() =>
-        new(new FileStream(_path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite)) { AutoFlush = true };
+        new(new FileStream(_path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite));
 
     private void CloseFile()
     {

@@ -155,6 +155,93 @@ public class PhoneAppTests
         Assert.Equal(0, (int)_engine.Evaluate("reads.count").AsNumber());
     }
 
+    // A shown inventory page that is not the basket is checked every 150 ms too; its panel state says so without the
+    // browser working out the layout.
+    [Fact]
+    public void A_shown_inventory_page_without_the_basket_costs_the_station_check_no_layout_read()
+    {
+        Run("var bag = openFrame('file:///WebUI/UI/BackpackUI/BackpackUI.html'); flush(); var bagDoc = arrive(bag);");
+        Run("var app = bagDoc.body.appendChild(bagDoc.createElement('div')); app.id = 'app'; app._vnode = { component: { setupState: { isBasket: false } } };");
+        Run("var reads = countLayoutReads(bag); tick(); tick();");
+
+        Assert.Equal(0, (int)_engine.Evaluate("reads.count").AsNumber());
+    }
+
+    /// <summary>The phone opened, and the Neighbor app on it tapped.</summary>
+    private void OpenApp()
+    {
+        OpenPhone();
+        Run("doc.querySelector('.slnb-app').listeners.click[0]({ stopPropagation: function () {} });");
+    }
+
+    /// <summary>An answer to 'app' with one day of count entries, each text tag plus its number.</summary>
+    private void DefineLog() =>
+        Run("function log(count, tag) { var entries = []; for (var i = 0; i < count; i++) entries.push({ kind: 'gift', time: '08:00', label: 'Gift', text: tag + i }); "
+            + "return { title: 'Neighbor', back: 'Back', empty: 'Nothing yet', rows: [{ label: 'Mood', value: 'Fine' }], days: [{ label: 'Day 3', entries: entries }] }; }");
+
+    private int Entries() => (int)_engine.Evaluate("doc.querySelectorAll('.slnb-entry').length").AsNumber();
+
+    // The plugin answers 'app' only when something changed. An app that holds nothing yet must ask afresh, or it waits
+    // for the next change with an empty screen.
+    [Fact]
+    public void The_app_asks_afresh_while_it_holds_nothing_and_then_only_for_changes()
+    {
+        DefineLog();
+        OpenApp();
+        Assert.Equal("slmod|neighborbasket|app|new", _engine.Evaluate("posted[posted.length - 1]").AsString());
+
+        Run("window.__slneighborbasket.app(log(3, 'e')); doc.querySelector('.slnb-phone-x').listeners.click[0]({ stopPropagation: function () {} });");
+        Run("doc.querySelector('.slnb-app').listeners.click[0]({ stopPropagation: function () {} });");
+
+        Assert.Equal("slmod|neighborbasket|app", _engine.Evaluate("posted[posted.length - 1]").AsString());
+        // The app it held shows at once, before the answer.
+        Assert.Equal(3, Entries());
+    }
+
+    [Fact]
+    public void The_same_answer_again_leaves_the_open_app_as_it_is()
+    {
+        DefineLog();
+        OpenApp();
+        Run("var answer = log(3, 'e'); window.__slneighborbasket.app(answer); var first = doc.querySelector('.slnb-rows');");
+        Run("window.__slneighborbasket.app(answer);");
+
+        Assert.True(_engine.Evaluate("doc.querySelector('.slnb-rows') === first").AsBoolean());
+        Assert.Equal(3, Entries());
+    }
+
+    // A long log goes in a few dozen lines a frame, so opening the phone never holds a frame up; all of it is there a
+    // few frames later, in order.
+    [Fact]
+    public void A_long_log_goes_in_over_a_few_frames_and_ends_up_whole_and_in_order()
+    {
+        DefineLog();
+        OpenApp();
+        Run("window.__slneighborbasket.app(log(200, 'e'));");
+
+        Assert.InRange(Entries(), 1, 50);
+        Assert.Equal(1, (int)_engine.Evaluate("doc.querySelectorAll('.slnb-row').length").AsNumber());
+
+        Run("for (var i = 0; i < 20; i++) nextFrame();");
+
+        Assert.Equal(200, Entries());
+        Assert.Equal("e0", _engine.Evaluate("doc.querySelectorAll('.slnb-entry-text')[0].textContent").AsString());
+        Assert.Equal("e199", _engine.Evaluate("doc.querySelectorAll('.slnb-entry-text')[199].textContent").AsString());
+    }
+
+    // A new answer while the last one is still going in replaces it; the old one adds nothing more.
+    [Fact]
+    public void A_new_answer_mid_way_ends_the_one_before_it()
+    {
+        DefineLog();
+        OpenApp();
+        Run("window.__slneighborbasket.app(log(200, 'old')); nextFrame(); window.__slneighborbasket.app(log(100, 'new'));");
+        Run("for (var i = 0; i < 20; i++) nextFrame();");
+
+        Assert.Equal(100, Entries());
+        Assert.Equal("new99", _engine.Evaluate("doc.querySelectorAll('.slnb-entry-text')[99].textContent").AsString());
+    }
+
     [Fact]
     public void Other_pages_never_get_the_app()
     {

@@ -95,4 +95,13 @@ public class StationViewTests
         Assert.Equal(6f, new StationData(5, 3, 10, 4, empty, empty, new Place[0], 0).ToBasket(BasketWish.None, new int[0]).FreeWeight);
         Assert.Equal(new Cells(2, 1, 1, 1), Assert.Single(new StationData(5, 3, 0, 0, new[] { Item(1, Tools, 1, x: 2, y: 1) }, empty, new Place[0], 0).ToBasket(BasketWish.None, new int[0]).Taken));
     }
+
+    // Every answer carries the labels; they are built once per language, not for each answer.
+    [Fact]
+    public void The_labels_are_built_once_per_language_and_each_language_keeps_its_own()
+    {
+        Assert.Same(StationView.Labels(false), StationView.Labels(false));
+        Assert.Same(StationView.Labels(true), StationView.Labels(true));
+        Assert.NotEqual(StationView.Labels(false), StationView.Labels(true));
+    }
 }

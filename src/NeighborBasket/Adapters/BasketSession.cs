@@ -1,20 +1,28 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using GameCore.HotUpdate.Battle.Logic;
 using NeighborBasket.Core;
-using UnityEngine;
 
 namespace NeighborBasket.Adapters;
 
-/// <summary>Runs the buttons' presses, the warning checks and the gift log, one frame at a time on the game's thread.</summary>
+/// <summary>
+/// Runs the buttons' presses, the warning checks and the gift log, one frame at a time on the game's thread. Nothing
+/// it sends to the page is built again while what it is drawn from holds still: the station, the phone app and the
+/// alert line each go out only when they changed, or when the page holds nothing.
+/// </summary>
 internal sealed class BasketSession
 {
     private const float WarningCheckSeconds = 5f;
     private const float GiftPollSeconds = 1f;
+    private const float LanguageCheckSeconds = 1f;
     // The game runs a placing move a moment after it is sent. The fill finishes as soon as every placed stack is in the
     // basket, and after this long at most when some never arrive.
     private const float FillWaitSeconds = 0.6f;
+
+    // Read instead of Unity's clock, which crosses into the game for every read.
+    private static readonly Stopwatch Clock = Stopwatch.StartNew();
 
     private readonly BasketGame _game;
     private readonly GiftJournal _journal;
@@ -22,8 +30,12 @@ internal sealed class BasketSession
     private readonly Toasts _toasts;
     private readonly Action<string> _log;
     private readonly HashSet<string> _shownWarnings = new();
-    private float _nextWarningCheckAt;
-    private float _nextGiftPollAt;
+    // The timers start apart, so the gift poll and the warning check never land on the same frame.
+    private float _nextWarningCheckAt = 0.5f;
+    private float _nextGiftPollAt = 0.25f;
+    private float _nextLanguageCheckAt;
+    private bool _isChinese;
+    private string? _languageKey;
     private bool? _lastIsChinese;
     private bool _hasWarningsFailed;
     private bool _hasGiftLogFailed;
@@ -34,8 +46,11 @@ internal sealed class BasketSession
     // The station's answer is built once at the end of the frame, however many asks and moves came in during it.
     private bool _isStationWanted;
     private bool _isStationFresh;
-    private string? _planKey;
+    private ulong? _planKey;
     private FillResult? _planCache;
+    // What the page was last sent for the alert line and the phone app, so an unchanged one is not sent again.
+    private string? _lastHud;
+    private ulong? _lastAppPrint;
     // Where each stack the station put in the basket came from, by item id and by item kind, so Take puts it back there.
     private readonly Dictionary<long, long> _originById = new();
     private readonly Dictionary<int, long> _originByConfig = new();
@@ -76,12 +91,21 @@ internal sealed class BasketSession
     /// <summary>Sends the buttons' settings to the page again, after a setting changes.</summary>
     public void Resetup() => _lastIsChinese = null;
 
+    private static float Now => (float)Clock.Elapsed.TotalSeconds;
+
     public void Update()
     {
-        var now = Time.unscaledTime;
-        var isChinese = GameLanguage.IsChinese();
+        var now = Now;
 
         _page.KeepInstalled(now);
+
+        if (now >= _nextLanguageCheckAt)
+        {
+            _nextLanguageCheckAt = now + LanguageCheckSeconds;
+            FollowLanguage();
+        }
+
+        var isChinese = _isChinese;
 
         if (_lastIsChinese != isChinese)
         {
@@ -91,10 +115,12 @@ internal sealed class BasketSession
 
         while (PageMessages.TryTake(out var command)) Handle(command, isChinese);
 
-        if (_pendingFill is { } pending && FillWait.IsDone(pending.Placed, _game.BasketItemIds(pending.BasketId), now, pending.Deadline))
+        if (_pendingFill != null && FillWait.IsDone(_pendingFill.Placed, _game.BasketItemIds(_pendingFill.BasketId), now, _pendingFill.Deadline))
         {
+            var pending = _pendingFill;
+
             _pendingFill = null;
-            RunGuarded("fill check", () => FinishFill(pending), isChinese);
+            FinishFillGuarded(pending);
         }
 
         // While a fill is under way the basket is half moved, so the station waits for the finished one.
@@ -120,6 +146,32 @@ internal sealed class BasketSession
         }
     }
 
+    /// <summary>
+    /// Reads the game's language once a second. A switch drops every name read in the old one and everything sent to
+    /// the page in it, so all of it goes out again in the new one.
+    /// </summary>
+    private void FollowLanguage()
+    {
+        var key = GameLanguage.Key();
+
+        _isChinese = GameLanguage.IsChinese();
+        _game.SetLanguage(key);
+
+        if (_languageKey == null || key == _languageKey)
+        {
+            _languageKey = key;
+
+            return;
+        }
+
+        _languageKey = key;
+        _feed.Forget();
+        _lastAppPrint = null;
+        _lastHud = null;
+        _planKey = null;
+        _nextWarningCheckAt = 0;
+    }
+
     // Put away shows only with Storage Hub there to do it.
     private void Setup(bool isChinese) => _page.Setup(ShowFill, ShowCallBack, ShowPutAway && StorageHubLink.IsAvailable, ShowApp, isChinese);
 
@@ -127,49 +179,39 @@ internal sealed class BasketSession
     {
         switch (command)
         {
-            case PageCommand.Fill fill:
-                RunGuarded("fill", () => Fill(fill.IsMax, isChinese), isChinese);
+            case PageCommand.Fill:
+                Guarded(command, isChinese);
 
                 // The page drew the planned stacks as landing; a fill that placed none answers now.
                 if (_pendingFill == null) PushStation();
 
                 break;
             case PageCommand.CallBack:
-                RunGuarded("call back", () => CallBack(isChinese), isChinese);
-                PushStation();
-                break;
             case PageCommand.PutAway:
-                RunGuarded("put away", () => PutAway(isChinese), isChinese);
+                Guarded(command, isChinese);
                 PushStation();
                 break;
             case PageCommand.App:
-                RunGuarded("phone app", () => AppJson(isChinese), isChinese);
+            case PageCommand.Add:
+            case PageCommand.Take:
+            case PageCommand.TakeAll:
+            case PageCommand.BreakDown:
+                Guarded(command, isChinese);
                 break;
             case PageCommand.Station station:
                 _isStationWanted = true;
 
-                if (station.IsFresh)
-                {
-                    _isStationFresh = true;
-                    _game.ForgetKinds();
-                }
+                if (station.IsFresh) _isStationFresh = true;
 
                 break;
-            case PageCommand.Add add:
-                RunGuarded("add", () => Add(add, isChinese), isChinese);
-                break;
-            case PageCommand.Take take:
-                RunGuarded("take", () => Take(take, isChinese), isChinese);
-                break;
-            case PageCommand.TakeAll:
-                RunGuarded("to bag", () => TakeAll(isChinese), isChinese);
-                break;
-            case PageCommand.BreakDown:
-                RunGuarded("break down", () => BreakDown(isChinese), isChinese);
-                break;
             case PageCommand.Ready:
+                // A page that just put the script in holds nothing: the buttons, the alert line and the phone app go again.
                 _log("page script ready");
                 Setup(isChinese);
+                _lastAppPrint = null;
+
+                if (_lastHud != null) _page.Hud(_lastHud);
+
                 break;
             case PageCommand.NoScript:
                 _page.Install();
@@ -179,6 +221,59 @@ internal sealed class BasketSession
                 break;
         }
     }
+
+    /// <summary>Runs one button's work; a failure is logged and shown, never thrown into the frame.</summary>
+    private void Guarded(PageCommand command, bool isChinese)
+    {
+        try
+        {
+            switch (command)
+            {
+                case PageCommand.Fill fill:
+                    Fill(fill.IsMax, isChinese);
+                    break;
+                case PageCommand.CallBack:
+                    CallBack(isChinese);
+                    break;
+                case PageCommand.PutAway:
+                    PutAway(isChinese);
+                    break;
+                case PageCommand.App app:
+                    SendApp(app.IsFresh, isChinese);
+                    break;
+                case PageCommand.Add add:
+                    Add(add, isChinese);
+                    break;
+                case PageCommand.Take take:
+                    Take(take, isChinese);
+                    break;
+                case PageCommand.TakeAll:
+                    TakeAll(isChinese);
+                    break;
+                case PageCommand.BreakDown:
+                    BreakDown(isChinese);
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            _log($"{What(command)} failed: {ex}");
+            _toasts.Show(Texts.Failed.Pick(isChinese), true, isChinese);
+        }
+    }
+
+    private static string What(PageCommand command) => command switch
+    {
+        PageCommand.Fill => "fill",
+        PageCommand.CallBack => "call back",
+        PageCommand.PutAway => "put away",
+        PageCommand.App => "phone app",
+        PageCommand.Add => "add",
+        PageCommand.Take => "take",
+        PageCommand.TakeAll => "to bag",
+        PageCommand.BreakDown => "break down",
+        _ => "page command",
+    };
 
     /// <summary>
     /// Plans the basket from home storage, enough for the goal (or as full as it goes, with isMax), and sends each whole
@@ -227,7 +322,20 @@ internal sealed class BasketSession
 
         var placed = plan.Picks.Where(pick => !pick.IsPart).Select(pick => pick.Item.ItemId).ToList();
 
-        _pendingFill = new PendingFill(screen.BasketId, plan, placed, Names(screen, isChinese), isChinese, Time.unscaledTime + FillWaitSeconds);
+        _pendingFill = new PendingFill(screen.BasketId, plan, placed, Names(screen, isChinese), isChinese, Now + FillWaitSeconds);
+    }
+
+    private void FinishFillGuarded(PendingFill pending)
+    {
+        try
+        {
+            FinishFill(pending);
+        }
+        catch (Exception ex)
+        {
+            _log($"fill check failed: {ex}");
+            _toasts.Show(Texts.Failed.Pick(pending.IsChinese), true, pending.IsChinese);
+        }
     }
 
     /// <summary>
@@ -424,15 +532,12 @@ internal sealed class BasketSession
     private FillResult Plan(BasketScreen screen, BasketStock stock)
     {
         var station = stock.Station;
-        var sources = HomeSources(station);
         var canSplit = StackingUnits.IsAvailable;
-        var key = string.Join(";", FillGoal, FillShare, canSplit, screen.Wish.StageLeft,
-            screen.Wish.IsActive, screen.Wish.IsAway, screen.Wish.IsDying, screen.Wish.IsPending, screen.Wish.CrisisCategory, string.Join(",", screen.Wish.Categories), station.MaxWeight, station.UsedWeight,
-            string.Join(",", station.InBasket.Select(item => $"{item.Id}:{item.X}:{item.Y}:{item.Width}:{item.Height}:{item.Category}")),
-            string.Join(",", sources.Select(item => $"{item.Id}:{item.OwnerId}:{item.Count}:{item.Value}:{item.Weight}")));
+        var key = Print.Mix(Print.Mix(Print.Mix(Print.Mix(stock.Print, Print.Wish(screen.Wish, null)), FillGoal), FillShare), canSplit);
 
         if (key == _planKey && _planCache != null) return _planCache;
 
+        var sources = HomeSources(station);
         var scoreNow = FillPlan.Score(station.InBasket.Select(item => item.ToCandidate()), screen.Wish, new int[0], Rates.Game);
         var plan = FillPlan.Goal(screen.Wish, sources.Select(item => item.ToCandidate()).ToList(), station.ToBasket(screen.Wish, stock.CategoriesInBasket), Rates.Game, FillGoal, scoreNow, canSplit, Limits(station));
 
@@ -462,8 +567,9 @@ internal sealed class BasketSession
 
     /// <summary>
     /// Answers the station's once-a-second ask with everything it draws, only when something changed or the page holds
-    /// nothing yet. A failure turns the station off quietly (it asks every second, so a toast each time would bury the
-    /// screen) and is logged once; the game's own screen stays.
+    /// nothing yet. What it is drawn from is fingerprinted first, so an unchanged answer is neither planned nor built.
+    /// A failure turns the station off quietly (it asks every second, so a toast each time would bury the screen) and
+    /// is logged once; the game's own screen stays.
     /// </summary>
     private void ShowStation(bool isFresh, bool isChinese)
     {
@@ -476,7 +582,26 @@ internal sealed class BasketSession
 
         try
         {
-            if (_feed.Next(StationJson(isChinese), isFresh) is { } json) _page.Station(json);
+            // Nothing while the basket screen is not open: the page may still be closing, and nothing is the right answer then.
+            var screen = _game.OpenBasket();
+
+            if (screen == null) return;
+
+            var stock = ReadStock(screen.BasketId);
+
+            if (stock == null) return;
+
+            var line = ReadLine();
+            var print = StationPrint(screen, stock, line, isChinese);
+
+            if (_feed.IsUnchanged(print, isFresh, out var resend))
+            {
+                if (resend != null) _page.Station(resend);
+
+                return;
+            }
+
+            if (_feed.Next(StationJson(screen, stock, line, isChinese), isFresh, print) is { } json) _page.Station(json);
         }
         catch (Exception ex)
         {
@@ -486,26 +611,38 @@ internal sealed class BasketSession
         }
     }
 
-    // The phone has no basket screen open, so her trouble shows under its general name.
-    private void AppJson(bool isChinese)
+    /// <summary>Everything the station's answer is built from: the stock, her wish and status, and the settings it shows.</summary>
+    private ulong StationPrint(BasketScreen screen, BasketStock stock, LineRead? line, bool isChinese)
+    {
+        var print = Print.Mix(stock.Print, Print.Wish(screen.Wish, screen.Names));
+
+        print = Print.Mix(print, Print.Line(line?.Need, line?.Tracker));
+        print = Print.Mix(print, WarnHours);
+        print = Print.Mix(print, ShowFill);
+        print = Print.Mix(print, FillGoal);
+        print = Print.Mix(print, FillShare);
+        print = Print.Mix(print, StackingUnits.IsAvailable);
+
+        return Print.Mix(print, isChinese);
+    }
+
+    /// <summary>
+    /// The phone app's data, sent only when the log, her status or the language changed since the last one, or when the
+    /// page holds none (fresh). The phone has no basket screen open, so her trouble shows under its general name.
+    /// </summary>
+    private void SendApp(bool isFresh, bool isChinese)
     {
         var line = ReadLine();
+        var print = Print.Mix(Print.Mix(Print.Mix(Print.Mix(Print.Start, _journal.Version), Print.Line(line?.Need, line?.Tracker)), WarnHours), isChinese);
 
+        if (!isFresh && print == _lastAppPrint) return;
+
+        _lastAppPrint = print;
         _page.App(AppView.Json(line?.Need, line?.Tracker, null, WarnHours, _journal.Entries, isChinese));
     }
 
-    // Null while the basket screen is not open: the page may still be closing, and nothing is the right answer then.
-    private string? StationJson(bool isChinese)
+    private string StationJson(BasketScreen screen, BasketStock stock, LineRead? line, bool isChinese)
     {
-        var screen = _game.OpenBasket();
-
-        if (screen == null) return null;
-
-        var stock = ReadStock(screen.BasketId);
-
-        if (stock == null) return null;
-
-        var line = ReadLine();
         string? troubleName = null;
 
         if (screen.Wish.CrisisCategory is { } crisis && screen.Names.TryGetValue(crisis, out var name)) troubleName = name;
@@ -638,19 +775,15 @@ internal sealed class BasketSession
         }
     }
 
-    // Sent on every check, not only on a change, so a page that reloaded gets the line back within one check.
-    private void ShowHud(string json) => _page.Hud(json);
-
-    private void RunGuarded(string what, Action action, bool isChinese)
+    /// <summary>
+    /// The alert line goes out only when it changed. A page that reloaded says so (Ready) and gets the last line again
+    /// then, so it is not resent on every check.
+    /// </summary>
+    private void ShowHud(string json)
     {
-        try
-        {
-            action();
-        }
-        catch (Exception ex)
-        {
-            _log($"{what} failed: {ex}");
-            _toasts.Show(Texts.Failed.Pick(isChinese), true, isChinese);
-        }
+        if (json == _lastHud) return;
+
+        _lastHud = json;
+        _page.Hud(json);
     }
 }

@@ -14,7 +14,7 @@ namespace NeighborBasket;
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.neighborbasket";
-    private const string Version = "0.6.7";
+    private const string Version = "0.6.8";
     private const string StackingGuid = "com.dev.survivallog.stacking";
 
     public override void Load()
@@ -62,6 +62,19 @@ public sealed class Plugin : BasePlugin
         var session = new BasketSession(new BasketGame(log.Write), journal, page, new Toasts(page, log.Write), log.Write);
 
         log.Write($"===== Neighbor Basket {Version} started");
+
+        // The station, Fill and phone builds compile on first use; doing that here keeps it off the first basket opened.
+        System.Threading.ThreadPool.QueueUserWorkItem(_ =>
+        {
+            try
+            {
+                Core.WarmUp.Run();
+            }
+            catch (System.Exception)
+            {
+                // Only a head start; the first real build compiles them anyway.
+            }
+        });
 
         if (!OptionalLive.IsToolkitInstalled) log.Write("Exiled's Toolkit is not installed, so toasts show on the game's page and settings are read once at start");
 

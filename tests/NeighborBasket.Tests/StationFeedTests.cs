@@ -51,6 +51,66 @@ public class StationFeedTests
         Assert.Equal("{\"a\":1}", feed.Next("{\"a\":1}", false));
     }
 
+    // The station asks once a second; an answer drawn from the same things as the last one is not built at all.
+    [Fact]
+    public void An_unchanged_print_skips_the_build_and_sends_nothing()
+    {
+        var feed = new StationFeed();
+
+        Assert.False(feed.IsUnchanged(7, false, out _));
+        feed.Next("{\"a\":1}", false, 7);
+
+        Assert.True(feed.IsUnchanged(7, false, out var resend));
+        Assert.Null(resend);
+    }
+
+    [Fact]
+    public void A_changed_print_is_built_and_sent()
+    {
+        var feed = new StationFeed();
+
+        feed.Next("{\"a\":1}", false, 7);
+
+        Assert.False(feed.IsUnchanged(8, false, out _));
+        Assert.Equal("{\"a\":2}", feed.Next("{\"a\":2}", false, 8));
+        Assert.True(feed.IsUnchanged(8, false, out _));
+    }
+
+    [Fact]
+    public void A_page_that_asks_afresh_with_an_unchanged_print_gets_the_last_answer_without_a_build()
+    {
+        var feed = new StationFeed();
+
+        feed.Next("{\"a\":1}", false, 7);
+
+        Assert.True(feed.IsUnchanged(7, true, out var resend));
+        Assert.Equal("{\"a\":1}", resend);
+    }
+
+    // A move the page drew, or a language switch, must get a built answer even when the print held still.
+    [Fact]
+    public void After_forget_the_same_print_is_built_and_sent_again()
+    {
+        var feed = new StationFeed();
+
+        feed.Next("{\"a\":1}", false, 7);
+        feed.Forget();
+
+        Assert.False(feed.IsUnchanged(7, false, out _));
+        Assert.Equal("{\"a\":1}", feed.Next("{\"a\":1}", false, 7));
+    }
+
+    // While the basket screen is closed nothing is built, so the print from before it closed still stands.
+    [Fact]
+    public void An_answer_without_a_print_is_built_again_next_time()
+    {
+        var feed = new StationFeed();
+
+        feed.Next("{\"a\":1}", false);
+
+        Assert.False(feed.IsUnchanged(0, false, out _));
+    }
+
     [Fact]
     public void A_fill_finishes_once_every_stack_it_placed_is_in_the_basket_or_the_wait_runs_out()
     {

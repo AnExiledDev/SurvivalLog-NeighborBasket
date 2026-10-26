@@ -17,4 +17,17 @@ internal static class GameLanguage
             return false;
         }
     }
+
+    /// <summary>The game's language setting, for keeping names read from its tables only while it stays the same; empty when unknown.</summary>
+    public static string Key()
+    {
+        try
+        {
+            return GameSingleton.Existing<SettingManager>()?.GetLanguageKey() ?? "";
+        }
+        catch (Exception)
+        {
+            return "";
+        }
+    }
 }
