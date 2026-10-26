@@ -65,6 +65,33 @@ public static class Warnings
         return due;
     }
 
+    /// <summary>Every warning due now, shown or not, the most urgent first: what she needs now, then the nearest deadline.</summary>
+    public static IReadOnlyList<Warning> Active(NeedState state, int warnHours)
+    {
+        if (!state.IsActive) return Array.Empty<Warning>();
+
+        var due = new List<Warning>(Due(state, warnHours));
+
+        due.Sort((a, b) => Rank(a.Kind) != Rank(b.Kind) ? Rank(a.Kind).CompareTo(Rank(b.Kind)) : a.HoursLeft.CompareTo(b.HoursLeft));
+
+        return due;
+    }
+
+    // Dying and struggling need food now; a crisis fails outright, a struggle about to start costs more than a tier,
+    // and a streak only costs its reward.
+    private static int Rank(WarningKind kind) => kind switch
+    {
+        WarningKind.Dying => 0,
+        WarningKind.Struggle => 1,
+        WarningKind.CrisisDeadline => 2,
+        WarningKind.StruggleSoon => 3,
+        WarningKind.TierDrop => 4,
+        _ => 5,
+    };
+
+    /// <summary>Red when her life is at stake (struggling, dying, or about to struggle); amber for the rest.</summary>
+    public static bool IsSevere(WarningKind kind) => kind is WarningKind.Dying or WarningKind.Struggle or WarningKind.StruggleSoon;
+
     private static IEnumerable<Warning> Due(NeedState state, int warnHours)
     {
         if (state.StruggleState == 1)

@@ -56,6 +56,9 @@ internal sealed class WebPage
     /// <summary>The phone app's data, as AppView builds it.</summary>
     public void App(string json) => Run("window.__slneighborbasket&&window.__slneighborbasket.app(" + json + ")");
 
+    /// <summary>The alert line on the game's Rescue panel; "null" takes it away.</summary>
+    public void Hud(string json) => Run("window.__slneighborbasket&&window.__slneighborbasket.hud(" + json + ")");
+
     /// <summary>The basket station's data, as StationView builds it; null turns the station off.</summary>
     public void Station(string json) => Run("window.__slneighborbasket&&window.__slneighborbasket.station(" + json + ")");
 

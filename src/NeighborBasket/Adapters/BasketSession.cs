@@ -70,6 +70,8 @@ internal sealed class BasketSession
 
     public int WarnHours { get; set; } = 12;
 
+    public bool ShowHudAlert { get; set; } = true;
+
     /// <summary>Sends the buttons' settings to the page again, after a setting changes.</summary>
     public void Resetup() => _lastIsChinese = null;
 
@@ -558,11 +560,17 @@ internal sealed class BasketSession
         if (GameSingleton.Existing<BattleLogicWorld>() == null)
         {
             _shownWarnings.Clear();
+            ShowHud("null");
 
             return;
         }
 
-        if (!AreWarningsOn || _hasWarningsFailed) return;
+        if (_hasWarningsFailed || (!AreWarningsOn && !ShowHudAlert))
+        {
+            ShowHud("null");
+
+            return;
+        }
 
         NeedState? read;
 
@@ -575,13 +583,23 @@ internal sealed class BasketSession
             // A game update that renames the clock's fields would fail here every few seconds; one line is enough.
             _hasWarningsFailed = true;
             _log("reading the neighbor's state failed, warnings are off until the next start: " + ex);
+            ShowHud("null");
 
             return;
         }
 
-        if (read is not { } state) return;
+        if (read is not { } state)
+        {
+            ShowHud("null");
+
+            return;
+        }
 
         if (!WarnStreak) state = state with { StreakDays = 0 };
+
+        ShowHud(ShowHudAlert ? HudView.Json(Warnings.Active(state, WarnHours), isChinese) : "null");
+
+        if (!AreWarningsOn) return;
 
         foreach (var warning in Warnings.Check(state, WarnHours, _shownWarnings))
         {
@@ -589,6 +607,9 @@ internal sealed class BasketSession
             _toasts.Show(Texts.Warn(warning, isChinese), true, isChinese);
         }
     }
+
+    // Sent on every check, not only on a change, so a page that reloaded gets the line back within one check.
+    private void ShowHud(string json) => _page.Hud(json);
 
     private void RunGuarded(string what, Action action, bool isChinese)
     {

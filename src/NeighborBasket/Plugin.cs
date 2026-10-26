@@ -14,7 +14,7 @@ namespace NeighborBasket;
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.neighborbasket";
-    private const string Version = "0.6.3";
+    private const string Version = "0.6.4";
     private const string StackingGuid = "com.dev.survivallog.stacking";
 
     public override void Load()
@@ -44,6 +44,9 @@ public sealed class Plugin : BasePlugin
         var warnStreak = Config.Bind("Warnings", "Streak", true,
             "Warns late in the day when sending the basket today would keep the send streak going, and it has not gone out yet.\n" +
             "当天快结束而篮子还没送出、今天送出就能保住连续赠送时提醒。");
+        var hudAlert = Config.Bind("Warnings", "HudAlert", true,
+            "Shows the most urgent warning as a line under Relief Progress on the game's Rescue panel, with the hours left, red when her life is at stake. Hover it to see every warning. Unlike the toasts, it stays up for as long as the warning is due.\n" +
+            "在游戏救助面板的救助进度下方显示一行最紧急的提醒和剩余小时数，危及她性命时为红色。鼠标悬停可查看全部提醒。与弹出提醒不同，这一行会一直显示，直到提醒不再需要。");
         var phoneApp = Config.Bind("Phone", "App", true,
             "Adds a Neighbor app to the phone: her standing (affinity and the good ending's mark, progress, send streak, struggles left) and a log by day of what you sent, what came back, what each send gained, and her thoughts. The log is kept per save in BepInEx/config/com.dev.survivallog.neighborbasket.gifts.\n" +
             "在手机上添加「邻居」应用：显示她的状态（好感和好结局所需、进度、连续赠送、剩余挣扎次数），以及按天记录的送出物品、送回物品、每次送出获得的进度和她的心声。记录按存档保存在 BepInEx/config/com.dev.survivallog.neighborbasket.gifts。");
@@ -77,10 +80,11 @@ public sealed class Plugin : BasePlugin
             session.AreWarningsOn = warningsOn.Value;
             session.WarnStreak = warnStreak.Value;
             session.WarnHours = warnHours.Value;
+            session.ShowHudAlert = hudAlert.Value;
             session.Resetup();
             log.Write($"settings: fill {fillButton.Value} to {fillGoal.Value} share {fillShare.Value}%, put away {putAwayButton.Value} (Storage Hub {(StorageHubLink.IsAvailable ? "found" : "not found")}), call back {callBackButton.Value}, " +
-                      $"warnings {warningsOn.Value} at {warnHours.Value} h, streak {warnStreak.Value}, phone app {phoneApp.Value}");
-        }, fillButton, fillGoal, fillShare, putAwayButton, callBackButton, warningsOn, warnStreak, warnHours, phoneApp);
+                      $"warnings {warningsOn.Value} at {warnHours.Value} h, streak {warnStreak.Value}, HUD alert {hudAlert.Value}, phone app {phoneApp.Value}");
+        }, fillButton, fillGoal, fillShare, putAwayButton, callBackButton, warningsOn, warnStreak, warnHours, hudAlert, phoneApp);
         BasketTicker.Session = session;
         BasketTicker.Log = log.Write;
         AddComponent<BasketTicker>();

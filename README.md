@@ -13,7 +13,7 @@ Keeping a neighbour alive means opening the basket, reading her wishes, then hun
 - **A cap per item**: Fill takes at most 30% of any one item you have at home (`FillShare`), so your last seeds of a kind stay home. While she is dying the cap does not apply to food.
 - **Never what you locked**: items the basket refuses are skipped, and nothing goes past the basket's cells or its weight limit.
 - **Food when she is dying**: while she is dying, Fill packs food only, the most valuable it can fit.
-- **Warnings**: a message a few hours before her condition drops a step (or before she starts to struggle), before her trouble's deadline, late in the day when today's send would keep the send streak going, and once when she starts to struggle or is dying (with how filling the basket must be). Each warning shows once.
+- **Warnings**: a message a few hours before her condition drops a step (or before she starts to struggle), before her trouble's deadline, late in the day when today's send would keep the send streak going, and once when she starts to struggle or is dying (with how filling the basket must be). Each warning shows once. The most urgent one also stays as a line under Relief Progress on the game's Rescue panel until it no longer applies; hover it to see the rest.
 - **Neighbor app on the phone**: her status, the same rows as the basket station (condition and when it drops, her trouble's deadline, send streak, progress and affinity), plus struggles left, and a log by day of what you sent, what came back, what each send gained, and her thoughts.
 - **Break down button**: takes apart the gifts in the basket that break down by hand (wind chimes, star jars, notes), the game's own way, into materials.
 - **To bag and To storage buttons**: empty the basket, her gifts included, into your bag, or (with Storage Hub installed) into your home storage.
@@ -76,7 +76,7 @@ Settings live in `BepInEx\config\com.dev.survivallog.neighborbasket.cfg`, create
 
 ## Troubleshooting
 
-Check `BepInEx\LogOutput.log` for `===== Neighbor Basket 0.6.3 started`. The same line, plus every press and what it moved or why it moved nothing, is in `BepInEx\neighbor-basket.log`, which survives restarts.
+Check `BepInEx\LogOutput.log` for `===== Neighbor Basket 0.6.4 started`. The same line, plus every press and what it moved or why it moved nothing, is in `BepInEx\neighbor-basket.log`, which survives restarts.
 
 If the station does not show, open the basket from the neighbour's gift basket at home; if you pressed Game screen, press Basket station at the top right. If the Fill button does not show, check that `FillButton` is `true`. If Fill says nothing is in home storage for a kind, nothing of that kind is in the storages at home, or all of it is locked.
 

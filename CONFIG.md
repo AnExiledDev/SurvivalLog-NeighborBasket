@@ -18,6 +18,7 @@ Settings live in `BepInEx\config\com.dev.survivallog.neighborbasket.cfg`, create
 | --- | --- | --- |
 | `Enabled` | `true` | Warns before her condition drops a step, before her trouble runs out of time, and when she starts to struggle or is dying. Each warning shows once. |
 | `Streak` | `true` | Warns late in the day when the basket has not gone out yet and sending it today would keep the send streak going. |
+| `HudAlert` | `true` | Shows the most urgent warning as a line under Relief Progress on the game's Rescue panel, red when her life is at stake. Hover it to see every warning. |
 | `WarnHours` | `12` | How many game hours ahead the warnings come, from 1 to 48. |
 
 ## Phone

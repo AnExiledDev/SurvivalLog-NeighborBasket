@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.4
+
+- The game's Rescue panel now shows the most urgent warning under Relief Progress, with the hours left. It is red when her life is at stake (struggling, dying, or about to struggle) and amber otherwise, and it stays up until the warning no longer applies. When more than one is due it says how many more; hover the line to see them all.
+- New setting `HudAlert` (on by default) turns the line on or off.
+- Made for Survival Log 1.1.19611.
+
 ## 0.6.3
 
 - With Stacking, Fill now puts in every unit it planned from a stack in one press. Before, it moved only the first unit of each part stack, so you had to press Fill over and over.

@@ -2,7 +2,8 @@
 // basket is open it lays the basket station over the inventory page: every storage at home and the bag on the left,
 // the basket's grid with her wishes, weight and progress in the middle, her status on the right, with the Fill, Put
 // away, Call back and Send buttons. A "Game screen" button hides it until the basket is opened again. It also adds the
-// Neighbor app to the phone and shows a short toast when Exiled's Toolkit is not there to. Talks to the plugin through
+// Neighbor app to the phone, an alert line on the game's Rescue panel, and shows a short toast when Exiled's Toolkit
+// is not there to. Talks to the plugin through
 // vuplex.postMessage("slmod|neighborbasket|<verb>") and is driven by window.__slneighborbasket.
 (function () {
   if (window.__slneighborbasket) return;
@@ -1014,6 +1015,127 @@
     if (phone.screen && !isOpenSomewhere) closePhone();
   }
 
+  // The alert line on the game's Rescue panel (the HUD page CoreUI1): the most urgent warning, "+N more", and every
+  // warning in a list that opens on hover. The plugin sends it every few seconds, or null when nothing is due. The
+  // panel ignores the mouse, so the line takes it back and carries data-interactive, which is how the HUD tells the
+  // game a pointer over it is on the UI.
+  var HUD_ID = 'slnb-hud-alert';
+  var HUD_STYLE_ID = 'slnb-hud-style';
+  var HUD_STYLE = [
+    '#' + HUD_ID + '{position:relative;pointer-events:auto;display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:bold;text-shadow:0.7px 0.7px 1.4px black;white-space:nowrap;cursor:default}',
+    '#' + HUD_ID + '.is-warn{color:#FFC107}',
+    '#' + HUD_ID + '.is-bad{color:#ff5a4d}',
+    '#' + HUD_ID + ' .slnb-hud-dot{width:7px;height:7px;border-radius:50%;background:currentColor;box-shadow:0 0 6px currentColor;flex-shrink:0}',
+    '#' + HUD_ID + '.is-bad .slnb-hud-dot{animation:slnb-hud-pulse 1.2s ease-in-out infinite}',
+    '#' + HUD_ID + ' .slnb-hud-text{overflow:hidden;text-overflow:ellipsis}',
+    '#' + HUD_ID + ' .slnb-hud-more{color:#cfd3d5;font-weight:normal;flex-shrink:0}',
+    '#' + HUD_ID + ' .slnb-hud-tip{position:absolute;left:0;top:100%;margin-top:6px;z-index:30;width:300px;padding:6px 10px;border-radius:4px;background:rgba(15,15,15,.96);border:1px solid rgba(255,255,255,.22);color:#cfd3d5;font-size:12px;font-weight:normal;text-shadow:none;white-space:normal;line-height:1.45;opacity:0;transition:opacity .12s ease;pointer-events:none}',
+    '#' + HUD_ID + ':hover .slnb-hud-tip{opacity:1}',
+    '#' + HUD_ID + ' .slnb-hud-tip b{display:block;color:#ffd970;font-weight:600;margin-bottom:3px}',
+    '#' + HUD_ID + ' .slnb-hud-tip div{padding-left:9px;border-left:2px solid #FFC107;margin-top:4px}',
+    '#' + HUD_ID + ' .slnb-hud-tip div.is-bad{border-left-color:#ff5a4d}',
+    '@keyframes slnb-hud-pulse{0%,100%{opacity:1}50%{opacity:.35}}'
+  ].join('\n');
+  var hud = { data: null, drawn: '' };
+  var hasReportedHud = false;
+
+  function setHud(data) {
+    hud.data = data || null;
+
+    try {
+      patchHud();
+    } catch (e) {}
+  }
+
+  function drawHud(doc, line) {
+    var data = hud.data;
+
+    line.className = data.tone === 'bad' ? 'is-bad' : 'is-warn';
+    line.textContent = '';
+    line.appendChild(make(doc, 'span', 'slnb-hud-dot'));
+    line.appendChild(make(doc, 'span', 'slnb-hud-text', data.text));
+
+    if (data.more) line.appendChild(make(doc, 'span', 'slnb-hud-more', data.more));
+
+    var tip = make(doc, 'span', 'slnb-hud-tip');
+
+    tip.appendChild(make(doc, 'b', null, data.title));
+    (data.all || []).forEach(function (alert) {
+      tip.appendChild(make(doc, 'div', alert.tone === 'bad' ? 'is-bad' : '', alert.text));
+    });
+    line.appendChild(tip);
+  }
+
+  function patchHudIn(doc) {
+    var line = doc.getElementById(HUD_ID);
+
+    if (!hud.data) {
+      if (line) line.parentNode.removeChild(line);
+
+      return;
+    }
+
+    // The neighbor's panel is the one with her wish chips; the warehouse rescue uses the same class without them.
+    var wish = doc.querySelector('.rescue-panel .rescue-wishrow');
+    var panel = wish && wish.closest('.rescue-panel');
+
+    if (!panel) {
+      if (line) line.parentNode.removeChild(line);
+
+      return;
+    }
+
+    if (!doc.getElementById(HUD_STYLE_ID)) {
+      var style = doc.createElement('style');
+
+      style.id = HUD_STYLE_ID;
+      style.textContent = HUD_STYLE;
+      (doc.head || doc.documentElement).appendChild(style);
+    }
+
+    var key = JSON.stringify(hud.data);
+
+    if (!line || line.parentNode !== panel) {
+      if (line) line.parentNode.removeChild(line);
+
+      line = doc.createElement('div');
+      line.id = HUD_ID;
+      line.setAttribute('data-interactive', '');
+      panel.appendChild(line);
+      line.__slnbDrawn = '';
+    }
+
+    if (line.__slnbDrawn !== key) {
+      drawHud(doc, line);
+      line.__slnbDrawn = key;
+    }
+  }
+
+  function patchHud() {
+    var frames = document.querySelectorAll('iframe');
+
+    for (var i = 0; i < frames.length; i++) {
+      if (!/CoreUI1\.html/.test(frames[i].src || '')) continue;
+
+      var doc = null;
+
+      try {
+        doc = frames[i].contentDocument;
+      } catch (e) {}
+
+      if (!doc || !doc.body) {
+        if (hud.data && !hasReportedHud) {
+          hasReportedHud = true;
+          send('diag|cannot reach the HUD page document (iframe ' + frames[i].src + ')');
+        }
+
+        continue;
+      }
+
+      patchHudIn(doc);
+    }
+  }
+
   setInterval(function () {
     try {
       patchBasket();
@@ -1022,8 +1144,12 @@
     try {
       patchPhones();
     } catch (e) {}
+
+    try {
+      patchHud();
+    } catch (e) {}
   }, 400);
 
-  window.__slneighborbasket = { status: status, setup: setup, app: app, station: setStation };
+  window.__slneighborbasket = { status: status, setup: setup, app: app, station: setStation, hud: setHud };
   send('ready');
 })();

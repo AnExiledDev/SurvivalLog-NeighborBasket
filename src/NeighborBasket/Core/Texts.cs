@@ -77,6 +77,22 @@ public static class Texts
         "Send the basket today to keep the streak ({0} of {1} days). About {2} h left today.",
         "今天送出篮子才能保住连续赠送（{0}/{1} 天）。今天还剩约 {2} 小时。");
 
+    public static readonly Phrase HudTierDrop = new("Condition drops in {0} h", "{0} 小时后状态下降一档");
+
+    public static readonly Phrase HudStruggleSoon = new("Struggle starts in {0} h", "{0} 小时后陷入挣扎");
+
+    public static readonly Phrase HudCrisis = new("Trouble runs out in {0} h", "她的麻烦还剩 {0} 小时");
+
+    public static readonly Phrase HudStruggle = new("Struggling: food within {0} h", "挣扎中：{0} 小时内送食物");
+
+    public static readonly Phrase HudDying = new("Dying: send food now", "快不行了：马上送食物");
+
+    public static readonly Phrase HudStreak = new("Streak breaks in {0} h", "连续赠送 {0} 小时后中断");
+
+    public static readonly Phrase HudMore = new("+{0} more", "另有 {0} 条");
+
+    public static readonly Phrase HudTitle = new("Neighbor alerts", "邻居提醒");
+
     public static readonly Phrase BasketSatiety = new("The basket holds {0} satiety; she needs at least {1}.", "篮子里共有 {0} 饱腹，她至少需要 {1}。");
 
     public static readonly Phrase PutAwayButton = new("To storage", "放进储物");
@@ -239,6 +255,17 @@ public static class Texts
         WarningKind.Struggle => Struggle.Say(isChinese, warning.HoursLeft),
         WarningKind.Streak => Streak.Say(isChinese, warning.A, warning.B, warning.HoursLeft),
         _ => Dying.Pick(isChinese),
+    };
+
+    /// <summary>The short form of a warning for the line on the game's Rescue panel.</summary>
+    public static string Hud(Warning warning, bool isChinese) => warning.Kind switch
+    {
+        WarningKind.TierDrop => HudTierDrop.Say(isChinese, warning.HoursLeft),
+        WarningKind.StruggleSoon => HudStruggleSoon.Say(isChinese, warning.HoursLeft),
+        WarningKind.CrisisDeadline => HudCrisis.Say(isChinese, warning.HoursLeft),
+        WarningKind.Struggle => HudStruggle.Say(isChinese, warning.HoursLeft),
+        WarningKind.Streak => HudStreak.Say(isChinese, warning.HoursLeft),
+        _ => HudDying.Pick(isChinese),
     };
 
     /// <summary>
