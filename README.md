@@ -54,7 +54,7 @@ The buttons, their tooltips and the messages follow the game's language, English
 
 - Survival Log 1.1.19611. Built and tested on this version; a game update can break it until the mod is updated.
 - The [BepInEx Pack for Survival Log](https://www.nexusmods.com/survivallog/mods/12), the BepInEx 6 (IL2CPP) build for the game.
-- Optional: [Exiled's Toolkit](https://github.com/AnExiledDev/SurvivalLog-ExiledToolkit) 0.4.0 or newer. With it, messages show as the Toolkit's toasts and settings changed on the Mod Manager's Mods screen take effect without restarting the game. With 0.8.0 or newer, the Neighbor phone app sits in the phone's dock with the game's apps; without it, it shows in the middle of the phone's home screen.
+- Optional: [Exiled's Toolkit](https://github.com/AnExiledDev/SurvivalLog-ExiledToolkit) 0.4.0 or newer. With it, messages show as the Toolkit's toasts and settings changed on the Mod Manager's Mods screen take effect without restarting the game. With 0.8.0 or newer, the Neighbor phone app sits in the phone's dock with the game's apps; without it, it shows in the middle of the phone's home screen. With 0.10.0 or newer, its UI size setting also sizes the basket station.
 - Optional: [Stacking](https://github.com/AnExiledDev/SurvivalLog-Stacking). With it, clicking a stack in the station puts one in instead of the whole stack, and Fill takes only the part of a stack it needs.
 - Optional: [Info Pack](https://github.com/AnExiledDev/SurvivalLog-InfoPack) 0.8.13 or newer. With it, the station's stacks show Info Pack's item tooltip, with the progress line under the name.
 - Optional: [Storage Hub](https://github.com/AnExiledDev/SurvivalLog-StorageHub) 0.13.0 or newer. With it, the To storage button shows.

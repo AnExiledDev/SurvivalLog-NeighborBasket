@@ -23,6 +23,12 @@
   // One basket cell on screen, and the gap between cells.
   var CELL = 70;
   var PITCH = 74;
+  // At a bigger UI size the station is shrunk until a box this big still fits the screen, so its panes never squeeze
+  // together: the three panes side by side with the take-from list at its narrowest comfortable width, and the basket
+  // pane's height besides its grid, which the grid's rows add to. Both are in the station's own px; the box's style
+  // adds the station's padding.
+  var FIT_WIDTH = 1352;
+  var BASKET_EXTRA = 460;
   var APP_CLASS = 'slnb-app';
   var SCREEN_CLASS = 'slnb-phone';
   var PHONE_STYLE_ID = 'slnb-phone-style';
@@ -145,6 +151,7 @@
     '.nbs-tip{position:fixed;z-index:950;pointer-events:none;padding:8px 10px;border-radius:4px;background:#241e18;border:1px solid rgba(220,188,120,.35);font-size:12px;box-shadow:0 6px 20px rgba(0,0,0,.6);max-width:260px;display:none}',
     '.nbs-tip b{color:#fff;display:block;margin-bottom:3px}',
     '.nbs-tip span{color:#a89a82}',
+    '.nbs-fit{position:absolute;left:0;top:0;width:calc(' + FIT_WIDTH + 'px + 4vw);height:calc(' + fitHeight(3) + 'px + 6vh);visibility:hidden;pointer-events:none}',
     '#' + OPEN_ID + '{position:fixed;right:24px;top:18px;z-index:900;display:none;height:34px;padding:0 14px;border-radius:4px;border:1px solid rgba(255,200,58,.55);background:rgba(36,30,24,.92);color:#FFC83A;font-family:"Microsoft YaHei","PingFang SC",sans-serif;font-size:13px;font-weight:700;cursor:pointer}'
   ].join('\n');
 
@@ -180,6 +187,8 @@
     node = document.createElement('div');
     node.id = 'slnb-toast';
     document.body.appendChild(node);
+    // A one-line message is never shrunk to fit; only the player's size applies.
+    uiSize(node, { fit: false });
 
     return node;
   }
@@ -338,7 +347,7 @@
     '<div data-s="wishes"></div><div data-s="meters"></div><div class="nbs-plan" data-s="plan"></div>' +
     '<div class="nbs-btns" style="margin-top:14px" data-s="btns"></div><div class="nbs-btns" data-s="send"></div></div>' +
     '<div class="nbs-side"><div class="nbs-pane" data-s="side"></div><button class="nbs-btn is-quiet" data-act="game" style="flex:none" data-s="game"></button></div>' +
-    '<div class="nbs-tip"></div>';
+    '<div class="nbs-tip"></div><div class="nbs-fit"></div>';
 
   function fill(node, name, html) {
     var el = node.__slots[name];
@@ -525,6 +534,8 @@
     if (grid.__size !== size) {
       grid.style.cssText = size;
       grid.__size = size;
+      // A basket with more rows needs more room, so on a short screen it shows at a smaller UI size.
+      node.__fit.style.height = 'calc(' + fitHeight(rows) + 'px + 6vh)';
     }
 
     patchKeyed(doc, grid, cells);
@@ -641,6 +652,7 @@
     node.querySelectorAll('[data-s]').forEach(function (el) { node.__slots[el.getAttribute('data-s')] = el; });
     node.__input = node.querySelector('[data-q]');
     node.__tip = node.querySelector('.nbs-tip');
+    node.__fit = node.querySelector('.nbs-fit');
     // Clicks and keys stay in the station, so the inventory never reads them as its own.
     node.addEventListener('mousedown', function (e) { e.stopPropagation(); });
     node.addEventListener('keydown', function (e) { if (e.key !== 'Escape') e.stopPropagation(); });
@@ -651,6 +663,8 @@
     });
     node.addEventListener('mousemove', function (e) { onHover(doc, node, e); });
     doc.body.appendChild(node);
+    // The station fills the screen at any size, so the fit box is what has to fit.
+    uiSize(node, { fit: node.__fit, onZoom: function () { forgetTip(node); } });
 
     var open = doc.getElementById(OPEN_ID);
 
@@ -822,22 +836,28 @@
       tip.innerHTML = '<b>' + esc(item.n) + '</b><span>' + item.w + 'x' + item.h + ' &middot; x' + item.q + (kg ? ' &middot; ' + kg : '') + '<br>' + esc(placeName(item.owner)) + '</span>' +
         (gain ? '<span class="nbs-gain" style="display:block;margin-top:3px">' + esc(gain) + '</span>' : '');
       tip.style.display = 'block';
-      // Measured once per stack: reading the size after each move would make the browser lay the page out again.
-      tip.__w = tip.offsetWidth;
-      tip.__h = tip.offsetHeight;
+      // Measured once per stack, on screen: reading the size after each move would make the browser lay the page out
+      // again.
+      var box = tip.getBoundingClientRect();
+
+      tip.__w = box.width;
+      tip.__h = box.height;
     }
 
     if (!target) return;
 
+    // Worked out on screen, where the mouse is, then written in the station's own px, which its UI size multiplies.
     var view = doc.defaultView;
-    var left = e.clientX + 14;
-    var top = e.clientY + 14;
+    var zoom = zoomOf(node);
+    var gap = 14 * zoom;
+    var left = e.clientX + gap;
+    var top = e.clientY + gap;
 
-    if (left + tip.__w > view.innerWidth - 8) left = e.clientX - tip.__w - 14;
-    if (top + tip.__h > view.innerHeight - 8) top = e.clientY - tip.__h - 14;
+    if (left + tip.__w > view.innerWidth - 8) left = e.clientX - tip.__w - gap;
+    if (top + tip.__h > view.innerHeight - 8) top = e.clientY - tip.__h - gap;
 
-    tip.style.left = left + 'px';
-    tip.style.top = top + 'px';
+    tip.style.left = left / zoom + 'px';
+    tip.style.top = top / zoom + 'px';
   }
 
   function show(el, display) {
@@ -1029,6 +1049,42 @@
     if (!station.isOpen || station.doc !== active) openSession(active);
 
     patchStation(active, activeState);
+  }
+
+
+  // ===== UI size =====
+
+  // Hands a panel to Exiled's Toolkit to be drawn at the player's UI size. Before the Toolkit's script has loaded it
+  // waits in a list the Toolkit reads; without the Toolkit nothing happens.
+  function uiSize(node, options) {
+    var toolkit = window.ExiledUi;
+
+    if (toolkit) {
+      toolkit.size(node, options);
+      return;
+    }
+
+    var waiting = window.__exiledUiWait = window.__exiledUiWait || [];
+    waiting.push([node, options]);
+    if (waiting.length > 32) waiting.shift();
+  }
+
+  // The UI size the Toolkit draws the station at.
+  function zoomOf(node) {
+    var value = Number(node.style.zoom);
+
+    return value > 0 ? value : 1;
+  }
+
+  // The fit box's height for a basket with this many rows.
+  function fitHeight(rows) {
+    return rows * PITCH - (PITCH - CELL) + BASKET_EXTRA;
+  }
+
+  // A new size forgets the stack under the mouse, so the tip is measured again at that size.
+  function forgetTip(node) {
+    station.hovered = null;
+    node.__tip.style.display = 'none';
   }
 
 

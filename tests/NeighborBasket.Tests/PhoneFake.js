@@ -192,12 +192,102 @@ Element.prototype.querySelectorAll = function (selector) {
 
 Element.prototype.querySelector = function (selector) { return this.querySelectorAll(selector)[0] || null; };
 
-// Only the selectors the phone code uses: one class, or a tag.
+// Only the selectors the page uses: one class, an id, an attribute, a tag, or a list of those.
 function matches(el, selector) {
+  if (selector.indexOf(',') >= 0) return selector.split(',').some(function (one) { return matches(el, one); });
   if (selector.charAt(0) === '.') return el.classList.contains(selector.substring(1));
+  if (selector.charAt(0) === '#') return el.id === selector.substring(1);
+  if (selector.charAt(0) === '[') return el.hasAttribute(selector.slice(1, -1));
 
   return el.tagName === selector.toUpperCase();
 }
+
+Element.prototype.closest = function (selector) {
+  for (var at = this; at && at.nodeType === 1; at = at.parentNode) {
+    if (matches(at, selector)) return at;
+  }
+
+  return null;
+};
+
+// The station is drawn from html. Text goes on its element and only elements are children, so firstChild and
+// nextSibling walk the elements.
+var VOID_TAGS = { IMG: true, INPUT: true, BR: true };
+
+Object.defineProperty(Element.prototype, 'innerHTML', {
+  get: function () { return this.html || ''; },
+  set: function (value) {
+    this.children.slice().forEach(function (c) { this.removeChild(c); }, this);
+    this.text = '';
+    this.html = String(value);
+
+    var open = [this];
+    var token = /<(\/?)([a-zA-Z][a-zA-Z0-9]*)([^>]*)>|([^<]+)/g;
+    var found;
+
+    while ((found = token.exec(this.html))) {
+      var parent = open[open.length - 1];
+
+      if (found[4] !== undefined) {
+        parent.text += found[4];
+      } else if (found[1]) {
+        if (open.length > 1) open.pop();
+      } else {
+        var el = this.ownerDocument.createElement(found[2]);
+        var attr = /([^\s=\/]+)(?:="([^"]*)")?/g;
+        var pair;
+
+        while ((pair = attr.exec(found[3]))) {
+          var name = pair[1];
+          var val = pair[2] === undefined ? '' : pair[2];
+
+          if (name === 'class') el.className = val;
+          else if (name === 'id') el.id = val;
+          else el.attributes[name] = val;
+        }
+
+        parent.appendChild(el);
+
+        if (!VOID_TAGS[el.tagName]) open.push(el);
+      }
+    }
+  }
+});
+
+['firstChild', 'firstElementChild'].forEach(function (name) {
+  Object.defineProperty(Element.prototype, name, { get: function () { return this.children[0] || null; } });
+});
+
+['nextSibling', 'nextElementSibling'].forEach(function (name) {
+  Object.defineProperty(Element.prototype, name, {
+    get: function () {
+      var list = this.parentNode && this.parentNode.children;
+      var at = list ? list.indexOf(this) : -1;
+
+      return at >= 0 ? list[at + 1] || null : null;
+    }
+  });
+});
+
+Element.prototype.insertBefore = function (child, before) {
+  if (!before) return this.appendChild(child);
+  if (child.parentNode) child.parentNode.removeChild(child);
+
+  child.parentNode = this;
+  this.children.splice(this.children.indexOf(before), 0, child);
+  report({ type: 'childList', target: this, addedNodes: [child] });
+
+  return child;
+};
+
+// The box on screen: the size a test gives an element in its own px, times the zoom on it and its parents.
+Element.prototype.getBoundingClientRect = function () {
+  var zoom = 1;
+
+  for (var at = this; at && at.nodeType === 1; at = at.parentNode) zoom *= Number(at.style.zoom) || 1;
+
+  return { left: 0, top: 0, width: (this.offsetWidth || 0) * zoom, height: (this.offsetHeight || 0) * zoom };
+};
 
 function makeDocument(href) {
   var doc = { nodeType: 9, parentNode: null };
@@ -299,4 +389,34 @@ function countLayoutReads(frame) {
   };
 
   return reads;
+}
+
+var BACKPACK_URL = 'file:///WebUI/UI/BackpackUI/BackpackUI.html';
+
+// The inventory page with the neighbor's basket open, on a 1920 x 1080 screen.
+function openBasket() {
+  var frame = openFrame(BACKPACK_URL);
+  var doc = arrive(frame);
+  var app = doc.body.appendChild(doc.createElement('div'));
+
+  app.id = 'app';
+  app._vnode = { component: { setupState: { isBasket: true } } };
+  doc.defaultView.innerWidth = 1920;
+  doc.defaultView.innerHeight = 1080;
+
+  return frame;
+}
+
+function stationIn(frame) {
+  return frame.contentDocument.getElementById('slnb-station');
+}
+
+// The mouse moving over the first stack in the take-from list; the tip is returned.
+function hoverStack(frame, x, y) {
+  var station = stationIn(frame);
+  var row = station.querySelector('[data-add]');
+
+  station.listeners.mousemove.forEach(function (callback) { callback({ target: row, clientX: x, clientY: y }); });
+
+  return station.querySelector('.nbs-tip');
 }
