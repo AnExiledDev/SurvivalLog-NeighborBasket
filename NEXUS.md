@@ -2,6 +2,8 @@ Name: Neighbor Basket
 Summary: Opens a basket station on the neighbour's gift basket: every home storage beside the basket's grid, and a Fill button that puts in just enough for a big jump in her condition. Every stack shows the progress it adds; click to put it in or take it out. Warnings come before she gets worse, and a phone app tracks affinity, progress and every send.
 
 Description (BBCode):
+[center][img]https://sldb.core-directive.com/media/save/1-save-safe.png[/img][/center]
+
 Keeping a neighbour alive means opening the basket, reading what she wants, then hunting through your storages for one item of each kind before time runs out. Neighbor Basket opens a [b]basket station[/b] with all your storages beside the basket and a [b]Fill[/b] button that does the hunting, warns you before she gets worse, and adds a phone app that tracks how she is doing.
 
 [size=5]Main features[/size]
