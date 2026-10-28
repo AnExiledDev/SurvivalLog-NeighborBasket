@@ -1,4 +1,7 @@
+using System;
 using System.IO;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Unity.IL2CPP;
@@ -14,8 +17,11 @@ namespace NeighborBasket;
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.neighborbasket";
-    private const string Version = "0.6.9";
+    private const string Version = "0.6.10";
     private const string StackingGuid = "com.dev.survivallog.stacking";
+    private const string CoreNamespace = "NeighborBasket.Core";
+    private const string AdaptersNamespace = "NeighborBasket.Adapters";
+    private const BindingFlags Declared = BindingFlags.DeclaredOnly | BindingFlags.Static | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
 
     public override void Load()
     {
@@ -64,13 +70,20 @@ public sealed class Plugin : BasePlugin
         log.Write($"===== Neighbor Basket {Version} started");
 
         // The station, Fill and phone builds compile on first use; doing that here keeps it off the first basket opened.
+        // The plain part runs once on made-up data, and the rest of the mod's code is compiled without being run, so
+        // nothing on this thread touches the game.
         System.Threading.ThreadPool.QueueUserWorkItem(_ =>
         {
             try
             {
                 Core.WarmUp.Run();
+
+                foreach (var type in typeof(Plugin).Assembly.GetTypes())
+                {
+                    if (type.Namespace is CoreNamespace or AdaptersNamespace && !typeof(UnityEngine.MonoBehaviour).IsAssignableFrom(type)) Prepare(type);
+                }
             }
-            catch (System.Exception)
+            catch (Exception)
             {
                 // Only a head start; the first real build compiles them anyway.
             }
@@ -101,5 +114,19 @@ public sealed class Plugin : BasePlugin
         BasketTicker.Session = session;
         BasketTicker.Log = log.Write;
         AddComponent<BasketTicker>();
+    }
+
+    /// <summary>
+    /// Compiles every method the type declares without running any. GetTypes lists nested types on their own, so the
+    /// lambdas and records inside a type get theirs too. The game's components are left to the game.
+    /// </summary>
+    private static void Prepare(Type type)
+    {
+        if (type.ContainsGenericParameters) return;
+
+        foreach (var method in type.GetMethods(Declared))
+        {
+            if (!method.IsAbstract && !method.ContainsGenericParameters) RuntimeHelpers.PrepareMethod(method.MethodHandle);
+        }
     }
 }

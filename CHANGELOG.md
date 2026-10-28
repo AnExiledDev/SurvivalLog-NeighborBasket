@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.10
+
+- Fixed: the game could stutter for a moment the first time you opened the basket in a game.
+- Made for Survival Log 1.1.19611.
+
 ## 0.6.9
 
 - The basket station can be drawn bigger or smaller with the UI size setting of Exiled's Toolkit 0.10.0 or newer. A change shows at once. When the size you pick does not fit your screen, the station shows as big as still fits.

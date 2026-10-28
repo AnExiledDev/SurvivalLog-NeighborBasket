@@ -41,6 +41,7 @@ internal sealed class BasketSession
     private bool _hasGiftLogFailed;
     private bool _hasReportedWeight;
     private bool _hasStationFailed;
+    private IntPtr _primedWorld;
     private PendingFill? _pendingFill;
     private readonly StationFeed _feed = new();
     // The station's answer is built once at the end of the frame, however many asks and moves came in during it.
@@ -103,6 +104,7 @@ internal sealed class BasketSession
         {
             _nextLanguageCheckAt = now + LanguageCheckSeconds;
             FollowLanguage();
+            PrimeStation();
         }
 
         var isChinese = _isChinese;
@@ -170,6 +172,32 @@ internal sealed class BasketSession
         _lastHud = null;
         _planKey = null;
         _nextWarningCheckAt = 0;
+    }
+
+    /// <summary>
+    /// The first basket station of a game would read every stack at home through the game for the first time inside the
+    /// frame its screen opens on. Once the player is in a newly loaded game, that read is done once here instead, while
+    /// the game is still coming in, so the station later only reads what changed since. Read-only; a failure only costs
+    /// the head start.
+    /// </summary>
+    private void PrimeStation()
+    {
+        var world = GameSingleton.Existing<BattleLogicWorld>();
+
+        if (world == null || world.Pointer == _primedWorld || world._AgentManager?.GetLeadingRole() == null) return;
+
+        _primedWorld = world.Pointer;
+
+        try
+        {
+            var basketId = _game.HomeBasketId();
+
+            if (basketId != 0) _game.ReadStock(basketId);
+        }
+        catch (Exception ex)
+        {
+            _log("reading home storage ahead of the first basket station failed, it is read when the station opens: " + ex.Message);
+        }
     }
 
     // Put away shows only with Storage Hub there to do it.
