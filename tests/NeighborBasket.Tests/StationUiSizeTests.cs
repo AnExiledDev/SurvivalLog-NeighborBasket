@@ -4,7 +4,7 @@ using Xunit;
 namespace NeighborBasket.Tests;
 
 /// <summary>
-/// The basket station and the page's own toast at the player's UI size from Exiled's Toolkit, with page.js run in Jint
+/// The basket station at the player's UI size from Exiled's Toolkit, with page.js run in Jint
 /// on a fake root page and inventory page. The station fills the screen at any size, so the Toolkit is given a box as
 /// big as its panes need to fit. The size multiplies every length inside the station, so the tip that follows the
 /// mouse is placed on screen and written back in the station's own px.
@@ -89,14 +89,14 @@ public class StationUiSizeTests
     }
 
     [Fact]
-    public void The_toast_is_handed_once_and_never_shrunk()
+    public void A_press_answer_draws_nothing_and_hands_nothing_to_the_toolkit()
     {
         Load(withToolkit: true);
-        Run("window.__slneighborbasket.status('Sent'); window.__slneighborbasket.status('Sent again');");
+        Run("window.__slneighborbasket.status('Zq9 press answer');");
 
-        Assert.Equal(1, Number("handed.length"));
-        Assert.Equal("slnb-toast", Text("handed[0].el.id"));
-        Assert.True(Is("handed[0].options.fit === false"));
+        Assert.Equal(0, Number("handed.length"));
+        Assert.False(Is("!!document.getElementById('slnb-toast')"));
+        Assert.False(Is("document.body.textContent.indexOf('Zq9 press answer') >= 0"));
     }
 
     // At double size the tip is 400 x 120 on screen and sits 28 px from the mouse; written in the station's own px,

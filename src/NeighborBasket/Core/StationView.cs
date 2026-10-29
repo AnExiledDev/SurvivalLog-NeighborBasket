@@ -149,7 +149,7 @@ public static class StationView
             ("everything", Texts.Everything), ("search", Texts.Search), ("wanted", Texts.WantedTag), ("nothing", Texts.NothingHere), ("nothingWanted", Texts.NothingWanted),
             ("addHint", Texts.AddHint), ("basket", Texts.BasketTitle), ("cells", Texts.Cells), ("takeHint", Texts.TakeHint), ("weight", Texts.WeightLabel),
             ("kgFree", Texts.KgFree), ("progress", Texts.AppProgress), ("ifSent", Texts.IfSent), ("send", Texts.SendButton), ("nextDoor", Texts.NextDoor),
-            ("cannotTake", Texts.CannotTake), ("fill", Texts.FillButton), ("fillTitle", Texts.FillTitle), ("putAway", Texts.PutAwayButton),
+            ("fill", Texts.FillButton), ("fillTitle", Texts.FillTitle), ("putAway", Texts.PutAwayButton),
             ("putAwayTitle", Texts.PutAwayTitle), ("callBack", Texts.CallBackButton), ("callBackTitle", Texts.CallBackTitle), ("away", Texts.Away), ("each", Texts.ProgressEach), ("one", Texts.ProgressOne),
             ("toBag", Texts.TakeAllButton), ("toBagTitle", Texts.TakeAllTitle), ("breakDown", Texts.BreakButton), ("breakDownTitle", Texts.BreakTitle),
         };

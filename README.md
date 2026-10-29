@@ -54,7 +54,7 @@ The buttons, their tooltips and the messages follow the game's language, English
 
 - Survival Log 1.1.19611. Built and tested on this version; a game update can break it until the mod is updated.
 - The [BepInEx Pack for Survival Log](https://www.nexusmods.com/survivallog/mods/12), the BepInEx 6 (IL2CPP) build for the game.
-- Optional: [Exiled's Toolkit](https://github.com/AnExiledDev/SurvivalLog-ExiledToolkit) 0.4.0 or newer. With it, messages show as the Toolkit's toasts and settings changed on the Mod Manager's Mods screen take effect without restarting the game. With 0.8.0 or newer, the Neighbor phone app sits in the phone's dock with the game's apps; without it, it shows in the middle of the phone's home screen. With 0.10.0 or newer, its UI size setting also sizes the basket station. With 0.11.0 or newer, Neighbor Basket's own `UiScale` under Interface sets a size for this mod alone; at 0, the default, it follows the Toolkit's.
+- [Exiled's Toolkit](https://github.com/AnExiledDev/SurvivalLog-ExiledToolkit) 0.11.0 or newer. Neighbor Basket does not load without it. It shows Neighbor Basket's messages as toasts, puts the Neighbor phone app in the phone's dock with the game's apps, applies settings changed on the Mod Manager's Mods screen without a restart, and its UI size setting sizes the basket station. Neighbor Basket's own `UiScale` under Interface sets a size for this mod alone; at 0, the default, it follows the Toolkit's.
 - Optional: [Stacking](https://github.com/AnExiledDev/SurvivalLog-Stacking). With it, clicking a stack in the station puts one in instead of the whole stack, and Fill takes only the part of a stack it needs.
 - Optional: [Info Pack](https://github.com/AnExiledDev/SurvivalLog-InfoPack) 0.8.13 or newer. With it, the station's stacks show Info Pack's item tooltip, with the progress line under the name.
 - Optional: [Storage Hub](https://github.com/AnExiledDev/SurvivalLog-StorageHub) 0.13.0 or newer. With it, the To storage button shows.
@@ -62,8 +62,9 @@ The buttons, their tooltips and the messages follow the game's language, English
 ## Install
 
 1. Install the [BepInEx Pack for Survival Log](https://www.nexusmods.com/survivallog/mods/12) (if no other mods were installed before, start the game once so BepInEx finishes setup, then quit).
-2. Download `NeighborBasket-x.y.z.zip` from the [latest release](https://github.com/AnExiledDev/SurvivalLog-NeighborBasket/releases/latest) or from [Nexus Mods](https://www.nexusmods.com/survivallog/mods/92).
-3. Extract the zip into the game folder (the folder with `SurvivalLog.exe`). It holds a `BepInEx` folder, so the DLL lands in the right place. When asked, merge the folders. The result should be:
+2. Install Exiled's Toolkit. Download `ExiledToolkit-x.y.z.zip` from [its latest release](https://github.com/AnExiledDev/SurvivalLog-ExiledToolkit/releases/latest) or from [Nexus Mods](https://www.nexusmods.com/survivallog/mods/61), and extract it into the game folder (the folder with `SurvivalLog.exe`).
+3. Download `NeighborBasket-x.y.z.zip` from the [latest release](https://github.com/AnExiledDev/SurvivalLog-NeighborBasket/releases/latest) or from [Nexus Mods](https://www.nexusmods.com/survivallog/mods/92).
+4. Extract the zip into the game folder (the folder with `SurvivalLog.exe`). It holds a `BepInEx` folder, so the DLL lands in the right place. When asked, merge the folders. The result should be:
    `C:\Program Files (x86)\Steam\steamapps\common\Survival Log\BepInEx\plugins\NeighborBasket.dll`
 
 ## Uninstall
@@ -72,7 +73,7 @@ Delete `NeighborBasket.dll` from the `BepInEx\plugins` folder. For a clean slate
 
 ## Configuration
 
-Settings live in `BepInEx\config\com.dev.survivallog.neighborbasket.cfg`, created the first time the game starts with the mod. Change them in game on the Mod Manager's Mods screen, or edit the file while the game is closed. Each setting in the cfg file is explained in English and Simplified Chinese. See [CONFIG.md](CONFIG.md) for every setting. Without Exiled's Toolkit installed, changes made on the Mods screen take effect at the next game start.
+Settings live in `BepInEx\config\com.dev.survivallog.neighborbasket.cfg`, created the first time the game starts with the mod. Change them in game on the Mod Manager's Mods screen, or edit the file while the game is closed. Each setting in the cfg file is explained in English and Simplified Chinese. See [CONFIG.md](CONFIG.md) for every setting.
 
 ## Troubleshooting
 

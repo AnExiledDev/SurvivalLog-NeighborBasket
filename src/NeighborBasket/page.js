@@ -2,15 +2,13 @@
 // basket is open it lays the basket station over the inventory page: every storage at home and the bag on the left,
 // the basket's grid with her wishes, weight and progress in the middle, her status on the right, with the Fill, Put
 // away, Call back and Send buttons. A "Game screen" button hides it until the basket is opened again. It also adds the
-// Neighbor app to the phone, an alert line on the game's Rescue panel, and shows a short toast when Exiled's Toolkit
-// is not there to. Talks to the plugin through
+// Neighbor app to the phone, and an alert line on the game's Rescue panel. Talks to the plugin through
 // vuplex.postMessage("slmod|neighborbasket|<verb>") and is driven by window.__slneighborbasket.
 (function () {
   if (window.__slneighborbasket) return;
 
   var PREFIX = 'slmod|neighborbasket|';
   var BUSY_TIMEOUT_MS = 4000;
-  var TOAST_MS = 4500;
   var STATION_ID = 'slnb-station';
   var OPEN_ID = 'slnb-station-open';
   var STATION_REFRESH_MS = 1000;
@@ -57,11 +55,8 @@
   };
   var isBusy = false;
   var busyTimer = 0;
-  var toastTimer = 0;
   var hasReportedAccess = false;
   var hasReportedState = false;
-
-  var TOAST_STYLE = '#slnb-toast{position:fixed;left:50%;bottom:150px;transform:translateX(-50%);z-index:2147483002;pointer-events:none;display:none;max-width:640px;text-align:center;padding:10px 18px;border-radius:8px;border:1px solid rgba(255,193,7,.75);background:linear-gradient(180deg,rgba(30,30,33,.94),rgba(18,18,20,.96));color:#eee;font-family:"Microsoft YaHei","PingFang SC",sans-serif;font-size:14px;box-shadow:0 6px 20px rgba(0,0,0,.6)}';
 
   // Every class is prefixed so the inventory page's own rules (it has its own .cell, .row and .btn) never reach in.
   var STATION_STYLE = [
@@ -161,8 +156,7 @@
     } catch (e) {}
   }
 
-  // One button press at a time; the plugin's answer (a toast, here or through the Toolkit) frees it, and the timer
-  // frees it anyway.
+  // One button press at a time; the plugin's answer (after its Toolkit toast) frees it, and the timer frees it anyway.
   function press(verb) {
     if (isBusy) return;
 
@@ -172,43 +166,9 @@
     send(verb);
   }
 
-  function toast() {
-    if (!document.getElementById('slnb-toast-style')) {
-      var style = document.createElement('style');
-      style.id = 'slnb-toast-style';
-      style.textContent = TOAST_STYLE;
-      document.head.appendChild(style);
-    }
-
-    var node = document.getElementById('slnb-toast');
-
-    if (node) return node;
-
-    node = document.createElement('div');
-    node.id = 'slnb-toast';
-    document.body.appendChild(node);
-    // A one-line message is never shrunk to fit; only the player's size applies.
-    uiSize(node, { fit: false });
-
-    return node;
-  }
-
-  function status(text) {
+  function status() {
     isBusy = false;
     clearTimeout(busyTimer);
-
-    var node = toast();
-
-    if (!text) {
-      node.style.display = 'none';
-
-      return;
-    }
-
-    node.textContent = text;
-    node.style.display = 'block';
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { node.style.display = 'none'; }, TOAST_MS);
   }
 
   function setup(next) {
@@ -741,8 +701,9 @@
       var item = itemById(target.getAttribute('data-add'));
 
       if (!item) return;
+      // The plugin says she can't take it, as a Toolkit toast; nothing moves.
       if (item.no) {
-        status(data.labels.cannotTake);
+        send('add|' + item.id + '|one');
 
         return;
       }

@@ -11,13 +11,13 @@ using NeighborBasket.Adapters;
 namespace NeighborBasket;
 
 [BepInPlugin(Guid, "Neighbor Basket", Version)]
-[BepInDependency(OptionalLive.ToolkitGuid, BepInDependency.DependencyFlags.SoftDependency)]
+[BepInDependency(OptionalLive.ToolkitGuid, OptionalLive.ToolkitVersion)]
 [BepInDependency(StackingGuid, BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency(StorageHubLink.Guid, BepInDependency.DependencyFlags.SoftDependency)]
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.neighborbasket";
-    private const string Version = "0.7.0";
+    private const string Version = "0.7.1";
     private const string StackingGuid = "com.dev.survivallog.stacking";
     private const string CoreNamespace = "NeighborBasket.Core";
     private const string AdaptersNamespace = "NeighborBasket.Adapters";
@@ -90,8 +90,6 @@ public sealed class Plugin : BasePlugin
                 // Only a head start; the first real build compiles them anyway.
             }
         });
-
-        if (!OptionalLive.IsToolkitInstalled) log.Write("Exiled's Toolkit is not installed, so toasts show on the game's page and settings are read once at start");
 
         var harmony = new Harmony(Guid);
 
