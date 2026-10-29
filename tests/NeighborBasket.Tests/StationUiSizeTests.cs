@@ -52,6 +52,7 @@ public class StationUiSizeTests
         Run("tick(); tick();");
 
         Assert.Equal(1, Number("handed.length"));
+        Assert.Equal(1, Number("handed.filter(function (h) { return h.options.mod === 'NeighborBasket'; }).length"));
         Assert.True(Is("handed[0].el === stationIn(frame)"));
         Assert.True(Is("handed[0].options.fit === stationIn(frame).querySelector('.nbs-fit')"));
     }

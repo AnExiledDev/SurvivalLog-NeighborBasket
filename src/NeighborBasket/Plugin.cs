@@ -17,7 +17,7 @@ namespace NeighborBasket;
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.neighborbasket";
-    private const string Version = "0.6.10";
+    private const string Version = "0.7.0";
     private const string StackingGuid = "com.dev.survivallog.stacking";
     private const string CoreNamespace = "NeighborBasket.Core";
     private const string AdaptersNamespace = "NeighborBasket.Adapters";
@@ -25,6 +25,8 @@ public sealed class Plugin : BasePlugin
 
     public override void Load()
     {
+        OptionalUiSize.Bind(Config);
+
         var fillButton = Config.Bind("Basket", "FillButton", true,
             "Shows a Fill button in the basket station. It puts in enough from your home storage to reach FillGoal: one of each kind she wants first (each kind earns a bonus), then more of what you have most of, only as many as it takes. With Stacking it takes part of a stack; without it, whole stacks. Shift-click packs the basket as full as it goes for the most progress, within its grid and weight limit. Your bag is never touched. While she is dying it packs food only.\n" +
             "在篮子工作台显示「装篮」按钮。它从家中储物里放入刚好达到「FillGoal」的物品：先放她想要的每一类各一件（每一类都有额外奖励），再放你最多的东西，够了就停。装有堆叠模组时可以只拿一组中的几件，没有时按整组放。按住 Shift 单击会把篮子尽量装满，换取最多的进度，且不超过篮子的格子和承重。不会动你背包里的东西。她濒死时只装食物。");
