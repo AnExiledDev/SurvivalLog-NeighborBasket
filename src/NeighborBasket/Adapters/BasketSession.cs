@@ -29,6 +29,7 @@ internal sealed class BasketSession
     private readonly WebPage _page;
     private readonly Toasts _toasts;
     private readonly Action<string> _log;
+    private readonly WebKeyboard _keyboard = new();
     private readonly HashSet<string> _shownWarnings = new();
     // The timers start apart, so the gift poll and the warning check never land on the same frame.
     private float _nextWarningCheckAt = 0.5f;
@@ -242,7 +243,15 @@ internal sealed class BasketSession
 
                 break;
             case PageCommand.NoScript:
+                // A page that lost its script lost its search box too.
+                _keyboard.Release();
                 _page.Install();
+                break;
+            case PageCommand.Focus { IsOn: true }:
+                _keyboard.Claim();
+                break;
+            case PageCommand.Focus:
+                _keyboard.Release();
                 break;
             case PageCommand.Unknown unknown:
                 _log("page says: " + unknown.Text);

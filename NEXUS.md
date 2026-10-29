@@ -41,7 +41,7 @@ The mod adds no data of its own to your save; the phone app's log is a separate 
 
 [size=5]Requirements[/size]
 [list]
-[*]Survival Log 1.1.19611. A game update can break it until the mod is updated.[/*]
+[*]Survival Log 1.1.20151. A game update can break it until the mod is updated.[/*]
 [*][url=https://www.nexusmods.com/survivallog/mods/12]BepInEx for Survival Log[/url]. Install it first.[/*]
 [*][url=https://www.nexusmods.com/survivallog/mods/61]Exiled's Toolkit[/url] 0.11.0 or newer. Neighbor Basket does not load without it. It shows Neighbor Basket's messages as toasts, puts the Neighbor phone app in the phone's dock with the game's apps, applies settings changed on the Mod Manager's Mods screen without a restart, and its UI size setting sizes the basket station. Neighbor Basket's own UiScale setting can set a size for this mod alone.[/*]
 [*]Optional: Stacking. With it, clicking a stack in the station puts one in instead of the whole stack, and Fill takes only the part of a stack it needs.[/*]
@@ -110,7 +110,7 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-NeighborB
 
 [size=5]前置要求[/size]
 [list]
-[*]Survival Log 1.1.19611。游戏更新后模组可能暂时失效，直到模组更新为止。[/*]
+[*]Survival Log 1.1.20151。游戏更新后模组可能暂时失效，直到模组更新为止。[/*]
 [*][url=https://www.nexusmods.com/survivallog/mods/12]BepInEx for Survival Log[/url]，请先安装。[/*]
 [*][url=https://www.nexusmods.com/survivallog/mods/61]Exiled's Toolkit[/url] 0.11.0 或更新版本。没有它本模组不会加载。它把提示以弹窗显示，把「邻居」手机应用和游戏自带的应用一起放在手机底部的程序栏里，让在 Mod Manager 的「模组」界面修改的设置无需重启游戏即可生效，它的界面大小设置还能调整篮子工作台的大小。还可以用 Neighbor Basket 自己的 UiScale 设置单独调整本模组的大小。[/*]
 [*]可选：Stacking。安装后在工作台点击一组物品只放入一件，而不是整组，「装篮」也只拿一组中需要的几件。[/*]

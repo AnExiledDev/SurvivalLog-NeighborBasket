@@ -47,6 +47,9 @@ public abstract record PageCommand
     /// <summary>The page has no script, usually because the web view reloaded.</summary>
     public sealed record NoScript : PageCommand;
 
+    /// <summary>The station's search box took the keyboard (IsOn) or let it go.</summary>
+    public sealed record Focus(bool IsOn) : PageCommand;
+
     public sealed record Unknown(string Text) : PageCommand;
 
     public static bool IsOurs(string? message) => message is not null && message.StartsWith(Prefix, StringComparison.Ordinal);
@@ -60,6 +63,7 @@ public abstract record PageCommand
 
         if (parts.Length == 3 && parts[0] == "add" && Id(parts[1]) is { } added && parts[2] is "one" or "all") return new Add(added, parts[2] == "all");
         if (parts.Length == 2 && parts[0] == "take" && Id(parts[1]) is { } taken) return new Take(taken);
+        if (parts.Length == 2 && parts[0] == "focus" && parts[1] is "0" or "1") return new Focus(parts[1] == "1");
 
         return message.Substring(Prefix.Length) switch
         {

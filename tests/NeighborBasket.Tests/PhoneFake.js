@@ -299,6 +299,7 @@ function makeDocument(href) {
   doc.documentElement.parentNode = doc;
   doc.head = doc.documentElement.appendChild(new Element(doc, 'head'));
   doc.body = doc.documentElement.appendChild(new Element(doc, 'body'));
+  doc.activeElement = doc.body;
   doc.addEventListener = function () {};
   doc.getElementById = function (id) {
     return doc.documentElement.all().filter(function (el) { return el.id === id; })[0] || null;
@@ -405,6 +406,23 @@ function openBasket() {
   doc.defaultView.innerHeight = 1080;
 
   return frame;
+}
+
+// The player clicks into the station's search box, or out of it: focus moves, then the station hears focusin or
+// focusout from the box. Like a browser, a box hidden with the station stays the active element.
+function focusSearch(frame) {
+  var station = stationIn(frame);
+  var box = station.querySelector('[data-q]');
+
+  frame.contentDocument.activeElement = box;
+  (station.listeners.focusin || []).forEach(function (callback) { callback({ target: box }); });
+}
+
+function blurSearch(frame) {
+  var station = stationIn(frame);
+
+  frame.contentDocument.activeElement = frame.contentDocument.body;
+  (station.listeners.focusout || []).forEach(function (callback) { callback({ target: station.querySelector('[data-q]') }); });
 }
 
 function stationIn(frame) {

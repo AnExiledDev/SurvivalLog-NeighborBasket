@@ -56,6 +56,8 @@
   var isBusy = false;
   var busyTimer = 0;
   var hasReportedAccess = false;
+  // Whether the plugin was last told the station's search box has the keyboard.
+  var isTyping = false;
   var hasReportedState = false;
 
   // Every class is prefixed so the inventory page's own rules (it has its own .cell, .row and .btn) never reach in.
@@ -154,6 +156,20 @@
     try {
       if (window.vuplex) window.vuplex.postMessage(PREFIX + message);
     } catch (e) {}
+  }
+
+  // The game sends typed keys to the web UI only while it is told a text box has focus, as its own search boxes tell
+  // it; without that the search box takes focus and nothing typed reaches it. Checked when focus moves and with every
+  // station check, since the station closing with the basket takes the box away without a blur.
+  function syncTyping(doc) {
+    var field = doc && doc.activeElement;
+    var node = field && field.closest && field.closest('#' + STATION_ID);
+    var typing = !!node && node.style.display !== 'none' && String(field.tagName).toUpperCase() === 'INPUT';
+
+    if (typing === isTyping) return;
+
+    isTyping = typing;
+    send('focus|' + (typing ? '1' : '0'));
   }
 
   // One button press at a time; the plugin's answer (after its Toolkit toast) frees it, and the timer frees it anyway.
@@ -622,6 +638,8 @@
       draw(doc, node);
     });
     node.addEventListener('mousemove', function (e) { onHover(doc, node, e); });
+    node.addEventListener('focusin', function () { syncTyping(doc); });
+    node.addEventListener('focusout', function () { setTimeout(function () { syncTyping(doc); }, 0); });
     doc.body.appendChild(node);
     // The station fills the screen at any size, so the fit box is what has to fit.
     uiSize(node, { fit: node.__fit, onZoom: function () { forgetTip(node); } });
@@ -1001,6 +1019,7 @@
     if (!active) {
       station.isOpen = false;
       station.doc = null;
+      syncTyping(null);
 
       return;
     }
@@ -1010,6 +1029,7 @@
     if (!station.isOpen || station.doc !== active) openSession(active);
 
     patchStation(active, activeState);
+    syncTyping(active);
   }
 
 

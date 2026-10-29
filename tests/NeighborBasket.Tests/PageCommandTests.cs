@@ -43,6 +43,15 @@ public class PageCommandTests
     }
 
     [Fact]
+    public void The_search_box_taking_or_leaving_the_keyboard_reads_as_focus_on_or_off()
+    {
+        Assert.Equal(new PageCommand.Focus(true), PageCommand.Parse("slmod|neighborbasket|focus|1"));
+        Assert.Equal(new PageCommand.Focus(false), PageCommand.Parse("slmod|neighborbasket|focus|0"));
+        Assert.IsType<PageCommand.Unknown>(PageCommand.Parse("slmod|neighborbasket|focus|2"));
+        Assert.IsType<PageCommand.Unknown>(PageCommand.Parse("slmod|neighborbasket|focus"));
+    }
+
+    [Fact]
     public void Other_mods_messages_are_not_ours()
     {
         Assert.False(PageCommand.IsOurs("slmod|unpackall|unpack"));

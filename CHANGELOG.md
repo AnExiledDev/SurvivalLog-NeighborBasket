@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.2
+
+- Fixed: typing into the basket station's search box did nothing.
+- Made for Survival Log 1.1.20151.
+
 ## 0.7.1
 
 - Neighbor Basket's messages now always show as Exiled's Toolkit toasts. Those toasts also go to the Notifications history.

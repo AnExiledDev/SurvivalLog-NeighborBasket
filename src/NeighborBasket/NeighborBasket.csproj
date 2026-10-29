@@ -21,6 +21,7 @@
     <Reference Include="$(BepInExCore)\0Harmony.dll" Private="false" />
     <Reference Include="$(BepInExCore)\Il2CppInterop.Runtime.dll" Private="false" />
     <Reference Include="$(BepInExCore)\Il2CppInterop.Common.dll" Private="false" />
+    <Reference Include="$(Interop)\AOT.dll" Private="false" />
     <Reference Include="$(Interop)\HotUpdate.dll" Private="false" />
     <Reference Include="$(Interop)\Il2Cppmscorlib.dll" Private="false" />
     <Reference Include="$(Interop)\UnityEngine.CoreModule.dll" Private="false" />
@@ -40,7 +41,7 @@
     <AssemblyMetadata Include="ModManager.Description" Value="Opens a basket station on the neighbour's gift basket: every home storage beside the basket, the progress each stack adds, and a Fill button that puts in just enough for a big jump in her condition, never more than 30% of any one item you have. To bag and To storage empty the basket (To storage needs Storage Hub), and Break down takes her gifts apart into materials. Warnings come before she gets worse, and a Neighbor phone app tracks her and every send.&#10;在邻居的篮子上打开篮子工作台：家中所有储物都在篮子旁边，每组物品显示能加多少进度；「装篮」按钮只放入足够让她状态大幅提升的物品，同一种物品最多拿走你拥有数量的 30%。「放进背包」和「放进储物」可以清空篮子（「放进储物」需要储物中心），「拆解」把她的回礼拆成材料。在她状态变差之前会提醒你，手机上的「邻居」应用记录她的情况和每次送出。" />
     <AssemblyMetadata Include="ModManager.Author" Value="AnExiledDev" />
     <AssemblyMetadata Include="ModManager.Category" Value="QualityOfLife" />
-    <AssemblyMetadata Include="ModManager.GameVersion" Value="1.1.19611" />
+    <AssemblyMetadata Include="ModManager.GameVersion" Value="1.1.20151" />
     <AssemblyMetadata Include="ModManager.Settings" Value="Restart" />
     <AssemblyMetadata Include="ModManager.GitHub" Value="AnExiledDev/SurvivalLog-NeighborBasket" />
     <AssemblyMetadata Include="ModManager.NexusId" Value="92" />
