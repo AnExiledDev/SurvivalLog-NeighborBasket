@@ -52,6 +52,9 @@ internal sealed class BasketSession
     private FillResult? _planCache;
     // What the page was last sent for the alert line and the phone app, so an unchanged one is not sent again.
     private string? _lastHud;
+    private bool _hasBasketFailed;
+    private BasketState? _basket;
+    private string _basketContents = "";
     private ulong? _lastAppPrint;
     // Where each stack the station put in the basket came from, by item id and by item kind, so Take puts it back there.
     private readonly Dictionary<long, long> _originById = new();
@@ -90,8 +93,14 @@ internal sealed class BasketSession
 
     public bool ShowHudAlert { get; set; } = true;
 
-    /// <summary>Sends the buttons' settings to the page again, after a setting changes.</summary>
-    public void Resetup() => _lastIsChinese = null;
+    public bool ShowBasketOnHud { get; set; } = true;
+
+    /// <summary>Sends the buttons' settings and the HUD lines to the page again, after a setting changes.</summary>
+    public void Resetup()
+    {
+        _lastIsChinese = null;
+        _nextWarningCheckAt = 0;
+    }
 
     private static float Now => (float)Clock.Elapsed.TotalSeconds;
 
@@ -145,6 +154,7 @@ internal sealed class BasketSession
         if (now >= _nextGiftPollAt)
         {
             _nextGiftPollAt = now + GiftPollSeconds;
+            PollBasket();
             PollGifts();
         }
     }
@@ -672,10 +682,12 @@ internal sealed class BasketSession
         var line = ReadLine();
         var print = Print.Mix(Print.Mix(Print.Mix(Print.Mix(Print.Start, _journal.Version), Print.Line(line?.Need, line?.Tracker)), WarnHours), isChinese);
 
+        print = BasketView.Mix(print, _basket);
+
         if (!isFresh && print == _lastAppPrint) return;
 
         _lastAppPrint = print;
-        _page.App(AppView.Json(line?.Need, line?.Tracker, null, WarnHours, _journal.Entries, isChinese));
+        _page.App(AppView.Json(line?.Need, line?.Tracker, null, WarnHours, _journal.Entries, isChinese, _basket));
     }
 
     private string StationJson(BasketScreen screen, BasketStock stock, LineRead? line, bool isChinese)
@@ -729,9 +741,63 @@ internal sealed class BasketSession
 
     private LineRead? ReadLine() => GameSingleton.Existing<BattleLogicWorld>() == null ? null : NeedReader.Read();
 
+    /// <summary>
+    /// Reads the basket at home once a second, for the gift log, the phone app and the HUD. A new state (away, home, or
+    /// other items) brings the HUD check forward, so its line follows the basket within a second. No basket furniture
+    /// at home means no basket to show.
+    /// </summary>
+    private void PollBasket()
+    {
+        if (_hasBasketFailed) return;
+
+        try
+        {
+            if (GameSingleton.Existing<BattleLogicWorld>() == null)
+            {
+                SetBasket(null);
+
+                return;
+            }
+
+            var basketId = _game.HomeBasketId();
+            var isAway = _game.IsBasketAway();
+
+            _basketContents = basketId == 0 ? "" : _game.BasketContents(basketId);
+
+            if (basketId == 0 && !isAway)
+            {
+                SetBasket(null);
+
+                return;
+            }
+
+            var items = basketId == 0 ? Array.Empty<string>() : _game.BasketItems;
+
+            if (_basket == null || _basket.IsAway != isAway || !ReferenceEquals(_basket.Items, items)) SetBasket(new BasketState(isAway, items));
+        }
+        catch (Exception ex)
+        {
+            // A renamed field would fail here every second; one line is enough. The gift log reads the same fields.
+            _hasBasketFailed = true;
+            _log("reading the basket failed, its status and the gift log are off until the next start: " + ex);
+            SetBasket(null);
+        }
+    }
+
+    private void SetBasket(BasketState? basket)
+    {
+        if (basket == null && _basket == null) return;
+
+        _basket = basket;
+        _nextWarningCheckAt = 0;
+    }
+
+    /// <summary>The basket on the HUD, or null when that line is off.</summary>
+    private BasketState? HudBasket => ShowBasketOnHud ? _basket : null;
+
     private void PollGifts()
     {
-        if (_hasGiftLogFailed) return;
+        if (_hasGiftLogFailed || _hasBasketFailed) return;
 
         try
         {
@@ -739,7 +805,7 @@ internal sealed class BasketSession
 
             var line = NeedReader.Read();
 
-            _journal.See(new BasketLook(_game.IsBasketAway(), _game.BasketContents(_game.HomeBasketId()), line?.Progress ?? 0, line?.Affinity ?? 0, time.GetDay(), time.GetHour24()));
+            _journal.See(new BasketLook(_basket?.IsAway ?? false, _basketContents, line?.Progress ?? 0, line?.Affinity ?? 0, time.GetDay(), time.GetHour24()));
         }
         catch (Exception ex)
         {
@@ -771,7 +837,7 @@ internal sealed class BasketSession
 
         if (_hasWarningsFailed || (!AreWarningsOn && !ShowHudAlert))
         {
-            ShowHud("null");
+            ShowHud(HudView.Json(Array.Empty<Warning>(), isChinese, HudBasket));
 
             return;
         }
@@ -787,21 +853,21 @@ internal sealed class BasketSession
             // A game update that renames the clock's fields would fail here every few seconds; one line is enough.
             _hasWarningsFailed = true;
             _log("reading the neighbor's state failed, warnings are off until the next start: " + ex);
-            ShowHud("null");
+            ShowHud(HudView.Json(Array.Empty<Warning>(), isChinese, HudBasket));
 
             return;
         }
 
         if (read is not { } state)
         {
-            ShowHud("null");
+            ShowHud(HudView.Json(Array.Empty<Warning>(), isChinese, HudBasket));
 
             return;
         }
 
         if (!WarnStreak) state = state with { StreakDays = 0 };
 
-        ShowHud(ShowHudAlert ? HudView.Json(Warnings.Active(state, WarnHours), isChinese) : "null");
+        ShowHud(HudView.Json(ShowHudAlert ? Warnings.Active(state, WarnHours) : Array.Empty<Warning>(), isChinese, HudBasket));
 
         if (!AreWarningsOn) return;
 

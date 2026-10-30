@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.0
+
+- The Neighbor phone app now always has a Basket row: what the basket holds, Empty, or that it is still with her. It shows even when nobody needs help.
+- New: while the basket is home and holds something, a line at the top left of the screen says what is in it. During an aid event it sits on the Rescue panel; otherwise in a small panel under the event list. Hover it for the full list. `OnHud` under Basket turns it off.
+- Made for Survival Log 1.1.20151.
+
 ## 0.7.2
 
 - Fixed: typing into the basket station's search box did nothing.

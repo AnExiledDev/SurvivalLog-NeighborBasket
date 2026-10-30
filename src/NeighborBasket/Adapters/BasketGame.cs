@@ -72,6 +72,7 @@ internal sealed class BasketGame
     // The basket's contents as the gift log writes them, kept until the basket changes.
     private ulong _contentsPrint;
     private string _contents = "";
+    private IReadOnlyList<string> _items = Array.Empty<string>();
 
     /// <summary>What every stack of one item kind shares: its table row, name, icon, category and whether she refuses it.</summary>
     private sealed record Kind(Config_Item? Row, string Name, string Icon, int Category, bool IsForbidden);
@@ -333,9 +334,13 @@ internal sealed class BasketGame
         foreach (var entry in counts) parts.Add(KindOf(entry.Key).Name + " x" + entry.Value);
 
         _contentsPrint = print;
+        _items = parts;
 
         return _contents = string.Join(", ", parts);
     }
+
+    /// <summary>The same stacks as the last BasketContents, one "name x count" each; a new list only when they change.</summary>
+    public IReadOnlyList<string> BasketItems => _items;
 
     /// <summary>
     /// Puts a planned stack in the basket at its planned cell, with the same move the game makes when the player drags

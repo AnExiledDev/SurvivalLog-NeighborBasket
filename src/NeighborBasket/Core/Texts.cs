@@ -93,6 +93,14 @@ public static class Texts
 
     public static readonly Phrase HudTitle = new("Neighbor alerts", "邻居提醒");
 
+    public static readonly Phrase HudBasket = new("In the basket: {0}", "篮子里有：{0}");
+
+    public static readonly Phrase HudBasketTitle = new("In her basket", "她的篮子里有");
+
+    public static readonly Phrase BasketAwayValue = new("With her, not back yet", "在她那里，还没回来");
+
+    public static readonly Phrase BasketEmptyValue = new("Empty", "空的");
+
     public static readonly Phrase BasketSatiety = new("The basket holds {0} satiety; she needs at least {1}.", "篮子里共有 {0} 饱腹，她至少需要 {1}。");
 
     public static readonly Phrase PutAwayButton = new("To storage", "放进储物");
@@ -244,6 +252,7 @@ public static class Texts
         CardProgressValue, CardFills, CardFillsFood, CardFillsNothing,
         StationButton, GameScreen, TakeFrom, TakeFromSub, AllStorage, StorageGroup, OnYou, YourBag, SheWants, Everything, Search, WantedTag, NothingHere, NothingWanted, AddHint,
         BasketTitle, Cells, TakeHint, WeightLabel, KgFree, IfSent, SendButton, NextDoor, CannotTake, AddFailed, TakeFailed,
+        HudBasket, HudBasketTitle, BasketAwayValue, BasketEmptyValue,
     };
 
     public static string Warn(Warning warning, bool isChinese) => warning.Kind switch

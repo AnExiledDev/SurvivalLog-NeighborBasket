@@ -11,6 +11,7 @@ Settings live in `BepInEx\config\com.dev.survivallog.neighborbasket.cfg`, create
 | `FillShare` | `30` | The most of any one item Fill takes, in percent of how many you have at home (what is already in the basket counts), 1 to 100. At 30, Fill takes at most 4 of 16 tomato seeds, and none of an item you have only 1 to 3 of. Shift-click Fill keeps to it too. While she is dying it does not apply, so Fill packs the food she needs. Clicking items yourself is never limited. 100 means no limit. |
 | `PutAwayButton` | `true` | Shows a To storage button while the basket is home, which puts what it holds into your home storage the way Storage Hub puts the bag away. Needs Storage Hub; without it the button does not show. |
 | `CallBackButton` | `false` | Shows a Call back button while the basket is away, which brings it home at once with whatever she sends back. Off by default, since it skips the wait the game gives the basket. |
+| `OnHud` | `true` | Shows what the basket holds while it is home and not empty, as a line at the top left of the screen: on the Rescue panel during an aid event, under the other panels otherwise. Hover it to see every item. The Neighbor app on the phone shows the basket either way. |
 
 ## Warnings
 

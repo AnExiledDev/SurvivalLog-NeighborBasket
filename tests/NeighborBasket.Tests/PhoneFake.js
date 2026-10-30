@@ -307,6 +307,18 @@ function makeDocument(href) {
   doc.querySelectorAll = function (selector) { return doc.documentElement.querySelectorAll(selector); };
   doc.querySelector = function (selector) { return doc.querySelectorAll(selector)[0] || null; };
   doc.getElementsByTagName = function (tag) { return doc.documentElement.getElementsByTagName(tag); };
+  // Live, like the browser's: the list follows the page, and reading it is not a search of the document.
+  doc.getElementsByClassName = function (name) {
+    var live = {};
+    var now = function () { return doc.documentElement.all().filter(function (el) { return el.classList.contains(name); }); };
+
+    Object.defineProperty(live, 'length', { get: function () { return now().length; } });
+    [0, 1, 2, 3].forEach(function (i) {
+      Object.defineProperty(live, i, { get: function () { return now()[i] || undefined; } });
+    });
+
+    return live;
+  };
 
   return doc;
 }
@@ -438,3 +450,36 @@ function hoverStack(frame, x, y) {
 
   return station.querySelector('.nbs-tip');
 }
+
+var HUD_URL = 'file:///WebUI/UI/CoreUI1/CoreUI1.html';
+
+// The HUD page's top-left panel with the event list, as the game draws it with no aid event.
+function openHud() {
+  var frame = openFrame(HUD_URL);
+  var doc = arrive(frame);
+  var top = doc.body.appendChild(doc.createElement('div'));
+
+  top.className = 'top-left-panel';
+  top.appendChild(doc.createElement('div')).className = 'event-panel';
+  top.appendChild(doc.createElement('div')).className = 'forecast-panel';
+
+  return frame;
+}
+
+// The neighbor's Rescue panel showing, after the event list, with her wish row.
+function showRescue(doc) {
+  var top = doc.querySelector('.top-left-panel');
+  var panel = doc.createElement('div');
+  var topline = panel.appendChild(doc.createElement('div'));
+
+  panel.className = 'rescue-panel';
+  topline.appendChild(doc.createElement('div')).className = 'rescue-wishrow';
+  top.insertBefore(panel, top.querySelector('.forecast-panel'));
+
+  return panel;
+}
+
+function hudChildren(el) {
+  return el.children.map(function (c) { return c.id || c.className; }).join(' | ');
+}
+

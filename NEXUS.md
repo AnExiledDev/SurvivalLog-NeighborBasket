@@ -16,7 +16,8 @@ Keeping a neighbour alive means opening the basket, reading what she wants, then
 [*][b]Never what you locked[/b]: items the basket refuses are skipped, and nothing goes past the basket's cells or its weight limit.[/*]
 [*][b]Food when she is dying[/b]: while she is dying, Fill packs food only.[/*]
 [*][b]Warnings[/b]: a message a few hours before her condition drops a step, before her trouble's deadline, before the send streak breaks, and when she starts to struggle or is dying. Each shows once, and the most urgent also stays on the game's Rescue panel, under Relief Progress, until it no longer applies (hover it to see the rest).[/*]
-[*][b]Neighbor app[/b] on the phone: her status, the same rows as the basket station (condition and when it drops, her trouble's deadline, send streak, progress and affinity), plus struggles left, and a log by day of what you sent, what came back, what each send gained, and her thoughts.[/*]
+[*][b]What is in the basket[/b]: while the basket is home and holds something, a line at the top left of the screen says what is in it, with or without an aid event (on the Rescue panel during one, under the event list otherwise). Hover it for the full list.[/*]
+[*][b]Neighbor app[/b] on the phone: her status, the same rows as the basket station (condition and when it drops, her trouble's deadline, send streak, progress and affinity), plus struggles left, what the basket holds (even when nobody needs help), and a log by day of what you sent, what came back, what each send gained, and her thoughts.[/*]
 [*][b]Break down button[/b]: takes apart the gifts in the basket that break down by hand (wind chimes, star jars, notes), the game's own way, into materials.[/*]
 [*][b]To bag and To storage buttons[/b]: empty the basket, her gifts included, into your bag, or (with Storage Hub installed) into your home storage.[/*]
 [*][b]Call back button[/b]: off by default. When on, it brings the basket home at once while it is away.[/*]
@@ -62,7 +63,7 @@ The mod adds no data of its own to your save; the phone app's log is a separate 
 Delete [font=Courier New]NeighborBasket.dll[/font] from the [font=Courier New]BepInEx\plugins[/font] folder.
 
 [size=5]Configuration[/size]
-Edit [font=Courier New]BepInEx\config\com.dev.survivallog.neighborbasket.cfg[/font] while the game is closed, or change it in game on the Mod Manager's Mods screen (see [url=https://github.com/AnExiledDev/SurvivalLog-NeighborBasket/blob/main/CONFIG.md]CONFIG.md[/url]; the cfg file explains each setting in English and Chinese). Settings: [font=Courier New]FillButton[/font], [font=Courier New]FillGoal[/font], [font=Courier New]FillShare[/font], [font=Courier New]PutAwayButton[/font], [font=Courier New]CallBackButton[/font], [font=Courier New]Enabled[/font] (warnings), [font=Courier New]Streak[/font], [font=Courier New]WarnHours[/font], [font=Courier New]HudAlert[/font] (the line on the Rescue panel) and [font=Courier New]App[/font] (phone app).
+Edit [font=Courier New]BepInEx\config\com.dev.survivallog.neighborbasket.cfg[/font] while the game is closed, or change it in game on the Mod Manager's Mods screen (see [url=https://github.com/AnExiledDev/SurvivalLog-NeighborBasket/blob/main/CONFIG.md]CONFIG.md[/url]; the cfg file explains each setting in English and Chinese). Settings: [font=Courier New]FillButton[/font], [font=Courier New]FillGoal[/font], [font=Courier New]FillShare[/font], [font=Courier New]PutAwayButton[/font], [font=Courier New]CallBackButton[/font], [font=Courier New]OnHud[/font] (what is in the basket, top left), [font=Courier New]Enabled[/font] (warnings), [font=Courier New]Streak[/font], [font=Courier New]WarnHours[/font], [font=Courier New]HudAlert[/font] (the line on the Rescue panel) and [font=Courier New]App[/font] (phone app).
 
 [size=5]Feedback[/size]
 Found a bug or have an idea? Come say hi on the [url=https://discord.gg/trTsyxUFqg]Core Directive Discord[/url], or post in this page's Posts tab. For bugs, please include [font=Courier New]BepInEx\LogOutput.log[/font] and [font=Courier New]BepInEx\neighbor-basket.log[/font].
@@ -86,7 +87,8 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-NeighborB
 [*][b]不动你锁定的物品[/b]：篮子拒收的物品会被跳过，放入的物品不会超过篮子的格子数和承重。[/*]
 [*][b]濒死时只放食物[/b]：她濒死时，「装篮」只放食物。[/*]
 [*][b]提醒[/b]：在她的状态下降一档之前几小时、她遇到的麻烦到期之前、连续赠送快要中断之前，以及她开始挣扎或濒死时显示提醒。每条只弹出一次，最紧急的一条还会留在游戏救助面板的救助进度下方，直到不再需要（鼠标悬停可查看其余提醒）。[/*]
-[*][b]「邻居」手机应用[/b]：显示她的状况，和篮子工作台相同（状况及何时下降、困境期限、连续赠送、进度和好感），外加剩余挣扎次数，以及按天记录的送出物品、送回物品、每次送出获得的进度和她的心声。[/*]
+[*][b]篮子里的东西[/b]：篮子在家且不是空的时，屏幕左上角会有一行显示篮子里有什么，无论是否有救助事件（救助事件进行中时在救助面板上，其他时候在事件列表下方）。鼠标悬停可查看完整清单。[/*]
+[*][b]「邻居」手机应用[/b]：显示她的状况，和篮子工作台相同（状况及何时下降、困境期限、连续赠送、进度和好感），外加剩余挣扎次数、篮子里的东西（没有人需要帮助时也显示），以及按天记录的送出物品、送回物品、每次送出获得的进度和她的心声。[/*]
 [*][b]「拆解」按钮[/b]：把篮子里能手工拆开的回礼（风铃、星星罐、纸条等）按游戏自己的方式拆成材料。[/*]
 [*][b]「放进背包」和「放进储物」按钮[/b]：把篮子里的东西（包括她的回礼）放进背包，或在安装储物中心后收进家中储物。[/*]
 [*][b]「召回」按钮[/b]：默认关闭。开启后，篮子不在家时可以让它立刻回来。[/*]
@@ -131,7 +133,7 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-NeighborB
 从 [font=Courier New]BepInEx\plugins[/font] 文件夹中删除 [font=Courier New]NeighborBasket.dll[/font]。
 
 [size=5]配置[/size]
-在游戏关闭时编辑 [font=Courier New]BepInEx\config\com.dev.survivallog.neighborbasket.cfg[/font]，或在游戏中 Mod Manager 的「模组」界面修改。设置项：[font=Courier New]FillButton[/font]、[font=Courier New]FillGoal[/font]、[font=Courier New]FillShare[/font]、[font=Courier New]PutAwayButton[/font]、[font=Courier New]CallBackButton[/font]、[font=Courier New]Enabled[/font]（提醒）、[font=Courier New]Streak[/font]、[font=Courier New]WarnHours[/font]、[font=Courier New]HudAlert[/font]（救助面板上的提醒）和 [font=Courier New]App[/font]（手机应用）。
+在游戏关闭时编辑 [font=Courier New]BepInEx\config\com.dev.survivallog.neighborbasket.cfg[/font]，或在游戏中 Mod Manager 的「模组」界面修改。设置项：[font=Courier New]FillButton[/font]、[font=Courier New]FillGoal[/font]、[font=Courier New]FillShare[/font]、[font=Courier New]PutAwayButton[/font]、[font=Courier New]CallBackButton[/font]、[font=Courier New]OnHud[/font]（左上角显示篮子里的东西）、[font=Courier New]Enabled[/font]（提醒）、[font=Courier New]Streak[/font]、[font=Courier New]WarnHours[/font]、[font=Courier New]HudAlert[/font]（救助面板上的提醒）和 [font=Courier New]App[/font]（手机应用）。
 
 [size=5]反馈[/size]
 发现 bug 或有好点子？欢迎来 [url=https://discord.gg/trTsyxUFqg]Core Directive Discord[/url] 打个招呼，或在本页的「Posts」标签里发帖。报告 bug 时，请附上 [font=Courier New]BepInEx\LogOutput.log[/font] 和 [font=Courier New]BepInEx\neighbor-basket.log[/font]。

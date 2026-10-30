@@ -17,7 +17,7 @@ namespace NeighborBasket;
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.neighborbasket";
-    private const string Version = "0.7.2";
+    private const string Version = "0.8.0";
     private const string StackingGuid = "com.dev.survivallog.stacking";
     private const string CoreNamespace = "NeighborBasket.Core";
     private const string AdaptersNamespace = "NeighborBasket.Adapters";
@@ -46,6 +46,9 @@ public sealed class Plugin : BasePlugin
         var callBackButton = Config.Bind("Basket", "CallBackButton", false,
             "Shows a Call back button on the basket while it is away, which brings it home at once with whatever she sends back. Off by default, since it skips the wait the game gives the basket.\n" +
             "篮子不在家时显示「召回」按钮，按下后篮子立刻带着她的回礼回来。默认关闭，因为这会跳过游戏给篮子设定的等待时间。");
+        var basketOnHud = Config.Bind("Basket", "OnHud", true,
+            "Shows what the basket holds while it is home and not empty, as a line at the top left of the screen: on the Rescue panel during an aid event, under the other panels otherwise. Hover it to see every item. The Neighbor app on the phone shows the basket either way.\n" +
+            "篮子在家且不是空的时，在屏幕左上角显示一行篮子里的东西：救助事件进行中时显示在救助面板上，其他时候显示在其他面板下方。鼠标悬停可查看全部物品。手机上的邻居应用无论如何都会显示篮子。");
         var warningsOn = Config.Bind("Warnings", "Enabled", true,
             "Shows a warning before her condition drops a step for want of a basket, before her trouble runs out of time, and while she is struggling or dying. Each warning shows once.\n" +
             "在她因为没收到篮子而状态下降一档之前、她遇到的麻烦快要超时之前，以及她挣扎或濒死时显示提醒。每条提醒只显示一次。");
@@ -107,10 +110,11 @@ public sealed class Plugin : BasePlugin
             session.WarnStreak = warnStreak.Value;
             session.WarnHours = warnHours.Value;
             session.ShowHudAlert = hudAlert.Value;
+            session.ShowBasketOnHud = basketOnHud.Value;
             session.Resetup();
             log.Write($"settings: fill {fillButton.Value} to {fillGoal.Value} share {fillShare.Value}%, put away {putAwayButton.Value} (Storage Hub {(StorageHubLink.IsAvailable ? "found" : "not found")}), call back {callBackButton.Value}, " +
-                      $"warnings {warningsOn.Value} at {warnHours.Value} h, streak {warnStreak.Value}, HUD alert {hudAlert.Value}, phone app {phoneApp.Value}");
-        }, fillButton, fillGoal, fillShare, putAwayButton, callBackButton, warningsOn, warnStreak, warnHours, hudAlert, phoneApp);
+                      $"warnings {warningsOn.Value} at {warnHours.Value} h, streak {warnStreak.Value}, HUD alert {hudAlert.Value}, basket on HUD {basketOnHud.Value}, phone app {phoneApp.Value}");
+        }, fillButton, fillGoal, fillShare, putAwayButton, callBackButton, warningsOn, warnStreak, warnHours, hudAlert, basketOnHud, phoneApp);
         BasketTicker.Session = session;
         BasketTicker.Log = log.Write;
         AddComponent<BasketTicker>();

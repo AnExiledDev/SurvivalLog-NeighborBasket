@@ -1444,44 +1444,52 @@
     if (phone.screen && !isOpenSomewhere) closePhone();
   }
 
-  // The alert line on the game's Rescue panel (the HUD page CoreUI1): the most urgent warning, "+N more", and every
-  // warning in a list that opens on hover. The plugin sends it when it changes, or null when nothing is due. The
-  // panel ignores the mouse, so the line takes it back and carries data-interactive, which is how the HUD tells the
-  // game a pointer over it is on the UI.
+  // The HUD page (CoreUI1) gets two lines from the plugin, sent when they change. The alert line goes on the game's
+  // Rescue panel: the most urgent warning, "+N more", and every warning in a list that opens on hover. The basket line
+  // says what the basket holds while it is home and not empty, with or without an aid event: on the Rescue panel while
+  // there is one, otherwise in a small panel of its own in the top left, under the event list. The panels ignore the
+  // mouse, so the lines take it back and carry data-interactive, which is how the HUD tells the game a pointer over it
+  // is on the UI.
   var HUD_ID = 'slnb-hud-alert';
+  var HUD_BASKET_ID = 'slnb-hud-basket';
+  var HUD_PANEL_ID = 'slnb-hud-basket-panel';
   var HUD_STYLE_ID = 'slnb-hud-style';
   var HUD_STYLE = [
-    '#' + HUD_ID + '{position:relative;pointer-events:auto;display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:bold;text-shadow:0.7px 0.7px 1.4px black;white-space:nowrap;cursor:default}',
-    '#' + HUD_ID + '.is-warn{color:#FFC107}',
-    '#' + HUD_ID + '.is-bad{color:#ff5a4d}',
-    '#' + HUD_ID + ' .slnb-hud-dot{width:7px;height:7px;border-radius:50%;background:currentColor;box-shadow:0 0 6px currentColor;flex-shrink:0}',
-    '#' + HUD_ID + '.is-bad .slnb-hud-dot{animation:slnb-hud-pulse 1.2s ease-in-out infinite}',
-    '#' + HUD_ID + ' .slnb-hud-text{overflow:hidden;text-overflow:ellipsis}',
-    '#' + HUD_ID + ' .slnb-hud-more{color:#cfd3d5;font-weight:normal;flex-shrink:0}',
-    '#' + HUD_ID + ' .slnb-hud-tip{position:absolute;left:0;top:100%;margin-top:6px;z-index:30;width:300px;padding:6px 10px;border-radius:4px;background:rgba(15,15,15,.96);border:1px solid rgba(255,255,255,.22);color:#cfd3d5;font-size:12px;font-weight:normal;text-shadow:none;white-space:normal;line-height:1.45;opacity:0;transition:opacity .12s ease;pointer-events:none}',
-    '#' + HUD_ID + ':hover .slnb-hud-tip{opacity:1}',
-    '#' + HUD_ID + ' .slnb-hud-tip b{display:block;color:#ffd970;font-weight:600;margin-bottom:3px}',
-    '#' + HUD_ID + ' .slnb-hud-tip div{padding-left:9px;border-left:2px solid #FFC107;margin-top:4px}',
-    '#' + HUD_ID + ' .slnb-hud-tip div.is-bad{border-left-color:#ff5a4d}',
+    '.slnb-hud-line{position:relative;pointer-events:auto;display:flex;align-items:center;gap:6px;min-width:0;font-size:11.5px;font-weight:bold;text-shadow:0.7px 0.7px 1.4px black;white-space:nowrap;cursor:default}',
+    '.slnb-hud-line.is-warn{color:#FFC107}',
+    '.slnb-hud-line.is-bad{color:#ff5a4d}',
+    '.slnb-hud-line.is-basket{color:#f2debc}',
+    '.slnb-hud-line .slnb-hud-dot{width:7px;height:7px;border-radius:50%;background:currentColor;box-shadow:0 0 6px currentColor;flex-shrink:0}',
+    '.slnb-hud-line.is-bad .slnb-hud-dot{animation:slnb-hud-pulse 1.2s ease-in-out infinite}',
+    '.slnb-hud-line .slnb-hud-text{overflow:hidden;text-overflow:ellipsis}',
+    '.slnb-hud-line .slnb-hud-more{color:#cfd3d5;font-weight:normal;flex-shrink:0}',
+    '.slnb-hud-line .slnb-hud-tip{position:absolute;left:0;top:100%;margin-top:6px;z-index:30;width:300px;padding:6px 10px;border-radius:4px;background:rgba(15,15,15,.96);border:1px solid rgba(255,255,255,.22);color:#cfd3d5;font-size:12px;font-weight:normal;text-shadow:none;white-space:normal;line-height:1.45;opacity:0;transition:opacity .12s ease;pointer-events:none}',
+    '.slnb-hud-line:hover .slnb-hud-tip{opacity:1}',
+    '.slnb-hud-line .slnb-hud-tip b{display:block;color:#ffd970;font-weight:600;margin-bottom:3px}',
+    '.slnb-hud-line .slnb-hud-tip div{padding-left:9px;border-left:2px solid #FFC107;margin-top:4px}',
+    '.slnb-hud-line .slnb-hud-tip div.is-bad{border-left-color:#ff5a4d}',
+    '.slnb-hud-line.is-basket .slnb-hud-tip div{border-left-color:rgba(242,222,188,.5);margin-top:2px}',
+    '#' + HUD_PANEL_ID + '{width:320px;box-sizing:border-box;margin-top:6px;padding:6px 30px 6px 12px;border-radius:2.8px;background:linear-gradient(90deg,rgba(0,0,0,.5) 0%,rgba(0,0,0,.4) 70%,rgba(0,0,0,0) 100%);pointer-events:none}',
     '@keyframes slnb-hud-pulse{0%,100%{opacity:1}50%{opacity:.35}}'
   ].join('\n');
-  var hud = { data: null, key: '', drawn: '' };
+  var hud = { data: null, alertKey: '', basketKey: '' };
   var hasReportedHud = false;
 
   function setHud(data) {
     hud.data = data || null;
-    // Kept with the data, so the 400 ms check compares it without building it again.
-    hud.key = hud.data ? JSON.stringify(hud.data) : '';
+    // Kept with the data, so the 400 ms check compares them without building them again.
+    hud.alertKey = hud.data && hud.data.text ? JSON.stringify([hud.data.text, hud.data.tone, hud.data.more, hud.data.title, hud.data.all]) : '';
+    hud.basketKey = hud.data && hud.data.basket ? JSON.stringify(hud.data.basket) : '';
 
     try {
       patchHud();
     } catch (e) {}
   }
 
-  function drawHud(doc, line) {
+  function drawAlert(doc, line) {
     var data = hud.data;
 
-    line.className = data.tone === 'bad' ? 'is-bad' : 'is-warn';
+    line.className = 'slnb-hud-line ' + (data.tone === 'bad' ? 'is-bad' : 'is-warn');
     line.textContent = '';
     line.appendChild(make(doc, 'span', 'slnb-hud-dot'));
     line.appendChild(make(doc, 'span', 'slnb-hud-text', data.text));
@@ -1497,62 +1505,136 @@
     line.appendChild(tip);
   }
 
-  function patchHudIn(doc) {
-    var line = doc.getElementById(HUD_ID);
+  function drawBasketLine(doc, line) {
+    var basket = hud.data.basket;
 
-    if (!hud.data) {
-      if (line) line.parentNode.removeChild(line);
+    line.className = 'slnb-hud-line is-basket';
+    line.textContent = '';
+    line.appendChild(make(doc, 'span', 'slnb-hud-text', basket.text));
 
-      return;
+    var tip = make(doc, 'span', 'slnb-hud-tip');
+
+    tip.appendChild(make(doc, 'b', null, basket.title));
+    (basket.items || []).forEach(function (item) {
+      tip.appendChild(make(doc, 'div', null, item));
+    });
+    line.appendChild(tip);
+  }
+
+  function dropHud(lines, name) {
+    var node = lines[name];
+
+    if (node && node.parentNode) node.parentNode.removeChild(node);
+
+    lines[name] = null;
+  }
+
+  // Puts a line (made once per page) into host, before the given node when there is one, and draws it again only when
+  // its data changed.
+  function placeHud(doc, lines, name, id, host, before, draw, key) {
+    var line = lines[name];
+
+    if (!line) {
+      line = lines[name] = doc.createElement('div');
+      line.id = id;
+      line.setAttribute('data-interactive', '');
+      line.__slnbDrawn = '';
     }
 
-    // The neighbor's panel is the one with her wish chips; the warehouse rescue uses the same class without them. While
-    // the line and the wish row it was put next to are both still on the page, the panel is not searched for again.
-    if (line && line.__slnbWish && line.__slnbWish.isConnected && line.isConnected && line.parentNode === line.__slnbPanel) {
-      if (line.__slnbDrawn !== hud.key) {
-        drawHud(doc, line);
-        line.__slnbDrawn = hud.key;
-      }
+    if (line.parentNode !== host) host.insertBefore(line, before && before.parentNode === host ? before : null);
 
-      return;
+    if (line.__slnbDrawn !== key) {
+      draw(doc, line);
+      line.__slnbDrawn = key;
     }
+  }
 
-    var wish = doc.querySelector('.rescue-panel .rescue-wishrow');
+  // The neighbor's Rescue panel is the one with her wish chips; the warehouse rescue uses the same class without them.
+  // The page's live list of wish rows says whether there is one without a search, and the panel found for a wish row is
+  // kept while that row is on the page.
+  function rescuePanelIn(doc, lists) {
+    var found = doc.__slnbRescue;
+
+    if (found && found.wish.isConnected) return found.panel;
+
+    var wish = lists.wish.length ? lists.wish[0] : null;
     var panel = wish && wish.closest('.rescue-panel');
 
+    doc.__slnbRescue = panel ? { wish: wish, panel: panel } : null;
+
+    return panel;
+  }
+
+  // The basket's own panel while there is no Rescue panel: in the top-left panel, right after the event list when it
+  // shows, so it sits where the Rescue panel would.
+  function basketPanelIn(doc, lines, top, events) {
+    var panel = lines.panel;
+
     if (!panel) {
-      if (line) line.parentNode.removeChild(line);
+      panel = lines.panel = doc.createElement('div');
+      panel.id = HUD_PANEL_ID;
+    }
+
+    if (events && events.parentNode === top) {
+      if (events.nextElementSibling !== panel) top.insertBefore(panel, events.nextSibling);
+    } else if (panel.parentNode !== top) {
+      top.appendChild(panel);
+    }
+
+    return panel;
+  }
+
+  function patchHudIn(doc) {
+    var lines = doc.__slnbHud || (doc.__slnbHud = { alert: null, basket: null, panel: null, style: null });
+    var hasAlert = !!hud.alertKey;
+    var hasBasket = !!hud.basketKey;
+
+    if (!hasAlert && !hasBasket) {
+      dropHud(lines, 'alert');
+      dropHud(lines, 'basket');
+      dropHud(lines, 'panel');
 
       return;
     }
 
-    if (!doc.getElementById(HUD_STYLE_ID)) {
-      var style = doc.createElement('style');
+    // Live lists, made once per page, so finding the panels each check costs no search.
+    var lists = doc.__slnbLists || (doc.__slnbLists = {
+      wish: doc.getElementsByClassName('rescue-wishrow'),
+      top: doc.getElementsByClassName('top-left-panel'),
+      events: doc.getElementsByClassName('event-panel')
+    });
+    var rescue = rescuePanelIn(doc, lists);
+    var top = lists.top.length ? lists.top[0] : null;
+
+    if (!rescue && !(hasBasket && top)) {
+      dropHud(lines, 'alert');
+      dropHud(lines, 'basket');
+      dropHud(lines, 'panel');
+
+      return;
+    }
+
+    if (!lines.style || !lines.style.isConnected) {
+      var style = lines.style = doc.createElement('style');
 
       style.id = HUD_STYLE_ID;
       style.textContent = HUD_STYLE;
       (doc.head || doc.documentElement).appendChild(style);
     }
 
-    var key = hud.key;
+    if (hasAlert && rescue) placeHud(doc, lines, 'alert', HUD_ID, rescue, lines.basket, drawAlert, hud.alertKey);
+    else dropHud(lines, 'alert');
 
-    if (!line || line.parentNode !== panel) {
-      if (line) line.parentNode.removeChild(line);
+    if (!hasBasket) {
+      dropHud(lines, 'basket');
+      dropHud(lines, 'panel');
 
-      line = doc.createElement('div');
-      line.id = HUD_ID;
-      line.setAttribute('data-interactive', '');
-      panel.appendChild(line);
-      line.__slnbDrawn = '';
+      return;
     }
 
-    line.__slnbWish = wish;
-    line.__slnbPanel = panel;
+    placeHud(doc, lines, 'basket', HUD_BASKET_ID, rescue || basketPanelIn(doc, lines, top, lists.events.length ? lists.events[0] : null), null, drawBasketLine, hud.basketKey);
 
-    if (line.__slnbDrawn !== key) {
-      drawHud(doc, line);
-      line.__slnbDrawn = key;
-    }
+    if (rescue) dropHud(lines, 'panel');
   }
 
   function patchHud() {

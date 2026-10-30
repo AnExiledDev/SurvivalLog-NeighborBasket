@@ -115,7 +115,7 @@ public static class AppView
 {
     public const int MaxEntries = 200;
 
-    public static string Json(NeedState? need, Tracker? tracker, string? troubleName, int warnHours, IReadOnlyList<LogEntry> entries, bool isChinese)
+    public static string Json(NeedState? need, Tracker? tracker, string? troubleName, int warnHours, IReadOnlyList<LogEntry> entries, bool isChinese, BasketState? basket = null)
     {
         var json = new StringBuilder("{");
 
@@ -124,6 +124,8 @@ public static class AppView
         json.Append(",\"empty\":").Append(JsText.Literal(Texts.AppEmpty.Pick(isChinese)));
         json.Append(",\"rows\":[");
         json.Append(string.Join(",", Rows(need, tracker, troubleName, warnHours, isChinese).Select(CardView.RowJson)));
+
+        if (basket != null) json.Append(json[json.Length - 1] == '[' ? "" : ",").Append(CardView.RowJson(BasketView.Row(basket, isChinese)));
         json.Append("],\"days\":[");
 
         var days = entries.Reverse().Take(MaxEntries).GroupBy(entry => entry.Day);
