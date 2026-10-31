@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.1
+
+- Fixed: a basket made bigger by another mod (such as Pack Rat) shrank the whole basket station to fit the screen. The basket now scrolls in its own space, and the rest of the station keeps its size.
+- Made for Survival Log 1.1.20151.
+
 ## 0.8.0
 
 - The Neighbor phone app now always has a Basket row: what the basket holds, Empty, or that it is still with her. It shows even when nobody needs help.

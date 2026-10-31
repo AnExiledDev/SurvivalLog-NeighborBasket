@@ -88,6 +88,56 @@ public class StationUiSizeTests
         Assert.Equal("calc(826px + 6vh)", Text("stationIn(frame).querySelector('.nbs-fit').style.height"));
     }
 
+    // A basket made much bigger (by a mod that resizes storage) would shrink the whole station to nothing, so past six
+    // rows the box stops growing and the grid scrolls in its own box instead, keeping two rows in view.
+    [Fact]
+    public void A_basket_taller_than_six_rows_scrolls_instead_of_shrinking_the_station()
+    {
+        Load(withToolkit: true);
+        OpenStation(Station.Replace("gridRows: 3", "gridRows: 30"));
+
+        Assert.Equal("calc(900px + 6vh)", Text("stationIn(frame).querySelector('.nbs-fit').style.height"));
+        Assert.Equal("nbs-bscroll", Text("stationIn(frame).querySelector('.nbs-basket').parentNode.className"));
+        Assert.Equal("150px", Text("stationIn(frame).querySelector('.nbs-bscroll').style.minHeight"));
+        Assert.True(Is("frame.contentDocument.getElementById('slnb-style').textContent.indexOf('.nbs-bscroll{flex:0 1 auto;overflow:auto') >= 0"));
+    }
+
+    // The pane keeps its width for the game's own basket and grows with a wider one, but never past the room the
+    // take-from list and her status need; a grid wider than that scrolls sideways. Up to ten columns the station
+    // makes room for the wider pane (a smaller UI size on a small screen); past that the grid scrolls.
+    [Fact]
+    public void A_wider_basket_widens_its_pane_up_to_the_room_left()
+    {
+        Load(withToolkit: true);
+        OpenStation();
+        Assert.Equal("440px", Text("stationIn(frame).querySelector('.nbs-basketpane').style.flexBasis"));
+        Assert.Equal("calc(1352px + 4vw)", Text("stationIn(frame).querySelector('.nbs-fit').style.width"));
+
+        Run("window.__slneighborbasket.station(" + Station.Replace("cols: 5", "cols: 10") + ");");
+        Assert.Equal("776px", Text("stationIn(frame).querySelector('.nbs-basketpane').style.flexBasis"));
+        Assert.Equal("calc(1688px + 4vw)", Text("stationIn(frame).querySelector('.nbs-fit').style.width"));
+        Assert.True(Is("frame.contentDocument.getElementById('slnb-style').textContent.indexOf('.nbs-basketpane{flex:0 0 440px;min-width:440px;max-width:calc(100% - 912px)}') >= 0"));
+
+        Run("window.__slneighborbasket.station(" + Station.Replace("cols: 5", "cols: 30") + ");");
+        Assert.Equal("2256px", Text("stationIn(frame).querySelector('.nbs-basketpane').style.flexBasis"));
+        Assert.Equal("calc(1688px + 4vw)", Text("stationIn(frame).querySelector('.nbs-fit').style.width"));
+    }
+
+    // A basket of another size opens at its top left corner, not where the last one was scrolled to.
+    [Fact]
+    public void A_basket_of_a_new_size_starts_scrolled_to_its_corner()
+    {
+        Load(withToolkit: true);
+        OpenStation(Station.Replace("gridRows: 3", "gridRows: 20"));
+        Run("var box = stationIn(frame).querySelector('.nbs-bscroll'); box.scrollTop = 500; box.scrollLeft = 80;");
+        Run("window.__slneighborbasket.station(" + Station.Replace("gridRows: 3", "gridRows: 20") + ");");
+        Assert.Equal(500, Number("box.scrollTop"));
+
+        Run("window.__slneighborbasket.station(" + Station.Replace("gridRows: 3", "gridRows: 12") + ");");
+        Assert.Equal(0, Number("box.scrollTop"));
+        Assert.Equal(0, Number("box.scrollLeft"));
+    }
+
     [Fact]
     public void A_press_answer_draws_nothing_and_hands_nothing_to_the_toolkit()
     {

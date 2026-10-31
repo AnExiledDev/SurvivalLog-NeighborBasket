@@ -27,6 +27,15 @@
   // adds the station's padding.
   var FIT_WIDTH = 1352;
   var BASKET_EXTRA = 460;
+  // The basket pane's narrowest width, and what it adds to its grid's width (its padding and a scrollbar).
+  var BASKET_WIDTH = 440;
+  var BASKET_PAD = 40;
+  // A basket taller or wider than this scrolls in its pane instead of making the whole station smaller.
+  var FIT_ROWS = 6;
+  var FIT_COLS = 10;
+  // The rows its grid keeps in view however short the screen, and the room a scrollbar takes.
+  var MIN_ROWS = 2;
+  var SCROLLBAR = 6;
   var APP_CLASS = 'slnb-app';
   var SCREEN_CLASS = 'slnb-phone';
   var PHONE_STYLE_ID = 'slnb-phone-style';
@@ -67,7 +76,7 @@
     '.nbs-pane{position:relative;display:flex;flex-direction:column;min-height:0;padding:14px 16px 12px;border-radius:4px;background:radial-gradient(ellipse at 15% 0%,rgba(150,100,40,.28),transparent 55%),linear-gradient(180deg,#3a3129 0%,#2b241d 55%,#241e18 100%);border:1px solid rgba(220,188,120,.28);box-shadow:0 12px 40px rgba(0,0,0,.6)}',
     '.nbs-pane::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent 10%,#FFC83A 50%,transparent 90%);opacity:.6}',
     '.nbs-source{flex:1 1 760px;max-width:820px;min-width:0}',
-    '.nbs-basketpane{flex:0 0 440px}',
+    '.nbs-basketpane{flex:0 0 ' + BASKET_WIDTH + 'px;min-width:' + BASKET_WIDTH + 'px;max-width:calc(100% - ' + (FIT_WIDTH - BASKET_WIDTH) + 'px)}',
     '.nbs-side{flex:0 0 280px;display:flex;flex-direction:column;gap:12px;min-height:0}',
     '.nbs-head{display:flex;align-items:center;margin-bottom:10px;min-height:26px}',
     '.nbs-title{display:flex;align-items:center;font-size:15px;font-weight:700;color:#fff;letter-spacing:3px;text-transform:uppercase;white-space:nowrap}',
@@ -95,8 +104,9 @@
     '.nbs-scope b{min-width:16px;padding:0 5px;border-radius:7px;font-size:11px;background:rgba(255,240,210,.1);color:#cbbfa8}',
     '.nbs-scope button.is-on b{background:#FFC83A;color:#2a1f10}',
     '.nbs-list{flex:1;margin-top:8px;overflow-y:auto;padding-right:4px}',
-    '.nbs-list::-webkit-scrollbar,.nbs-places::-webkit-scrollbar{width:5px}',
-    '.nbs-list::-webkit-scrollbar-thumb,.nbs-places::-webkit-scrollbar-thumb{background:rgba(255,200,58,.3);border-radius:3px}',
+    '.nbs-list::-webkit-scrollbar,.nbs-places::-webkit-scrollbar,.nbs-bscroll::-webkit-scrollbar{width:5px;height:5px}',
+    '.nbs-list::-webkit-scrollbar-thumb,.nbs-places::-webkit-scrollbar-thumb,.nbs-bscroll::-webkit-scrollbar-thumb{background:rgba(255,200,58,.3);border-radius:3px}',
+    '.nbs-bscroll::-webkit-scrollbar-corner{background:transparent}',
     '.nbs-row{display:flex;align-items:center;gap:9px;margin-top:4px;padding:3px 8px 3px 4px;cursor:pointer;border-radius:4px;background:rgba(70,58,44,.55);border:1px solid rgba(220,188,120,.11);font-size:12.5px}',
     '.nbs-row:hover{border-color:rgba(255,200,58,.6)}',
     '.nbs-row img{width:34px;height:34px;object-fit:contain;flex:none}',
@@ -107,7 +117,8 @@
     '.nbs-row.is-no{opacity:.4;cursor:not-allowed}',
     '.nbs-where{color:#7a6e5a;font-size:11px;white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis}',
     '.nbs-hint{font-size:11.5px;color:#7a6e5a;margin-top:6px}',
-    '.nbs-basket{position:relative;margin:4px auto 2px}',
+    '.nbs-bscroll{flex:0 1 auto;overflow:auto;margin:4px 0 2px}',
+    '.nbs-basket{position:relative;margin:0 auto}',
     '.nbs-cell{position:absolute;width:' + CELL + 'px;height:' + CELL + 'px;border-radius:3px;background:rgba(20,14,8,.3);border:1px solid rgba(220,188,120,.14)}',
     '.nbs-cell img{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);object-fit:contain}',
     '.nbs-cell .nbs-q{position:absolute;right:3px;bottom:1px;font-size:11px;font-weight:700;color:#fff;text-shadow:0 0 3px #000}',
@@ -319,7 +330,7 @@
     '<div class="nbs-search"><span>&#9906;</span><input data-q="1"></div><div class="nbs-scope" data-s="scope"></div>' +
     '<div class="nbs-list" data-s="list"></div><div class="nbs-hint" data-s="addhint"></div></div></div></div>' +
     '<div class="nbs-pane nbs-basketpane"><div class="nbs-head"><span class="nbs-title" data-s="btitle"></span><span class="nbs-sub" data-s="bsub"></span></div>' +
-    '<div class="nbs-basket" data-s="grid"></div><div class="nbs-hint" style="text-align:center" data-s="takehint"></div>' +
+    '<div class="nbs-bscroll"><div class="nbs-basket" data-s="grid"></div></div><div class="nbs-hint" style="text-align:center" data-s="takehint"></div>' +
     '<div data-s="wishes"></div><div data-s="meters"></div><div class="nbs-plan" data-s="plan"></div>' +
     '<div class="nbs-btns" style="margin-top:14px" data-s="btns"></div><div class="nbs-btns" data-s="send"></div></div>' +
     '<div class="nbs-side"><div class="nbs-pane" data-s="side"></div><button class="nbs-btn is-quiet" data-act="game" style="flex:none" data-s="game"></button></div>' +
@@ -505,13 +516,22 @@
     });
 
     var grid = node.__slots.grid;
-    var size = 'width:' + (cols * PITCH - (PITCH - CELL)) + 'px;height:' + (rows * PITCH - (PITCH - CELL)) + 'px';
+    var width = cols * PITCH - (PITCH - CELL);
+    var size = 'width:' + width + 'px;height:' + (rows * PITCH - (PITCH - CELL)) + 'px';
 
     if (grid.__size !== size) {
       grid.style.cssText = size;
       grid.__size = size;
-      // A basket with more rows needs more room, so on a short screen it shows at a smaller UI size.
-      node.__fit.style.height = 'calc(' + fitHeight(rows) + 'px + 6vh)';
+      // A wider basket widens its pane, as far as the take-from list leaves room; past that, and past the screen's
+      // height, the grid scrolls in its own box, which keeps two rows in view.
+      node.__bpane.style.flexBasis = paneWidth(cols) + 'px';
+      node.__bscroll.style.minHeight = (Math.min(rows, MIN_ROWS) * PITCH - (PITCH - CELL) + SCROLLBAR) + 'px';
+      node.__bscroll.scrollTop = 0;
+      node.__bscroll.scrollLeft = 0;
+      // A basket with more rows or columns needs more room, so on a small screen it shows at a smaller UI size, up
+      // to a point; a bigger basket scrolls instead.
+      node.__fit.style.width = 'calc(' + (FIT_WIDTH - BASKET_WIDTH + paneWidth(Math.min(cols, FIT_COLS))) + 'px + 4vw)';
+      node.__fit.style.height = 'calc(' + fitHeight(Math.min(rows, FIT_ROWS)) + 'px + 6vh)';
     }
 
     patchKeyed(doc, grid, cells);
@@ -629,6 +649,8 @@
     node.__input = node.querySelector('[data-q]');
     node.__tip = node.querySelector('.nbs-tip');
     node.__fit = node.querySelector('.nbs-fit');
+    node.__bpane = node.querySelector('.nbs-basketpane');
+    node.__bscroll = node.querySelector('.nbs-bscroll');
     // Clicks and keys stay in the station, so the inventory never reads them as its own.
     node.addEventListener('mousedown', function (e) { e.stopPropagation(); });
     node.addEventListener('keydown', function (e) { if (e.key !== 'Escape') e.stopPropagation(); });
@@ -1061,6 +1083,11 @@
   // The fit box's height for a basket with this many rows.
   function fitHeight(rows) {
     return rows * PITCH - (PITCH - CELL) + BASKET_EXTRA;
+  }
+
+  // The basket pane's width for a basket with this many columns, before the room left caps it.
+  function paneWidth(cols) {
+    return Math.max(BASKET_WIDTH, cols * PITCH - (PITCH - CELL) + BASKET_PAD);
   }
 
   // A new size forgets the stack under the mouse, so the tip is measured again at that size.
