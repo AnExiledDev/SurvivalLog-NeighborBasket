@@ -2,6 +2,7 @@
 
 ## 0.8.1
 
+- **Warning:** needs Exiled's Toolkit 0.11.0 or newer. Update the Toolkit first.
 - Fixed: a basket made bigger by another mod (such as Pack Rat) shrank the whole basket station to fit the screen. The basket now scrolls in its own space, and the rest of the station keeps its size.
 - Made for Survival Log 1.1.20151.
 
