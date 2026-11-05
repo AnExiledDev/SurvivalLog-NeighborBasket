@@ -6,10 +6,10 @@ namespace NeighborBasket.Adapters;
 /// <summary>Shows a message as an Exiled's Toolkit toast, then frees the page's buttons for the next press.</summary>
 internal sealed class Toasts
 {
-    private readonly WebPage _page;
+    private readonly BasketPage _page;
     private readonly Action<string> _log;
 
-    public Toasts(WebPage page, Action<string> log)
+    public Toasts(BasketPage page, Action<string> log)
     {
         _page = page;
         _log = log;

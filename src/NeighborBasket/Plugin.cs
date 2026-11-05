@@ -5,19 +5,31 @@ using System.Runtime.CompilerServices;
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Unity.IL2CPP;
+using ExiledToolkit;
+using ExiledToolkit.Game;
+using ExiledToolkit.Kit;
 using HarmonyLib;
 using NeighborBasket.Adapters;
 
 namespace NeighborBasket;
 
 [BepInPlugin(Guid, "Neighbor Basket", Version)]
-[BepInDependency(OptionalLive.ToolkitGuid, OptionalLive.ToolkitVersion)]
+[BepInDependency(ToolkitGuid, ToolkitVersion)]
 [BepInDependency(StackingGuid, BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency(StorageHubLink.Guid, BepInDependency.DependencyFlags.SoftDependency)]
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.neighborbasket";
-    private const string Version = "0.8.1";
+    private const string Version = "0.8.2";
+
+    /// <summary>Exiled's Toolkit: its shared helpers, toasts, live settings and UI size all come from it.</summary>
+    private const string ToolkitGuid = "com.dev.survivallog.exiledtoolkit";
+    private const string ToolkitVersion = ">=0.19.0";
+
+    private const string LogFileName = "neighbor-basket.log";
+
+    /// <summary>The name the page script hands its panels to the Toolkit's UI size with.</summary>
+    private const string UiSizeName = "NeighborBasket";
     private const string StackingGuid = "com.dev.survivallog.stacking";
     private const string CoreNamespace = "NeighborBasket.Core";
     private const string AdaptersNamespace = "NeighborBasket.Adapters";
@@ -25,7 +37,7 @@ public sealed class Plugin : BasePlugin
 
     public override void Load()
     {
-        OptionalUiSize.Bind(Config);
+        ModUiSize.Bind(Config, UiSizeName);
 
         var fillButton = Config.Bind("Basket", "FillButton", true,
             "Shows a Fill button in the basket station. It puts in enough from your home storage to reach FillGoal: one of each kind she wants first (each kind earns a bonus), then more of what you have most of, only as many as it takes. With Stacking it takes part of a stack; without it, whole stacks. Shift-click packs the basket as full as it goes for the most progress, within its grid and weight limit. Your bag is never touched. While she is dying it packs food only.\n" +
@@ -67,10 +79,10 @@ public sealed class Plugin : BasePlugin
                 "提前多少游戏小时显示提醒。",
                 new AcceptableValueRange<int>(1, 48)));
 
-        var log = new BasketLog(Log, Path.Combine(Paths.BepInExRootPath, "neighbor-basket.log"));
-        var page = new WebPage(log.Write);
+        var log = new ModLog(Log, LogFileName);
+        var page = new BasketPage(log.Write);
         var journal = new GiftJournal(Path.Combine(Paths.ConfigPath, Guid + ".gifts"), log.Write);
-        var session = new BasketSession(new BasketGame(log.Write), journal, page, new Toasts(page, log.Write), log.Write);
+        var session = new BasketSession(new BasketGame(log.Write), journal, page, new Adapters.Toasts(page, log.Write), log.Write);
 
         log.Write($"===== Neighbor Basket {Version} started");
 
@@ -94,11 +106,8 @@ public sealed class Plugin : BasePlugin
             }
         });
 
-        var harmony = new Harmony(Guid);
-
-        PageMessages.Apply(harmony, log.Write);
-        MonologueHook.Apply(harmony, log.Write);
-        OptionalLive.Watch(() =>
+        MonologueHook.Apply(new PatchKit(new Harmony(Guid), log.Write));
+        LiveSettings.Watch(() =>
         {
             session.ShowFill = fillButton.Value;
             session.FillGoal = fillGoal.Value;

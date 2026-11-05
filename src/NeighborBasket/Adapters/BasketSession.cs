@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
+using ExiledToolkit.Game;
+using ExiledToolkit.Kit;
+using ExiledToolkit.Web;
 using GameCore.HotUpdate.Battle.Logic;
 using NeighborBasket.Core;
 
@@ -21,15 +23,16 @@ internal sealed class BasketSession
     // basket, and after this long at most when some never arrive.
     private const float FillWaitSeconds = 0.6f;
 
-    // Read instead of Unity's clock, which crosses into the game for every read.
-    private static readonly Stopwatch Clock = Stopwatch.StartNew();
+    /// <summary>The Toolkit's clock at the mod's first read of it; the mod's timers count from there.</summary>
+    private static double _startedAt = double.NaN;
 
     private readonly BasketGame _game;
     private readonly GiftJournal _journal;
-    private readonly WebPage _page;
+    private readonly BasketPage _page;
     private readonly Toasts _toasts;
     private readonly Action<string> _log;
     private readonly WebKeyboard _keyboard = new();
+    private readonly PageMailbox _messages = PageInbox.Listen(PageCommand.Prefix);
     private readonly HashSet<string> _shownWarnings = new();
     // The timers start apart, so the gift poll and the warning check never land on the same frame.
     private float _nextWarningCheckAt = 0.5f;
@@ -62,7 +65,7 @@ internal sealed class BasketSession
 
     private sealed record PendingFill(long BasketId, FillResult Plan, List<long> Placed, Dictionary<int, string> Names, bool IsChinese, float Deadline);
 
-    public BasketSession(BasketGame game, GiftJournal journal, WebPage page, Toasts toasts, Action<string> log)
+    public BasketSession(BasketGame game, GiftJournal journal, BasketPage page, Toasts toasts, Action<string> log)
     {
         _game = game;
         _journal = journal;
@@ -102,7 +105,21 @@ internal sealed class BasketSession
         _nextWarningCheckAt = 0;
     }
 
-    private static float Now => (float)Clock.Elapsed.TotalSeconds;
+    /// <summary>
+    /// Seconds since the mod first asked, for its timers. The Toolkit's clock counts from system start, and the
+    /// session's timers are floats that start near 0, so they count from the mod's first read instead. Main thread only.
+    /// </summary>
+    private static float Now
+    {
+        get
+        {
+            var now = Clock.Now;
+
+            if (double.IsNaN(_startedAt)) _startedAt = now;
+
+            return (float)(now - _startedAt);
+        }
+    }
 
     public void Update()
     {
@@ -125,7 +142,7 @@ internal sealed class BasketSession
             Setup(isChinese);
         }
 
-        while (PageMessages.TryTake(out var command)) Handle(command, isChinese);
+        while (_messages.TryTake(out var message)) Handle(PageCommand.Parse(message), isChinese);
 
         if (_pendingFill != null && FillWait.IsDone(_pendingFill.Placed, _game.BasketItemIds(_pendingFill.BasketId), now, _pendingFill.Deadline))
         {

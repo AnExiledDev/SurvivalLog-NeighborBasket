@@ -3,7 +3,8 @@
 // the basket's grid with her wishes, weight and progress in the middle, her status on the right, with the Fill, Put
 // away, Call back and Send buttons. A "Game screen" button hides it until the basket is opened again. It also adds the
 // Neighbor app to the phone, and an alert line on the game's Rescue panel. Talks to the plugin through
-// vuplex.postMessage("slmod|neighborbasket|<verb>") and is driven by window.__slneighborbasket.
+// "slmod|neighborbasket|<verb>" messages sent with Exiled's Toolkit's page API (window.ExiledToolkit) and is driven by
+// window.__slneighborbasket.
 (function () {
   if (window.__slneighborbasket) return;
 
@@ -11,6 +12,9 @@
   var BUSY_TIMEOUT_MS = 4000;
   var STATION_ID = 'slnb-station';
   var OPEN_ID = 'slnb-station-open';
+  var STATION_STYLE_ID = 'slnb-style';
+  // The name the station is handed to the Toolkit's UI size with, the one Neighbor Basket's own UiScale setting uses.
+  var UI_SIZE_NAME = 'NeighborBasket';
   var STATION_REFRESH_MS = 1000;
   var FIRST_ASK_MS = 300;
   var AFTER_MOVE_MS = 250;
@@ -62,6 +66,9 @@
     sel: 'all', filt: '', query: '', order: null, orderSet: {}, orderKey: '', seen: {}, version: 0, filling: 0, waitSince: 0, hovered: null,
     listKey: null, listShown: LIST_FIRST, listRows: [], listToken: 0
   };
+  // The Toolkit's page API (window.ExiledToolkit). The game can run its script after this one, so this stays null
+  // until it has; the station, phone and HUD checks and the messages to the plugin start then.
+  var etk = null;
   var isBusy = false;
   var busyTimer = 0;
   var hasReportedAccess = false;
@@ -164,9 +171,7 @@
   ].join('\n');
 
   function send(message) {
-    try {
-      if (window.vuplex) window.vuplex.postMessage(PREFIX + message);
-    } catch (e) {}
+    if (etk) etk.send(PREFIX, message);
   }
 
   // The game sends typed keys to the web UI only while it is told a text box has focus, as its own search boxes tell
@@ -239,15 +244,6 @@
     } catch (e) {}
 
     return state;
-  }
-
-  function addStyle(doc) {
-    if (doc.getElementById('slnb-style')) return;
-
-    var style = doc.createElement('style');
-    style.id = 'slnb-style';
-    style.textContent = STATION_STYLE;
-    doc.head.appendChild(style);
   }
 
   function esc(text) {
@@ -664,7 +660,7 @@
     node.addEventListener('focusout', function () { setTimeout(function () { syncTyping(doc); }, 0); });
     doc.body.appendChild(node);
     // The station fills the screen at any size, so the fit box is what has to fit.
-    uiSize(node, { fit: node.__fit, onZoom: function () { forgetTip(node); } });
+    etk.size(node, { mod: UI_SIZE_NAME, fit: node.__fit, onZoom: function () { forgetTip(node); } });
 
     var open = doc.getElementById(OPEN_ID);
 
@@ -1046,7 +1042,7 @@
       return;
     }
 
-    addStyle(active);
+    etk.addStyle(active, STATION_STYLE_ID, STATION_STYLE);
 
     if (!station.isOpen || station.doc !== active) openSession(active);
 
@@ -1056,22 +1052,6 @@
 
 
   // ===== UI size =====
-
-  // Hands a panel to Exiled's Toolkit to be drawn at the player's UI size. Before the Toolkit's script has loaded it
-  // waits in a list the Toolkit reads; without the Toolkit nothing happens.
-  function uiSize(node, options) {
-    options = Object.assign({ mod: 'NeighborBasket' }, options);
-    var toolkit = window.ExiledUi;
-
-    if (toolkit) {
-      toolkit.size(node, options);
-      return;
-    }
-
-    var waiting = window.__exiledUiWait = window.__exiledUiWait || [];
-    waiting.push([node, options]);
-    if (waiting.length > 32) waiting.shift();
-  }
 
   // The UI size the Toolkit draws the station at.
   function zoomOf(node) {
@@ -1147,16 +1127,6 @@
     }
   }
 
-  function addPhoneStyle(doc) {
-    if (doc.getElementById(PHONE_STYLE_ID)) return;
-
-    var style = doc.createElement('style');
-
-    style.id = PHONE_STYLE_ID;
-    style.textContent = PHONE_CSS;
-    (doc.head || doc.body).appendChild(style);
-  }
-
   // The markup of the phone's own apps: an icon square with a stroked glyph, and the label under it.
   function phoneApp(doc) {
     var app = make(doc, 'div', 'app ' + APP_CLASS);
@@ -1213,7 +1183,7 @@
 
     if (!grid) return;
 
-    addPhoneStyle(doc);
+    etk.addStyle(doc, PHONE_STYLE_ID, PHONE_CSS);
     doc.slnbApp = grid.appendChild(phoneApp(doc));
   }
 
@@ -1499,18 +1469,19 @@
     '#' + HUD_PANEL_ID + '{width:320px;box-sizing:border-box;margin-top:6px;padding:6px 30px 6px 12px;border-radius:2.8px;background:linear-gradient(90deg,rgba(0,0,0,.5) 0%,rgba(0,0,0,.4) 70%,rgba(0,0,0,0) 100%);pointer-events:none}',
     '@keyframes slnb-hud-pulse{0%,100%{opacity:1}50%{opacity:.35}}'
   ].join('\n');
+  var HUD_PAGE = /CoreUI1\.html/;
   var hud = { data: null, alertKey: '', basketKey: '' };
-  var hasReportedHud = false;
+  // The Toolkit's check of the HUD page, which hands that page to patchHudIn at every check.
+  var hudWatch = null;
 
   function setHud(data) {
     hud.data = data || null;
-    // Kept with the data, so the 400 ms check compares them without building them again.
+    // Kept with the data, so the page check compares them without building them again.
     hud.alertKey = hud.data && hud.data.text ? JSON.stringify([hud.data.text, hud.data.tone, hud.data.more, hud.data.title, hud.data.all]) : '';
     hud.basketKey = hud.data && hud.data.basket ? JSON.stringify(hud.data.basket) : '';
 
-    try {
-      patchHud();
-    } catch (e) {}
+    // Drawn now rather than at the next check.
+    if (hudWatch) hudWatch.refresh();
   }
 
   function drawAlert(doc, line) {
@@ -1612,7 +1583,7 @@
   }
 
   function patchHudIn(doc) {
-    var lines = doc.__slnbHud || (doc.__slnbHud = { alert: null, basket: null, panel: null, style: null });
+    var lines = doc.__slnbHud || (doc.__slnbHud = { alert: null, basket: null, panel: null });
     var hasAlert = !!hud.alertKey;
     var hasBasket = !!hud.basketKey;
 
@@ -1641,13 +1612,7 @@
       return;
     }
 
-    if (!lines.style || !lines.style.isConnected) {
-      var style = lines.style = doc.createElement('style');
-
-      style.id = HUD_STYLE_ID;
-      style.textContent = HUD_STYLE;
-      (doc.head || doc.documentElement).appendChild(style);
-    }
+    etk.addStyle(doc, HUD_STYLE_ID, HUD_STYLE);
 
     if (hasAlert && rescue) placeHud(doc, lines, 'alert', HUD_ID, rescue, lines.basket, drawAlert, hud.alertKey);
     else dropHud(lines, 'alert');
@@ -1664,50 +1629,31 @@
     if (rescue) dropHud(lines, 'panel');
   }
 
-  function patchHud() {
-    var frames = document.getElementsByTagName('iframe');
+  // Runs once the Toolkit's page API is there: at once when its script ran first, else when it runs. The HUD lines
+  // go through the Toolkit's page check. The station keeps a check of its own: it picks the one shown inventory page
+  // with the basket open out of every inventory page and hides the station in the rest, more often than the Toolkit
+  // checks, so it opens and closes with the basket. So does the phone: it closes the open app when no phone page holds
+  // it any more, and its frames are watched from the moment they appear, so the app is in before the page first shows.
+  function startWithToolkit(api) {
+    etk = api;
+    hudWatch = etk.watchPages(HUD_PAGE, patchHudIn, { everyCheck: true });
+    watchFrames();
 
-    for (var i = 0; i < frames.length; i++) {
-      if (!/CoreUI1\.html/.test(frames[i].src || '')) continue;
-
-      var doc = null;
-
+    setInterval(function () {
       try {
-        doc = frames[i].contentDocument;
+        patchBasket();
       } catch (e) {}
+    }, 150);
 
-      if (!doc || !doc.body) {
-        if (hud.data && !hasReportedHud) {
-          hasReportedHud = true;
-          send('diag|cannot reach the HUD page document (iframe ' + frames[i].src + ')');
-        }
+    setInterval(function () {
+      try {
+        patchPhones();
+      } catch (e) {}
+    }, 400);
 
-        continue;
-      }
-
-      patchHudIn(doc);
-    }
+    send('ready');
   }
 
-  watchFrames();
-
-  // The station is checked more often than the rest, so it opens and closes with the basket.
-  setInterval(function () {
-    try {
-      patchBasket();
-    } catch (e) {}
-  }, 150);
-
-  setInterval(function () {
-    try {
-      patchPhones();
-    } catch (e) {}
-
-    try {
-      patchHud();
-    } catch (e) {}
-  }, 400);
-
   window.__slneighborbasket = { status: status, setup: setup, app: app, station: setStation, hud: setHud };
-  send('ready');
+  (window.ExiledToolkitReady = window.ExiledToolkitReady || []).push(startWithToolkit);
 })();

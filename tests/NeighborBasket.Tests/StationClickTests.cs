@@ -21,6 +21,7 @@ public class StationClickTests
     public void A_stack_she_will_not_take_is_left_to_the_plugin_to_say_so()
     {
         _engine.Execute(Resource("NeighborBasket.Tests.PhoneFake.js"));
+        _engine.Execute(Resource("ExiledToolkit.api.js"));
         _engine.Execute(Resource("NeighborBasket.page.js"));
         _engine.Execute("var frame = openBasket(); tick(); window.__slneighborbasket.station(" + Forbidden + ");");
 

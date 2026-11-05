@@ -11,7 +11,7 @@ namespace NeighborBasket.Tests;
 /// </summary>
 public class StationUiSizeTests
 {
-    // The Toolkit's side: it keeps what it was handed, and zoomTo draws each at a size the way it does.
+    // The Toolkit's UI size script (ui.js): it keeps what it was handed, and zoomTo draws each at a size the way it does.
     private const string FakeUi =
         "var handed = []; window.ExiledUi = { size: function (el, options) { handed.push({ el: el, options: options }); } };" +
         "function zoomTo(z) { handed.forEach(function (h) { h.el.style.zoom = String(z); if (h.options.onZoom) h.options.onZoom(z); }); }";
@@ -22,10 +22,11 @@ public class StationUiSizeTests
 
     private readonly Engine _engine = new();
 
-    private void Load(bool withToolkit)
+    private void Load(bool withUiScript)
     {
         _engine.Execute(Resource("NeighborBasket.Tests.PhoneFake.js"));
-        if (withToolkit) _engine.Execute(FakeUi);
+        _engine.Execute(Resource("ExiledToolkit.api.js"));
+        if (withUiScript) _engine.Execute(FakeUi);
         _engine.Execute(Resource("NeighborBasket.page.js"));
     }
 
@@ -47,7 +48,7 @@ public class StationUiSizeTests
     [Fact]
     public void The_station_is_handed_once_with_its_fit_box()
     {
-        Load(withToolkit: true);
+        Load(withUiScript: true);
         OpenStation();
         Run("tick(); tick();");
 
@@ -60,7 +61,7 @@ public class StationUiSizeTests
     [Fact]
     public void A_new_inventory_page_gets_its_station_handed_again()
     {
-        Load(withToolkit: true);
+        Load(withUiScript: true);
         OpenStation();
         Run("frame.remove(); var again = openBasket(); tick();");
 
@@ -69,9 +70,9 @@ public class StationUiSizeTests
     }
 
     [Fact]
-    public void Without_the_Toolkit_the_station_waits_in_the_list()
+    public void Before_the_Toolkits_ui_size_script_runs_the_station_waits_in_its_list()
     {
-        Load(withToolkit: false);
+        Load(withUiScript: false);
         OpenStation();
 
         Assert.Equal(1, Number("window.__exiledUiWait.length"));
@@ -82,7 +83,7 @@ public class StationUiSizeTests
     [Fact]
     public void A_basket_with_more_rows_makes_the_fit_box_taller()
     {
-        Load(withToolkit: true);
+        Load(withUiScript: true);
         OpenStation(Station.Replace("gridRows: 3", "gridRows: 5"));
 
         Assert.Equal("calc(826px + 6vh)", Text("stationIn(frame).querySelector('.nbs-fit').style.height"));
@@ -93,7 +94,7 @@ public class StationUiSizeTests
     [Fact]
     public void A_basket_taller_than_six_rows_scrolls_instead_of_shrinking_the_station()
     {
-        Load(withToolkit: true);
+        Load(withUiScript: true);
         OpenStation(Station.Replace("gridRows: 3", "gridRows: 30"));
 
         Assert.Equal("calc(900px + 6vh)", Text("stationIn(frame).querySelector('.nbs-fit').style.height"));
@@ -108,7 +109,7 @@ public class StationUiSizeTests
     [Fact]
     public void A_wider_basket_widens_its_pane_up_to_the_room_left()
     {
-        Load(withToolkit: true);
+        Load(withUiScript: true);
         OpenStation();
         Assert.Equal("440px", Text("stationIn(frame).querySelector('.nbs-basketpane').style.flexBasis"));
         Assert.Equal("calc(1352px + 4vw)", Text("stationIn(frame).querySelector('.nbs-fit').style.width"));
@@ -127,7 +128,7 @@ public class StationUiSizeTests
     [Fact]
     public void A_basket_of_a_new_size_starts_scrolled_to_its_corner()
     {
-        Load(withToolkit: true);
+        Load(withUiScript: true);
         OpenStation(Station.Replace("gridRows: 3", "gridRows: 20"));
         Run("var box = stationIn(frame).querySelector('.nbs-bscroll'); box.scrollTop = 500; box.scrollLeft = 80;");
         Run("window.__slneighborbasket.station(" + Station.Replace("gridRows: 3", "gridRows: 20") + ");");
@@ -141,7 +142,7 @@ public class StationUiSizeTests
     [Fact]
     public void A_press_answer_draws_nothing_and_hands_nothing_to_the_toolkit()
     {
-        Load(withToolkit: true);
+        Load(withUiScript: true);
         Run("window.__slneighborbasket.status('Zq9 press answer');");
 
         Assert.Equal(0, Number("handed.length"));
@@ -154,7 +155,7 @@ public class StationUiSizeTests
     [Fact]
     public void At_a_bigger_size_the_tip_follows_the_mouse_on_screen()
     {
-        Load(withToolkit: true);
+        Load(withUiScript: true);
         OpenStation();
         Run("zoomTo(2); hoverStack(frame, 100, 100);");
 
@@ -165,7 +166,7 @@ public class StationUiSizeTests
     [Fact]
     public void At_a_bigger_size_the_tip_turns_back_at_the_screen_edge_by_its_size_on_screen()
     {
-        Load(withToolkit: true);
+        Load(withUiScript: true);
         OpenStation();
         Run("zoomTo(2); hoverStack(frame, 1800, 1000);");
 
@@ -179,7 +180,7 @@ public class StationUiSizeTests
     [Fact]
     public void A_new_size_while_the_tip_shows_hides_it_and_measures_it_again()
     {
-        Load(withToolkit: true);
+        Load(withUiScript: true);
         OpenStation();
         Run("hoverStack(frame, 1800, 1000); zoomTo(2);");
 

@@ -1,16 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ExiledToolkit.Kit;
 
 namespace NeighborBasket.Core;
-
-/// <summary>One piece of on-screen text in the two languages the game ships.</summary>
-public readonly record struct Phrase(string En, string Zh)
-{
-    public string Pick(bool isChinese) => isChinese ? Zh : En;
-
-    public string Say(bool isChinese, params object[] values) => string.Format(Pick(isChinese), values);
-}
 
 /// <summary>Everything the mod puts on screen.</summary>
 public static class Texts

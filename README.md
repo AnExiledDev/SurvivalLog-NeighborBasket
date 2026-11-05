@@ -53,9 +53,9 @@ The buttons, their tooltips and the messages follow the game's language, English
 
 ## Requirements
 
-- Survival Log 1.1.20151. Built and tested on this version; a game update can break it until the mod is updated.
+- Survival Log 1.1.20719. Built for this version; a game update can break it until the mod is updated.
 - The [BepInEx Pack for Survival Log](https://www.nexusmods.com/survivallog/mods/12), the BepInEx 6 (IL2CPP) build for the game.
-- [Exiled's Toolkit](https://github.com/AnExiledDev/SurvivalLog-ExiledToolkit) 0.11.0 or newer. Neighbor Basket does not load without it. It shows Neighbor Basket's messages as toasts, puts the Neighbor phone app in the phone's dock with the game's apps, applies settings changed on the Mod Manager's Mods screen without a restart, and its UI size setting sizes the basket station. Neighbor Basket's own `UiScale` under Interface sets a size for this mod alone; at 0, the default, it follows the Toolkit's.
+- [Exiled's Toolkit](https://github.com/AnExiledDev/SurvivalLog-ExiledToolkit) 0.19.0 or newer. Neighbor Basket does not load without it. It shows Neighbor Basket's messages as toasts, puts the Neighbor phone app in the phone's dock with the game's apps, applies settings changed on the Mod Manager's Mods screen without a restart, and its UI size setting sizes the basket station. Neighbor Basket's own `UiScale` under Interface sets a size for this mod alone; at 0, the default, it follows the Toolkit's.
 - Optional: [Stacking](https://github.com/AnExiledDev/SurvivalLog-Stacking). With it, clicking a stack in the station puts one in instead of the whole stack, and Fill takes only the part of a stack it needs.
 - Optional: [Info Pack](https://github.com/AnExiledDev/SurvivalLog-InfoPack) 0.8.13 or newer. With it, the station's stacks show Info Pack's item tooltip, with the progress line under the name.
 - Optional: [Storage Hub](https://github.com/AnExiledDev/SurvivalLog-StorageHub) 0.13.0 or newer. With it, the To storage button shows.
@@ -78,7 +78,7 @@ Settings live in `BepInEx\config\com.dev.survivallog.neighborbasket.cfg`, create
 
 ## Troubleshooting
 
-Check `BepInEx\LogOutput.log` for `===== Neighbor Basket 0.8.1 started`. The same line, plus every press and what it moved or why it moved nothing, is in `BepInEx\neighbor-basket.log`, which survives restarts.
+Check `BepInEx\LogOutput.log` for `===== Neighbor Basket 0.8.2 started`. The same line, plus every press and what it moved or why it moved nothing, is in `BepInEx\neighbor-basket.log`, which survives restarts.
 
 If the station does not show, open the basket from the neighbour's gift basket at home; if you pressed Game screen, press Basket station at the top right. If the Fill button does not show, check that `FillButton` is `true`. If Fill says nothing is in home storage for a kind, nothing of that kind is in the storages at home, or all of it is locked.
 

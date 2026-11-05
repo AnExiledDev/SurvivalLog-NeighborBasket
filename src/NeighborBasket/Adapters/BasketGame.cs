@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using ExiledToolkit.Game;
 using GameCore.HotUpdate;
 using GameCore.HotUpdate.Battle.Logic;
 using GameCore.HotUpdate.ReduxUI;
@@ -680,24 +681,12 @@ internal sealed class BasketGame
 
         if (_itemTable != null && _itemTable.TryGetValue(configId, out var found)) row = found;
 
-        var kind = new Kind(row, config == null ? "#" + configId : ItemName(config, row, configId), row?.WebIcon ?? "", row?.Category ?? 0, NeighborRules.IsBasketForbidItem(configId));
+        var name = config == null ? null : GameNames.ItemName(config, row);
+        var kind = new Kind(row, name ?? "#" + configId, row?.WebIcon ?? "", row?.Category ?? 0, NeighborRules.IsBasketForbidItem(configId));
 
         _kinds[configId] = kind;
 
         return kind;
-    }
-
-    private static string ItemName(ConfigManager config, Config_Item? row, int configId)
-    {
-        if (row == null) return "#" + configId;
-
-        var key = row.ItemName;
-        var text = string.IsNullOrEmpty(key) ? null : config.GetLocalTxt(key);
-
-        if (!string.IsNullOrEmpty(text) && text != key) return text!;
-        if (!string.IsNullOrEmpty(row.ItemName_Local)) return row.ItemName_Local;
-
-        return string.IsNullOrEmpty(key) ? "#" + configId : key!;
     }
 
     private string FurnitureName(ConfigManager config, long instanceId, int configId)
@@ -705,9 +694,8 @@ internal sealed class BasketGame
         if (!_furnitureNames.TryGetValue(configId, out var name))
         {
             var key = config.Get_Config_Furniture(configId)?.Name;
-            var text = string.IsNullOrEmpty(key) ? null : config.GetLocalTxt(key);
 
-            name = !string.IsNullOrEmpty(text) && text != key ? text : string.IsNullOrWhiteSpace(key) ? null : key;
+            name = GameNames.Translate(config, key) ?? GameNames.NonEmpty(key);
             _furnitureNames[configId] = name;
         }
 

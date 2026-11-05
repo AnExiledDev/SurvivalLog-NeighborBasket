@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Concurrent;
+using ExiledToolkit.Game;
 using GameCore.HotUpdate.Battle.Logic;
-using HarmonyLib;
-using NeighborBasket.Core;
 
 namespace NeighborBasket.Adapters;
 
@@ -14,18 +13,9 @@ internal static class MonologueHook
 {
     private static readonly ConcurrentQueue<string> Said = new();
 
-    public static void Apply(Harmony harmony, Action<string> log)
-    {
-        try
-        {
-            harmony.Patch(AccessTools.Method(typeof(NeighborMonologueManager), nameof(NeighborMonologueManager.PushMonologue)), prefix: new HarmonyMethod(typeof(MonologueHook), nameof(Copy)));
-            log("listening for her thoughts");
-        }
-        catch (Exception ex)
-        {
-            log(HookFailure.Prefix + " her thoughts, the gift log will not list them: " + ex.Message);
-        }
-    }
+    public static void Apply(PatchKit hooks) =>
+        hooks.Patch(typeof(MonologueHook), typeof(NeighborMonologueManager), nameof(NeighborMonologueManager.PushMonologue), prefix: nameof(Copy),
+            done: "listening for her thoughts", consequence: "the gift log will not list them");
 
     public static bool TryTake(out string text) => Said.TryDequeue(out text!);
 

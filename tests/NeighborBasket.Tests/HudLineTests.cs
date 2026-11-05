@@ -17,6 +17,7 @@ public class HudLineTests
     public HudLineTests()
     {
         _engine.Execute(Resource("NeighborBasket.Tests.PhoneFake.js"));
+        _engine.Execute(Resource("ExiledToolkit.api.js"));
         _engine.Execute(Resource("NeighborBasket.page.js"));
         _engine.Execute("var frame = openHud(); var doc = frame.contentDocument; var top = doc.querySelector('.top-left-panel');");
     }

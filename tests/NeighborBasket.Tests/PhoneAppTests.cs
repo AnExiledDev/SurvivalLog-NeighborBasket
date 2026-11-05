@@ -15,6 +15,7 @@ public class PhoneAppTests
     public PhoneAppTests()
     {
         _engine.Execute(Resource("NeighborBasket.Tests.PhoneFake.js"));
+        _engine.Execute(Resource("ExiledToolkit.api.js"));
         _engine.Execute(Resource("NeighborBasket.page.js"));
     }
 

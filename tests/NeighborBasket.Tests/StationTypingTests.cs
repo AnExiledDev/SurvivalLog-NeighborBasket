@@ -21,6 +21,7 @@ public class StationTypingTests
     public StationTypingTests()
     {
         _engine.Execute(Resource("NeighborBasket.Tests.PhoneFake.js"));
+        _engine.Execute(Resource("ExiledToolkit.api.js"));
         _engine.Execute(Resource("NeighborBasket.page.js"));
         _engine.Execute("var frame = openBasket(); tick(); window.__slneighborbasket.station(" + Station + "); tick(); posted = [];");
     }

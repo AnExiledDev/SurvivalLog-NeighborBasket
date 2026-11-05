@@ -57,10 +57,4 @@ public class PageCommandTests
         Assert.False(PageCommand.IsOurs("slmod|unpackall|unpack"));
         Assert.False(PageCommand.IsOurs(null));
     }
-
-    [Fact]
-    public void A_js_literal_keeps_quotes_and_script_tags_inert()
-    {
-        Assert.Equal("\"a\\\"b\\u003c/script>\"", JsText.Literal("a\"b</script>"));
-    }
 }
