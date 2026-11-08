@@ -48,6 +48,7 @@ The mod adds no data of its own to your save; the phone app's log is a separate 
 [*]Optional: Stacking. With it, clicking a stack in the station puts one in instead of the whole stack, and Fill takes only the part of a stack it needs.[/*]
 [*]Optional: Info Pack 0.8.13 or newer. With it, the station's stacks show Info Pack's item tooltip, with the progress line under the name.[/*]
 [*]Optional: Storage Hub 0.13.0 or newer. With it, the To storage button shows.[/*]
+[*]Optional: [url=https://www.nexusmods.com/survivallog/mods/73]Mod Manager[/url]. With it, you can change every setting in game on its Mods screen and see what each one does, without opening the config file.[/*]
 [/list]
 
 [size=5]Installation[/size]
@@ -118,6 +119,7 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-NeighborB
 [*]可选：Stacking。安装后在工作台点击一组物品只放入一件，而不是整组，「装篮」也只拿一组中需要的几件。[/*]
 [*]可选：Info Pack 0.8.13 或更新版本。安装后工作台里的物品会显示 Info Pack 的物品提示，名字下方附有进度。[/*]
 [*]可选：储物中心（Storage Hub）0.13.0 或更新版本。安装后显示「放进储物」按钮。[/*]
+[*]可选：[url=https://www.nexusmods.com/survivallog/mods/73]Mod Manager[/url]。装了它，可以在游戏里它的「模组」界面修改每项设置，并看到每项的说明，不用打开配置文件。[/*]
 [/list]
 
 [size=5]安装[/size]

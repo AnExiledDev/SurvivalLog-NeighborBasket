@@ -59,6 +59,7 @@ The buttons, their tooltips and the messages follow the game's language, English
 - Optional: [Stacking](https://github.com/AnExiledDev/SurvivalLog-Stacking). With it, clicking a stack in the station puts one in instead of the whole stack, and Fill takes only the part of a stack it needs.
 - Optional: [Info Pack](https://github.com/AnExiledDev/SurvivalLog-InfoPack) 0.8.13 or newer. With it, the station's stacks show Info Pack's item tooltip, with the progress line under the name.
 - Optional: [Storage Hub](https://github.com/AnExiledDev/SurvivalLog-StorageHub) 0.13.0 or newer. With it, the To storage button shows.
+- Optional: [Mod Manager](https://www.nexusmods.com/survivallog/mods/73). With it, you can change every setting in game on its Mods screen and see what each one does, without opening the config file.
 
 ## Install
 
