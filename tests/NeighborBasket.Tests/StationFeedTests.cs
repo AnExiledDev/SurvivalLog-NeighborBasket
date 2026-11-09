@@ -15,7 +15,7 @@ public class StationFeedTests
         Assert.Equal("{\"a\":2}", feed.Next("{\"a\":2}", false));
     }
 
-    // The bug: closing and opening the basket within a few seconds left the game's own screen up, because the page had
+    // The bug: closing and opening the basket within a few seconds left the game's screen up, because the page had
     // dropped its data on close and the plugin would not send the same answer again.
     [Fact]
     public void A_page_that_just_opened_gets_the_answer_even_when_it_is_the_same_as_last_time()

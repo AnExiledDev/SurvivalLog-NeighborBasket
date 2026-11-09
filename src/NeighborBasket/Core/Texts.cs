@@ -110,7 +110,7 @@ public static class Texts
 
     public static readonly Phrase BreakButton = new("Break down", "拆解");
 
-    public static readonly Phrase BreakTitle = new("Take apart the gifts in the basket that break down by hand, the way the game's own Use does. They go to your bag first; your character does them one by one.", "把篮子里能手工拆开的回礼拆成材料，和游戏里的「使用」一样。它们先放进背包，再由角色逐件拆开。");
+    public static readonly Phrase BreakTitle = new("Take apart the gifts in the basket that break down by hand, the way the game's Use does. They go to your bag first; your character does them one by one.", "把篮子里能手工拆开的回礼拆成材料，和游戏里的「使用」一样。它们先放进背包，再由角色逐件拆开。");
 
     public static readonly Phrase BreakStarted = new("Breaking down {0} by hand.", "正在手工拆解 {0} 件。");
 

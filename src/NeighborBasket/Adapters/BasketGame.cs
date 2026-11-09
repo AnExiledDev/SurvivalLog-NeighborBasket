@@ -163,7 +163,7 @@ internal sealed class BasketGame
 
     /// <summary>
     /// Every stack in the player's bag and in home storage, the basket's own contents with their cells, its grid and
-    /// weight, and each place by name: the bag first, then each storage. Values follow the game's own send scoring.
+    /// weight, and each place by name: the bag first, then each storage. Values follow the game's send scoring.
     /// When nothing the station shows changed since the last read, that read's answer comes back as it was.
     /// </summary>
     public BasketStock? ReadStock(long basketId)
@@ -364,7 +364,7 @@ internal sealed class BasketGame
     }
 
     /// <summary>
-    /// Moves one item of a stack, or the whole stack, between two bags with the game's own quick-move, which finds the
+    /// Moves one item of a stack, or the whole stack, between two bags with the game's quick-move, which finds the
     /// free cells and redraws both bags. One item needs Stacking; without it the whole stack moves.
     /// </summary>
     public bool Move(long itemId, long fromOwnerId, long toOwnerId, bool isWholeStack)
@@ -434,7 +434,7 @@ internal sealed class BasketGame
     public long BagId() => GameSingleton.Existing<BattleLogicWorld>()?._AgentManager?.GetLeadingRole()?.InstanceId ?? 0;
 
     /// <summary>
-    /// Whether the game's own Use takes this item apart into materials and nothing else (see Breakdown). Read once per
+    /// Whether the game's Use takes this item apart into materials and nothing else (see Breakdown). Read once per
     /// kind from the item, effect and package tables; a kind whose tables cannot be read does not break down.
     /// </summary>
     public bool IsBreakable(ConfigManager config, int configId)
@@ -491,7 +491,7 @@ internal sealed class BasketGame
     /// <summary>
     /// Lines up one hand break-down of an item in the bag, the way the bag's own Use does
     /// (BattleLogicWorld.OnUseItemFromFurnitureRequest with no furniture: the item's use action aimed at the item), after
-    /// the game's own use check. Nothing starts until StartLine.
+    /// the game's use check. Nothing starts until StartLine.
     /// </summary>
     public bool LineUpBreakdown(long itemId)
     {
@@ -565,10 +565,10 @@ internal sealed class BasketGame
         }
     }
 
-    /// <summary>Whether the basket is out with her now, by the game's own return schedule.</summary>
+    /// <summary>Whether the basket is out with her now, by the game's return schedule.</summary>
     public bool IsBasketAway() => GameSingleton.Existing<BattleLogicWorld>()?._NeighborBasketReturnManager?.IsBasketBusy() == true;
 
-    /// <summary>The game's own early return, the one its debug menu uses: the basket comes home with whatever she sends.</summary>
+    /// <summary>The game's early return, the one its debug menu uses: the basket comes home with whatever she sends.</summary>
     public bool CallBack()
     {
         var returns = GameSingleton.Existing<BattleLogicWorld>()?._NeighborBasketReturnManager;
@@ -583,7 +583,7 @@ internal sealed class BasketGame
     /// <summary>
     /// The station row for a stack: the one made before when nothing about the stack changed, otherwise a new one. Its
     /// value is what the game counts when she scores the basket: count times trade value times the uses it still has,
-    /// with fuel scaled the way the neighbor rule scales it. Its weight is the game's own (ItemManager.GetItemActualWeight
+    /// with fuel scaled the way the neighbor rule scales it. Its weight is the game's (ItemManager.GetItemActualWeight
     /// is this same rule on the item's row).
     /// </summary>
     private StationItem RowOf(ConfigManager config, in Stamp stamp, bool isInBasket, bool weigh)
@@ -834,7 +834,7 @@ internal sealed class BasketGame
         return true;
     }
 
-    /// <summary>Finds where each field the station reads sits, from the game's own type data, once.</summary>
+    /// <summary>Finds where each field the station reads sits, from the game's type data, once.</summary>
     private void Learn()
     {
         if (_hasLearned) return;

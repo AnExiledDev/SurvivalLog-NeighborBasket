@@ -62,7 +62,7 @@
 
 ## 0.6.5
 
-- The basket station opens every time now. Before, closing and opening the basket quickly could leave the game's own screen up instead.
+- The basket station opens every time now. Before, closing and opening the basket quickly could leave the game's screen up instead.
 - The station opens at once and only redraws what changed, so clicking items, searching and scrolling no longer stutter with a lot of storage.
 - Fill shows its stacks landing in the basket as soon as you click, and finishes the moment they are in instead of after a fixed wait.
 - Made for Survival Log 1.1.19611.
@@ -89,7 +89,7 @@
 
 ## 0.6.1
 
-- New Break down button at the basket station. It shows when the basket holds gifts you can take apart by hand (wind chimes, star jars, notes and the like), and takes them apart the game's own way: each goes to your bag, then your character uses it, one after another, in the game's own time. Only items whose Use gives back nothing but materials count, so food, flowers and packages are never touched.
+- New Break down button at the basket station. It shows when the basket holds gifts you can take apart by hand (wind chimes, star jars, notes and the like), and takes them apart the game's way: each goes to your bag, then your character uses it, one after another, in the game's time. Only items whose Use gives back nothing but materials count, so food, flowers and packages are never touched.
 - Made for Survival Log 1.1.19611.
 
 ## 0.6.0
@@ -110,7 +110,7 @@
 
 ## 0.4.0
 
-- New basket station: opening the neighbour's basket now shows every storage at home and your bag on the left, the basket's 5 x 3 grid with her wishes, its weight and the progress a send would give in the middle, and her status on the right. Click a stack to put one in (Shift-click for the whole stack), click a stack in the basket to put it back where it came from. Send basket sends it with the game's own send. Game screen goes back to the game's basket screen; Basket station brings the station back.
+- New basket station: opening the neighbour's basket now shows every storage at home and your bag on the left, the basket's 5 x 3 grid with her wishes, its weight and the progress a send would give in the middle, and her status on the right. Click a stack to put one in (Shift-click for the whole stack), click a stack in the basket to put it back where it came from. Send basket sends it with the game's send. Game screen goes back to the game's basket screen; Basket station brings the station back.
 - Fill now packs the basket from your home storage as tightly as it goes for the most progress she gives: whole stacks, placed by their shapes on the grid, within the weight limit. Each kind she wants earns its bonus first, then the space left takes whatever adds the most. The plan shows faintly in the free cells before you press it. Your bag is never touched.
 - `FillExtra` is gone; Fill now fills the basket.
 - The basket card is replaced by the station.

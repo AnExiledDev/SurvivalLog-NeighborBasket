@@ -103,7 +103,7 @@ public class StationUiSizeTests
         Assert.True(Is("frame.contentDocument.getElementById('slnb-style').textContent.indexOf('.nbs-bscroll{flex:0 1 auto;overflow:auto') >= 0"));
     }
 
-    // The pane keeps its width for the game's own basket and grows with a wider one, but never past the room the
+    // The pane keeps its width for the game's basket and grows with a wider one, but never past the room the
     // take-from list and her status need; a grid wider than that scrolls sideways. Up to ten columns the station
     // makes room for the wider pane (a smaller UI size on a small screen); past that the grid scrolls.
     [Fact]

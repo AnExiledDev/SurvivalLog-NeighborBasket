@@ -517,8 +517,8 @@ internal sealed class BasketSession
 
     /// <summary>
     /// Breaks down her gifts in the basket that the game lets you take apart by hand. Each goes to the bag first, where
-    /// the game's own Use works on it, then its use is lined up; the character does them one after another, taking the
-    /// game's own time. Gifts that do not fit in the bag, or that the game's use check refuses, stay and are reported.
+    /// the game's Use works on it, then its use is lined up; the character does them one after another, taking the
+    /// game's time. Gifts that do not fit in the bag, or that the game's use check refuses, stay and are reported.
     /// </summary>
     private void BreakDown(bool isChinese)
     {
@@ -633,7 +633,7 @@ internal sealed class BasketSession
     /// Answers the station's once-a-second ask with everything it draws, only when something changed or the page holds
     /// nothing yet. What it is drawn from is fingerprinted first, so an unchanged answer is neither planned nor built.
     /// A failure turns the station off quietly (it asks every second, so a toast each time would bury the screen) and
-    /// is logged once; the game's own screen stays.
+    /// is logged once; the game's screen stays.
     /// </summary>
     private void ShowStation(bool isFresh, bool isChinese)
     {

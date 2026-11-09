@@ -66,7 +66,7 @@ internal static class NeedReader
         new(affinity, Setting(prefix, "AffinityThresholdEnding", 50), progress, progressMax, need.ConsecutiveSendDays, need.StreakDays, Setting(prefix, "StruggleMaxCount", 3) - struggles);
 
     /// <summary>
-    /// The game's own global setting, read the way its rescue code reads it, with the same fallback. Read every second,
+    /// The game's global setting, read the way its rescue code reads it, with the same fallback. Read every second,
     /// so each row is looked up once per settings table (a config reload swaps the table) under a key built once, and
     /// only its value is read each time: other mods change a value while the game runs, never the row.
     /// </summary>

@@ -18,7 +18,7 @@
   var STATION_REFRESH_MS = 1000;
   var FIRST_ASK_MS = 300;
   var AFTER_MOVE_MS = 250;
-  // How long an opening station waits for its first answer before it lets the game's own screen show.
+  // How long an opening station waits for its first answer before it lets the game's screen show.
   var LOADING_MS = 3000;
   // How long a fill's planned stacks show as landing without an answer.
   var FILL_SHOW_MS = 3000;
@@ -212,7 +212,7 @@
 
   // The basket panel's Vue state; a game update could rename it, so a failure keeps the station hidden and is
   // reported once. A page that is still loading has no app yet and is simply not the basket. Her wish chips, progress
-  // and the basket's kg come from the game's own panel.
+  // and the basket's kg come from the game's panel.
   function basketState(doc) {
     var state = { isBasket: false, setup: null, wish: null, maxKg: 0, usedKg: 0 };
     var app = doc.getElementById('app');
@@ -775,7 +775,7 @@
     }
   }
 
-  // Send is the game's own button press, so the game's checks and its sending all happen as usual.
+  // Send is the game's button press, so the game's checks and its sending all happen as usual.
   function sendBasket(doc) {
     var state = basketState(doc);
 
@@ -926,7 +926,7 @@
     }
 
     if (!station.data) {
-      // An answer that does not come leaves the game's own screen, still asking.
+      // An answer that does not come leaves the game's screen, still asking.
       if (now - station.waitSince > LOADING_MS) {
         show(node, 'none');
 

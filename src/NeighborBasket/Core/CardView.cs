@@ -15,7 +15,7 @@ namespace NeighborBasket.Core;
 /// </summary>
 public static class CardView
 {
-    /// <summary>One card row; Tier is set on the condition row so the page can show the game's own name for the tier.</summary>
+    /// <summary>One card row; Tier is set on the condition row so the page can show the game's name for the tier.</summary>
     public sealed record CardRow(string Label, string Value, string Tone = "", string Tier = "");
 
     public static IEnumerable<CardRow> Rows(NeedState? need, Tracker? tracker, string? troubleName, int warnHours, bool isChinese)

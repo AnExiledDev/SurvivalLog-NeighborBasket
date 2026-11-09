@@ -8,7 +8,7 @@ Keeping a neighbour alive means opening the basket, reading what she wants, then
 
 [size=5]Main features[/size]
 [list]
-[*][b]Basket station[/b]: opens with the basket. Every storage at home and your bag on the left, with search and the kinds she wants marked; the basket's grid, her wishes, the weight left and the progress a send would give in the middle; her condition, deadlines, streak, progress and affinity on the right. Game screen switches back to the game's own basket screen.[/*]
+[*][b]Basket station[/b]: opens with the basket. Every storage at home and your bag on the left, with search and the kinds she wants marked; the basket's grid, her wishes, the weight left and the progress a send would give in the middle; her condition, deadlines, streak, progress and affinity on the right. Game screen switches back to the game's basket screen.[/*]
 [*][b]Click to move[/b]: click a stack to put one in, Shift-click for the whole stack, click a stack in the basket to put it back where it came from.[/*]
 [*][b]Fill button[/b]: puts in enough from your home storage for 80 progress, the amount that lifts her condition two steps: one of each kind she wants first for its bonus, then more of what you have most of, only as many as it takes. With Stacking it takes part of a stack. Shift-click packs the basket as full as it goes. What Fill would do shows faintly in the free cells. Your bag is never touched.[/*]
 [*][b]Progress per item[/b]: every stack shows the progress one more of it adds; its tooltip shows that and the whole stack's. The stacks that add the most list first, and the list holds still while you click.[/*]
@@ -18,7 +18,7 @@ Keeping a neighbour alive means opening the basket, reading what she wants, then
 [*][b]Warnings[/b]: a message a few hours before her condition drops a step, before her trouble's deadline, before the send streak breaks, and when she starts to struggle or is dying. Each shows once, and the most urgent also stays on the game's Rescue panel, under Relief Progress, until it no longer applies (hover it to see the rest).[/*]
 [*][b]What is in the basket[/b]: while the basket is home and holds something, a line at the top left of the screen says what is in it, with or without an aid event (on the Rescue panel during one, under the event list otherwise). Hover it for the full list.[/*]
 [*][b]Neighbor app[/b] on the phone: her status, the same rows as the basket station (condition and when it drops, her trouble's deadline, send streak, progress and affinity), plus struggles left, what the basket holds (even when nobody needs help), and a log by day of what you sent, what came back, what each send gained, and her thoughts.[/*]
-[*][b]Break down button[/b]: takes apart the gifts in the basket that break down by hand (wind chimes, star jars, notes), the game's own way, into materials.[/*]
+[*][b]Break down button[/b]: takes apart the gifts in the basket that break down by hand (wind chimes, star jars, notes), the game's way, into materials.[/*]
 [*][b]To bag and To storage buttons[/b]: empty the basket, her gifts included, into your bag, or (with Storage Hub installed) into your home storage.[/*]
 [*][b]Call back button[/b]: off by default. When on, it brings the basket home at once while it is away.[/*]
 [*][b]Both neighbours[/b]: works for whichever neighbour you are helping.[/*]

@@ -12,7 +12,7 @@ namespace NeighborBasket.Core;
 public sealed record UseInfo(bool CantUse, int UseAction, bool HasOtherEffect, bool IsRandom, IReadOnlyList<int> OutputCategories, int StackLimit = 1);
 
 /// <summary>
-/// Which items the player can break down by hand: the game's own Use takes them apart (the wind chime's "take apart",
+/// Which items the player can break down by hand: the game's Use takes them apart (the wind chime's "take apart",
 /// the marble's "smash") and gives nothing but materials back. Food, medicine, a flower that turns into fertilizer and
 /// furniture packages all fail the test, so only the trinkets and notes the neighbors send pass.
 /// </summary>

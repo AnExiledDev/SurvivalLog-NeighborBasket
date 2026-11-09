@@ -10,7 +10,7 @@ namespace NeighborBasket.Core;
 /// <summary>
 /// One stack as the basket station shows it. Value is what the whole stack counts for when she scores the basket,
 /// Weight the whole stack's weight in the game's units, Width and Height its cells, X and Y its top-left cell when it
-/// sits in the basket. Icon is the game's own web icon path.
+/// sits in the basket. Icon is the game's web icon path.
 /// </summary>
 public sealed record StationItem(long Id, long OwnerId, int ConfigId, string Name, string Icon, int Category, int Value, int Count, int Weight, int Width, int Height, bool IsForbidden, int X = 0, int Y = 0, bool Breaks = false)
 {

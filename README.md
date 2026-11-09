@@ -16,7 +16,7 @@ Keeping a neighbour alive means opening the basket, reading her wishes, then hun
 - **Warnings**: a message a few hours before her condition drops a step (or before she starts to struggle), before her trouble's deadline, late in the day when today's send would keep the send streak going, and once when she starts to struggle or is dying (with how filling the basket must be). Each warning shows once. The most urgent one also stays as a line under Relief Progress on the game's Rescue panel until it no longer applies; hover it to see the rest.
 - **What is in the basket**: while the basket is home and holds something, a line at the top left of the screen says what is in it, with or without an aid event: on the Rescue panel during one, in a small panel under the event list otherwise. Hover it for the full list. `OnHud` turns it off.
 - **Neighbor app on the phone**: her status, the same rows as the basket station (condition and when it drops, her trouble's deadline, send streak, progress and affinity), plus struggles left, what the basket holds (even when nobody needs help), and a log by day of what you sent, what came back, what each send gained, and her thoughts.
-- **Break down button**: takes apart the gifts in the basket that break down by hand (wind chimes, star jars, notes), the game's own way, into materials.
+- **Break down button**: takes apart the gifts in the basket that break down by hand (wind chimes, star jars, notes), the game's way, into materials.
 - **To bag and To storage buttons**: empty the basket, her gifts included, into your bag, or (with Storage Hub installed) into your home storage.
 - **Call back button**: off by default. When it is on, a **Call back** button shows while the basket is away and brings it home at once.
 - **Both neighbours**: works for whichever neighbour you are helping.
@@ -29,12 +29,12 @@ Neighbor Basket adds no data of its own to your save; the phone app's log is a s
 | Button | Where | What it does |
 | --- | --- | --- |
 | **Fill** | Basket station | Puts in enough from your home storage for `FillGoal` progress (80). Shift-click packs the basket as full as it goes. While she is dying, food only. |
-| **Send basket** | Basket station | Sends the basket, the same as the game's own Send button. |
+| **Send basket** | Basket station | Sends the basket, the same as the game's Send button. |
 | **To bag** | Basket station while the basket is home | Puts everything in the basket into your bag. |
-| **Break down (N)** | Basket station while the basket holds gifts that break down by hand | Moves those gifts to your bag and has your character take each apart with the game's own Use, one after another. |
+| **Break down (N)** | Basket station while the basket holds gifts that break down by hand | Moves those gifts to your bag and has your character take each apart with the game's Use, one after another. |
 | **To storage** | Basket station while the basket is home, only with Storage Hub installed | Puts what the basket holds into your home storage. |
 | **Call back** | Basket station while the basket is away, only with `CallBackButton` on | Brings the basket home now. |
-| **Game screen** | Basket station | Hides the station and shows the game's own basket screen until the basket is closed. |
+| **Game screen** | Basket station | Hides the station and shows the game's basket screen until the basket is closed. |
 | **Basket station** | Top right of the game's basket screen, after Game screen | Brings the station back. |
 
 Fill never sends the basket. Check what went in, then press Send basket.
