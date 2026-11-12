@@ -510,7 +510,7 @@ internal sealed class BasketSession
 
         _log($"to bag: {station.InBasket.Count - failed} of {station.InBasket.Count} stacks moved");
 
-        if (failed > 0) _toasts.Show(Texts.TakeAllShort.Say(isChinese, failed, station.InBasket.Count), true, isChinese);
+        if (failed > 0) _toasts.Show(Texts.BagShort(failed, station.InBasket.Count, isChinese), true, isChinese);
 
         PushStation();
     }
@@ -555,7 +555,7 @@ internal sealed class BasketSession
         _log($"break down: {done} of {gifts.Count} gift(s) lined up ({string.Join(", ", gifts.Select(gift => gift.Name))})");
 
         if (done > 0) _toasts.Show(Texts.BreakStarted.Say(isChinese, done), false, isChinese);
-        if (done < gifts.Count) _toasts.Show(Texts.BreakShort.Say(isChinese, gifts.Count - done, gifts.Count), true, isChinese);
+        if (done < gifts.Count) _toasts.Show(Texts.BreakDownShort(gifts.Count - done, gifts.Count, isChinese), true, isChinese);
 
         PushStation();
     }

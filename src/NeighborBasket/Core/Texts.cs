@@ -108,6 +108,8 @@ public static class Texts
 
     public static readonly Phrase TakeAllShort = new("{0} of {1} stacks did not fit in your bag.", "有 {0}/{1} 组放不进背包。");
 
+    public static readonly Phrase TakeAllShortOne = new("1 stack did not fit in your bag.", "有 1 组放不进背包。");
+
     public static readonly Phrase BreakButton = new("Break down", "拆解");
 
     public static readonly Phrase BreakTitle = new("Take apart the gifts in the basket that break down by hand. They go to your bag first, then your character uses them one at a time, the same as pressing Use.", "把篮子里能手工拆开的回礼拆成材料。它们先放进背包，再由角色逐件「使用」拆开。");
@@ -115,6 +117,8 @@ public static class Texts
     public static readonly Phrase BreakStarted = new("Breaking down {0} by hand.", "正在手工拆解 {0} 件。");
 
     public static readonly Phrase BreakShort = new("{0} of {1} gifts could not be broken down, because your bag was full or the game did not allow it. Any that made it to your bag are still there.", "有 {0}/{1} 件回礼无法拆解，可能是背包满了或游戏不允许。已经放进背包的还在背包里。");
+
+    public static readonly Phrase BreakShortOne = new("1 gift could not be broken down, because your bag was full or the game did not allow it. If it made it to your bag, it is still there.", "有 1 件回礼无法拆解，可能是背包满了或游戏不允许。如果已经放进背包，它还在背包里。");
 
     public static readonly Phrase AppTile = new("Neighbor", "邻居");
 
@@ -180,6 +184,8 @@ public static class Texts
 
     public static readonly Phrase CardFills = new("Fill adds {0} stacks from storage, about +{1} progress.", "装篮会从储物放入 {0} 组，约 +{1} 进度。");
 
+    public static readonly Phrase CardFillsOne = new("Fill adds 1 stack from storage, about +{0} progress.", "装篮会从储物放入 1 组，约 +{0} 进度。");
+
     public static readonly Phrase CardFillsFood = new("Fill adds {0} food from storage.", "装篮会从储物放入 {0} 组食物。");
 
     public static readonly Phrase CardFillsNothing = new("Fill has nothing to add from storage.", "装篮在储物里找不到可放的东西。");
@@ -239,10 +245,10 @@ public static class Texts
     public static IReadOnlyList<Phrase> All { get; } = new[]
     {
         Source, FillButton, FillTitle, CallBackButton, CallBackTitle, Filled, FilledFood, NoneFound, NotMoved, NoNeighbor, Away, Pending, Full, GoalMet, ProgressOne, ProgressEach, NotOpen, Food, CalledBack, NotAway, Failed,
-        TierDrop, StruggleSoon, CrisisDeadline, Struggle, StruggleNeed, Streak, BasketSatiety, PutAwayButton, PutAwayTitle, NoStorageHub, TakeAllButton, TakeAllTitle, TakeAllShort, BreakButton, BreakTitle, BreakStarted, BreakShort, Capped, Dying,
+        TierDrop, StruggleSoon, CrisisDeadline, Struggle, StruggleNeed, Streak, BasketSatiety, PutAwayButton, PutAwayTitle, NoStorageHub, TakeAllButton, TakeAllTitle, TakeAllShort, TakeAllShortOne, BreakButton, BreakTitle, BreakStarted, BreakShort, BreakShortOne, Capped, Dying,
         AppTile, AppTitle, AppBack, AppEmpty, AppNoRescue, AppAffinity, AppAffinityValue, AppProgress, AppStreak, AppStrugglesLeft, AppDay, AppSent, AppReturned, AppSaid, AppGained, AppNothing,
         CardCondition, CardTier, CardDrops, CardStruggleIn, CardStruggling, CardDying, CardSatiety, CardSatietyValue, CardTrouble, CardTroubleOf, CardDue, CardStreakToday, CardStreakSent,
-        CardProgressValue, CardFills, CardFillsFood, CardFillsNothing,
+        CardProgressValue, CardFills, CardFillsOne, CardFillsFood, CardFillsNothing,
         StationButton, GameScreen, TakeFrom, TakeFromSub, AllStorage, StorageGroup, OnYou, YourBag, SheWants, Everything, Search, WantedTag, NothingHere, NothingWanted, AddHint,
         BasketTitle, Cells, TakeHint, WeightLabel, KgFree, IfSent, SendButton, NextDoor, CannotTake, AddFailed, TakeFailed,
         HudBasket, HudBasketTitle, BasketAwayValue, BasketEmptyValue,
@@ -269,6 +275,14 @@ public static class Texts
         WarningKind.Streak => HudStreak.Say(isChinese, warning.HoursLeft),
         _ => HudDying.Pick(isChinese),
     };
+
+    /// <summary>The toast when some of the basket's <paramref name="total"/> stacks did not fit in the bag.</summary>
+    public static string BagShort(int failed, int total, bool isChinese) =>
+        total == 1 ? TakeAllShortOne.Pick(isChinese) : TakeAllShort.Say(isChinese, failed, total);
+
+    /// <summary>The toast when some of the <paramref name="total"/> gifts could not be broken down.</summary>
+    public static string BreakDownShort(int failed, int total, bool isChinese) =>
+        total == 1 ? BreakShortOne.Pick(isChinese) : BreakShort.Say(isChinese, failed, total);
 
     /// <summary>
     /// The toast after a Fill press. Category names come from the game's wish list; a category it did not name is

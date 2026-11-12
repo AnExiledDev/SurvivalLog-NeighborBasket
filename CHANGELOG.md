@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.4
+
+- Fixed: messages about a single stack or gift said "1 stacks", "1 of 1 stacks" or "1 of 1 gifts". They now say "1 stack" or "1 gift".
+- Made for Survival Log 1.1.20719.
+
 ## 0.8.3
 
 - Clearer wording in the settings, the warnings and the basket station.

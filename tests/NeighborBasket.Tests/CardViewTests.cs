@@ -91,6 +91,17 @@ public class CardViewTests
         Assert.Equal("Fill has nothing to add from storage.", CardView.PlanText(new FillResult(new Pick[0], new[] { Tools }, FillStop.None, false), false));
     }
 
+    [Fact]
+    public void The_plan_line_says_1_stack_for_one_pick_and_stacks_for_two()
+    {
+        var one = new FillResult(new[] { new Pick(Item(1, Tools, 5), 0, 0) }, new int[0], FillStop.None, false, 16);
+        var two = new FillResult(new[] { new Pick(Item(1, Tools, 5), 0, 0), new Pick(Item(2, Cloth, 5), 1, 0) }, new int[0], FillStop.None, false, 32);
+
+        Assert.Equal("Fill adds 1 stack from storage, about +16 progress.", CardView.PlanText(one, false));
+        Assert.Equal("装篮会从储物放入 1 组，约 +16 进度。", CardView.PlanText(one, true));
+        Assert.Equal("Fill adds 2 stacks from storage, about +32 progress.", CardView.PlanText(two, false));
+    }
+
     private static (string Value, string Tone) Pick(CardView.CardRow[] rows, string label)
     {
         var row = Assert.Single(rows, row => row.Label == label);

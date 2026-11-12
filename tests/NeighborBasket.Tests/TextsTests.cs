@@ -64,4 +64,21 @@ public class TextsTests
     {
         Assert.Equal("Send the basket today to keep the streak (2 of 3 days). About 4 h left today.", Texts.Warn(new Warning(WarningKind.Streak, 4, "k", 2, 3), false));
     }
+
+    [Fact]
+    public void The_to_bag_toast_says_1_stack_when_the_basket_held_one_and_stacks_for_two()
+    {
+        Assert.Equal("1 stack did not fit in your bag.", Texts.BagShort(1, 1, false));
+        Assert.Equal("有 1 组放不进背包。", Texts.BagShort(1, 1, true));
+        Assert.Equal("1 of 2 stacks did not fit in your bag.", Texts.BagShort(1, 2, false));
+        Assert.Equal("2 of 2 stacks did not fit in your bag.", Texts.BagShort(2, 2, false));
+    }
+
+    [Fact]
+    public void The_break_down_toast_says_1_gift_when_there_was_one_and_gifts_for_two()
+    {
+        Assert.Equal("1 gift could not be broken down, because your bag was full or the game did not allow it. If it made it to your bag, it is still there.", Texts.BreakDownShort(1, 1, false));
+        Assert.Equal("有 1 件回礼无法拆解，可能是背包满了或游戏不允许。如果已经放进背包，它还在背包里。", Texts.BreakDownShort(1, 1, true));
+        Assert.Equal("1 of 2 gifts could not be broken down, because your bag was full or the game did not allow it. Any that made it to your bag are still there.", Texts.BreakDownShort(1, 2, false));
+    }
 }

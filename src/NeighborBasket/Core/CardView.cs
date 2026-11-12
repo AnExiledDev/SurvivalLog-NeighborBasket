@@ -91,6 +91,8 @@ public static class CardView
 
         if (plan.IsFoodOnly) return Texts.CardFillsFood.Say(isChinese, plan.Picks.Count);
 
+        if (plan.Picks.Count == 1) return Texts.CardFillsOne.Say(isChinese, plan.Gain);
+
         return Texts.CardFills.Say(isChinese, plan.Picks.Count, plan.Gain);
     }
 
