@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.5
+
+- The search box at the station now finds every word you type, in any order. "juice apple" finds Apple Juice, and a space before or after a word no longer hides everything.
+- Made for Survival Log 1.1.20719.
+
 ## 0.8.4
 
 - Fixed: messages about a single stack or gift said "1 stacks", "1 of 1 stacks" or "1 of 1 gifts". They now say "1 stack" or "1 gift".

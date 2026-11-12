@@ -423,12 +423,15 @@
 
     var scope = inScope();
     var filt = filterOf(scope);
-    var query = station.query.toLowerCase();
+    // Every typed word has to be in the name, in any order, so a stray space hides nothing.
+    var words = station.query.toLowerCase().split(/\s+/).filter(Boolean);
     var wantN = 0;
     var visible = scope.filter(function (item) {
+      var name = String(item.n).toLowerCase();
+
       if (item.wanted) wantN++;
 
-      return (filt !== 'wanted' || item.wanted) && (!query || String(item.n).toLowerCase().indexOf(query) >= 0);
+      return (filt !== 'wanted' || item.wanted) && words.every(function (w) { return name.indexOf(w) >= 0; });
     });
     var rows = steady(visible, station.sel + '|' + filt + '|' + station.query).map(function (item) {
       return { k: item.gone ? item.k : rowKey(item), h: rowHtml(item, state) };

@@ -56,6 +56,30 @@ public class StationTypingTests
         Assert.Equal(Focus + "1," + Focus + "0", Focuses());
     }
 
+    /// <summary>
+    /// The search matched the whole typed text, so a space after a word, or two words in another order than the name
+    /// has them, hid every item.
+    /// </summary>
+    [Theory]
+    [InlineData("juice apple", "Apple Juice")]
+    [InlineData("  apple  ", "Apple Juice,Apple")]
+    [InlineData("ROPE", "Rope")]
+    [InlineData(" ", "Apple Juice,Rope,Apple")]
+    public void The_search_finds_every_typed_word_in_any_order(string query, string shown)
+    {
+        _engine.Execute("""
+            window.__slneighborbasket.station({ labels: { cells: '{0}/{1}' }, basket: [], places: [{ id: 2, name: 'Chest' }], bag: 1, cols: 5, gridRows: 3, rows: [],
+              items: [
+                { id: 7, cfg: 7, x: 0, y: 0, n: 'Apple Juice', w: 1, h: 1, q: 3, owner: 2, ic: 'juice.png' },
+                { id: 8, cfg: 8, x: 1, y: 0, n: 'Rope', w: 1, h: 1, q: 1, owner: 2, ic: 'rope.png' },
+                { id: 9, cfg: 9, x: 2, y: 0, n: 'Apple', w: 1, h: 1, q: 5, owner: 2, ic: 'apple.png' }] });
+            tick();
+            """);
+        _engine.Execute("var box = stationIn(frame).querySelector('[data-q]'); box.value = '" + query + "'; box.listeners.input.forEach(function (callback) { callback({ target: box }); }); tick();");
+
+        Assert.Equal(shown, _engine.Evaluate("stationIn(frame).querySelectorAll('.nbs-nm').map(function (el) { return el.text; }).join(',')").AsString());
+    }
+
     private static string Resource(string name)
     {
         using var stream = typeof(StationTypingTests).Assembly.GetManifestResourceStream(name) ?? throw new InvalidOperationException(name + " is not embedded in the test assembly");
