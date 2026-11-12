@@ -1,40 +1,41 @@
 Name: Neighbor Basket
-Summary: Opens a basket station on the neighbour's gift basket: every home storage beside the basket's grid, and a Fill button that puts in just enough for a big jump in her condition. Every stack shows the progress it adds; click to put it in or take it out. Warnings come before she gets worse, and a phone app tracks affinity, progress and every send.
+Summary: Adds a basket station to the neighbour's gift basket, with all your home storage next to the basket and a Fill button that puts in just enough for a big jump in her condition. Every stack shows the progress it adds, and a click puts it in or takes it out. Warnings come before she gets worse, and a phone app tracks affinity, progress and every send.
 
 Description (BBCode):
 [center][img]https://sldb.core-directive.com/media/save/1-save-safe.png[/img][/center]
 
-Keeping a neighbour alive means opening the basket, reading what she wants, then hunting through your storages for one item of each kind before time runs out. Neighbor Basket opens a [b]basket station[/b] with all your storages beside the basket and a [b]Fill[/b] button that does the hunting, warns you before she gets worse, and adds a phone app that tracks how she is doing.
+Keeping a neighbour alive means opening the basket, reading what she wants, then digging through your storage for one item of each kind before time runs out. Neighbor Basket opens a [b]basket station[/b] with all your storage beside the basket, and its [b]Fill[/b] button does the digging for you. It also warns you before she gets worse, and adds a phone app that tracks how she is doing.
 
 [size=5]Main features[/size]
 [list]
-[*][b]Basket station[/b]: opens with the basket. Every storage at home and your bag on the left, with search and the kinds she wants marked; the basket's grid, her wishes, the weight left and the progress a send would give in the middle; her condition, deadlines, streak, progress and affinity on the right. Game screen switches back to the game's basket screen.[/*]
-[*][b]Click to move[/b]: click a stack to put one in, Shift-click for the whole stack, click a stack in the basket to put it back where it came from.[/*]
-[*][b]Fill button[/b]: puts in enough from your home storage for 80 progress, the amount that lifts her condition two steps: one of each kind she wants first for its bonus, then more of what you have most of, only as many as it takes. With Stacking it takes part of a stack. Shift-click packs the basket as full as it goes. What Fill would do shows faintly in the free cells. Your bag is never touched.[/*]
-[*][b]Progress per item[/b]: every stack shows the progress one more of it adds; its tooltip shows that and the whole stack's. The stacks that add the most list first, and the list holds still while you click.[/*]
-[*][b]A cap per item[/b]: Fill takes at most 30% of any one item you have at home, so your last seeds of a kind stay home. While she is dying the cap does not apply to food.[/*]
-[*][b]Never what you locked[/b]: items the basket refuses are skipped, and nothing goes past the basket's cells or its weight limit.[/*]
+[*][b]Basket station[/b]: opens with the basket. On the left are every storage at home and your bag, with a search box, and the kinds she wants are marked. In the middle are the basket's grid, her wishes, the weight left and the progress a send would give. On the right are her condition, her deadlines, the send streak, progress and affinity. Game screen switches back to the game's basket screen.[/*]
+[*][b]Click to move[/b]: click a stack to put one in, or Shift-click for the whole stack. Click a stack in the basket to put it back where it came from.[/*]
+[*][b]Fill button[/b]: puts in enough from your home storage for 80 progress by default, the amount that lifts her condition two steps. It puts in one of each kind she wants first for its bonus, then more of what you have most of, and stops once it has enough. With Stacking it can take part of a stack. Shift-click packs the basket as full as it goes. What Fill would put in shows faintly in the free cells. Your bag is never touched.[/*]
+[*][b]Progress per item[/b]: every stack shows the progress one more of it adds, and its tooltip also shows what the whole stack adds. The stacks that add the most are listed first, and the list holds still while you click.[/*]
+[*][b]A cap per item[/b]: by default Fill takes at most 30% of any one item you have at home, so your last few seeds of a kind stay home. While she is dying the cap doesn't apply to food.[/*]
+[*][b]Only what fits[/b]: Fill skips items the basket won't take, and never goes past the basket's cells or its weight limit.[/*]
 [*][b]Food when she is dying[/b]: while she is dying, Fill packs food only.[/*]
-[*][b]Warnings[/b]: a message a few hours before her condition drops a step, before her trouble's deadline, before the send streak breaks, and when she starts to struggle or is dying. Each shows once, and the most urgent also stays on the game's Rescue panel, under Relief Progress, until it no longer applies (hover it to see the rest).[/*]
-[*][b]What is in the basket[/b]: while the basket is home and holds something, a line at the top left of the screen says what is in it, with or without an aid event (on the Rescue panel during one, under the event list otherwise). Hover it for the full list.[/*]
-[*][b]Neighbor app[/b] on the phone: her status, the same rows as the basket station (condition and when it drops, her trouble's deadline, send streak, progress and affinity), plus struggles left, what the basket holds (even when nobody needs help), and a log by day of what you sent, what came back, what each send gained, and her thoughts.[/*]
-[*][b]Break down button[/b]: takes apart the gifts in the basket that break down by hand (wind chimes, star jars, notes), the game's way, into materials.[/*]
+[*][b]Warnings[/b]: a message comes a set number of hours before her condition drops a step, before her trouble's deadline and before the send streak breaks, and another when she starts to struggle or is dying. Each one shows once. The most urgent one also stays on the game's Rescue panel, under Relief Progress, until it no longer applies. Hover it to see the rest.[/*]
+[*][b]What is in the basket[/b]: while the basket is home and holds something, a line at the top left of the screen says what is in it. During an aid event it sits on the Rescue panel, and the rest of the time under the event list. Hover it for the full list.[/*]
+[*][b]Neighbor app[/b] on the phone: shows the same rows as the basket station (her condition and when it drops, her trouble's deadline, send streak, progress and affinity), plus struggles left and what the basket holds, even when nobody needs help. It also keeps a log by day of what you sent, what came back, what each send gained, and her thoughts.[/*]
+[*][b]Break down button[/b]: takes apart the gifts in the basket that break down by hand (wind chimes, star jars, notes) into materials, the same as using them yourself.[/*]
 [*][b]To bag and To storage buttons[/b]: empty the basket, her gifts included, into your bag, or (with Storage Hub installed) into your home storage.[/*]
-[*][b]Call back button[/b]: off by default. When on, it brings the basket home at once while it is away.[/*]
+[*][b]Call back button[/b]: off by default. When it is on, it brings the basket home at once while it is away.[/*]
 [*][b]Both neighbours[/b]: works for whichever neighbour you are helping.[/*]
 [/list]
-Fill never sends the basket: check what went in, then press Send basket.
+Fill never sends the basket, so check what went in, then press Send basket.
 
 Works in English and Chinese.
 
-The mod adds no data of its own to your save; the phone app's log is a separate file per save in the config folder. The moves are real, the same as moving items into the basket by hand. You can remove it at any time.
+The mod adds no data of its own to your save. The phone app's log is kept in a separate file per save in the config folder. Every move is a real one, the same as moving items into the basket by hand. You can remove the mod at any time.
 
 [size=5]Known issues[/size]
 [list]
 [*]The log only sees sends and returns while the game runs, and gifts she brings on her own are not logged. Her text messages are already in the game's Messages app.[/*]
-[*]Without Stacking, Fill moves whole stacks, so it can go past the goal. It adds kinds she did not ask for only when the kinds she wants run out; click any you want to keep to put it back.[/*]
+[*]Without Stacking, Fill moves whole stacks, so it can go past the goal.[/*]
+[*]Fill adds kinds she didn't ask for only when the kinds she wants run out. Click any you want to keep to take it back out.[/*]
 [*]Without Stacking, clicking a stack moves the whole stack.[/*]
-[*]The most valuable food is taken to fill her most; the mod does not read how filling each food is.[/*]
+[*]While she is dying, Fill picks food by its value, because the mod doesn't read how filling each food is.[/*]
 [/list]
 
 [center][img]https://sldb.core-directive.com/img/mods-banner.jpg[/img]
@@ -44,7 +45,7 @@ The mod adds no data of its own to your save; the phone app's log is a separate 
 [list]
 [*]Survival Log 1.1.20719. A game update can break it until the mod is updated.[/*]
 [*][url=https://www.nexusmods.com/survivallog/mods/12]BepInEx for Survival Log[/url]. Install it first.[/*]
-[*][url=https://www.nexusmods.com/survivallog/mods/61]Exiled's Toolkit[/url] 0.19.0 or newer. Neighbor Basket does not load without it. It shows Neighbor Basket's messages as toasts, puts the Neighbor phone app in the phone's dock with the game's apps, applies settings changed on the Mod Manager's Mods screen without a restart, and its UI size setting sizes the basket station. Neighbor Basket's own UiScale setting can set a size for this mod alone.[/*]
+[*][url=https://www.nexusmods.com/survivallog/mods/61]Exiled's Toolkit[/url] 0.19.0 or newer. Neighbor Basket does not load without it. It shows Neighbor Basket's messages as pop-ups, puts the Neighbor app in the phone's dock with the game's apps, and applies settings you change on the Mod Manager's Mods screen without a restart. Its UI size setting also sizes the basket station. Neighbor Basket's own UiScale setting can set a size for this mod alone.[/*]
 [*]Optional: Stacking. With it, clicking a stack in the station puts one in instead of the whole stack, and Fill takes only the part of a stack it needs.[/*]
 [*]Optional: Info Pack 0.8.13 or newer. With it, the station's stacks show Info Pack's item tooltip, with the progress line under the name.[/*]
 [*]Optional: Storage Hub 0.13.0 or newer. With it, the To storage button shows.[/*]
@@ -64,7 +65,7 @@ The mod adds no data of its own to your save; the phone app's log is a separate 
 Delete [font=Courier New]NeighborBasket.dll[/font] from the [font=Courier New]BepInEx\plugins[/font] folder.
 
 [size=5]Configuration[/size]
-Edit [font=Courier New]BepInEx\config\com.dev.survivallog.neighborbasket.cfg[/font] while the game is closed, or change it in game on the Mod Manager's Mods screen (see [url=https://github.com/AnExiledDev/SurvivalLog-NeighborBasket/blob/main/CONFIG.md]CONFIG.md[/url]; the cfg file explains each setting in English and Chinese). Settings: [font=Courier New]FillButton[/font], [font=Courier New]FillGoal[/font], [font=Courier New]FillShare[/font], [font=Courier New]PutAwayButton[/font], [font=Courier New]CallBackButton[/font], [font=Courier New]OnHud[/font] (what is in the basket, top left), [font=Courier New]Enabled[/font] (warnings), [font=Courier New]Streak[/font], [font=Courier New]WarnHours[/font], [font=Courier New]HudAlert[/font] (the line on the Rescue panel) and [font=Courier New]App[/font] (phone app).
+Edit [font=Courier New]BepInEx\config\com.dev.survivallog.neighborbasket.cfg[/font] while the game is closed, or change it in game on the Mod Manager's Mods screen. The cfg file explains each setting in English and Chinese, and [url=https://github.com/AnExiledDev/SurvivalLog-NeighborBasket/blob/main/CONFIG.md]CONFIG.md[/url] lists them all. Settings: [font=Courier New]FillButton[/font], [font=Courier New]FillGoal[/font], [font=Courier New]FillShare[/font], [font=Courier New]PutAwayButton[/font], [font=Courier New]CallBackButton[/font], [font=Courier New]OnHud[/font] (what is in the basket, top left), [font=Courier New]Enabled[/font] (warnings), [font=Courier New]Streak[/font], [font=Courier New]WarnHours[/font], [font=Courier New]HudAlert[/font] (the line on the Rescue panel) and [font=Courier New]App[/font] (phone app).
 
 [size=5]Feedback[/size]
 Found a bug or have an idea? Come say hi on the [url=https://discord.gg/trTsyxUFqg]Core Directive Discord[/url], or post in this page's Posts tab. For bugs, please include [font=Courier New]BepInEx\LogOutput.log[/font] and [font=Courier New]BepInEx\neighbor-basket.log[/font].
@@ -76,37 +77,38 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-NeighborB
 [line]
 [size=5]简体中文[/size]
 
-想让邻居活下去，就得打开篮子、看她想要什么，再在储物家具里翻找每一类物品各一件，还要赶在时间用完之前。Neighbor Basket 打开篮子时会显示篮子工作台，把所有储物放在篮子旁边，并用「装篮」按钮替你翻找，在她状况变差之前提醒你，并在手机上添加一个记录她状况的应用。
+想让邻居活下去，就得打开篮子、看她想要什么，再赶在时间用完之前，从储物里把每一类物品各翻出一件。Neighbor Basket 打开篮子时会显示篮子工作台，把所有储物放在篮子旁边，「装篮」按钮会替你翻找。它还会在她状况变差之前提醒你，并在手机上添加一个记录她状况的应用。
 
 [size=5]主要功能[/size]
 [list]
-[*][b]篮子工作台[/b]：随篮子一起打开。左边是家中所有储物和背包，可搜索，她想要的类别会标出；中间是篮子的格子、她的愿望、剩余承重和送出可得的进度；右边是她的状况、期限、连续赠送、进度和好感。「游戏界面」可切回游戏自带的篮子界面。[/*]
-[*][b]点击移动[/b]：点击一组物品放入一件，按住 Shift 点击放入整组；点击篮子里的物品放回原处。[/*]
-[*][b]「装篮」按钮[/b]：从家中储物里放入足够 80 进度的物品，正好让她的状态提升两档：先放她想要的每一类各一件以获得额外奖励，再放你最多的东西，够了就停。安装 Stacking 后可以只拿一组中的几件。按住 Shift 单击会把篮子尽量装满。「装篮」的计划会在空格中淡淡显示。不会动你的背包。[/*]
-[*][b]每件物品的进度[/b]：每组物品都会显示再放一件能加多少进度；悬停提示里还有整组的进度。加得最多的排在最前，单击时列表不会跳动。[/*]
-[*][b]每种物品的上限[/b]：「装篮」对同一种物品最多拿走家中数量的 30%，同类种子不会被拿光。她濒死时，食物不受此上限限制。[/*]
-[*][b]不动你锁定的物品[/b]：篮子拒收的物品会被跳过，放入的物品不会超过篮子的格子数和承重。[/*]
+[*][b]篮子工作台[/b]：随篮子一起打开。左边是家中所有储物和背包，可以搜索，她想要的类别会标出来。中间是篮子的格子、她的愿望、剩余承重和现在送出能得的进度。右边是她的状况、期限、连续赠送、进度和好感。按「游戏界面」可以切回游戏的篮子界面。[/*]
+[*][b]点击移动[/b]：点击一组物品放入一件，按住 Shift 点击放入整组。点击篮子里的物品会放回原处。[/*]
+[*][b]「装篮」按钮[/b]：从家中储物里放入足够 80 进度（默认值）的物品，正好让她的状态提升两档。它先放她想要的每一类各一件，拿到额外奖励，再放你最多的东西，够了就停。安装 Stacking 后可以只拿一组中的几件。按住 Shift 单击会把篮子尽量装满。「装篮」打算放的东西会在空格里淡淡显示。不会动你的背包。[/*]
+[*][b]每件物品的进度[/b]：每组物品都会显示再放一件能加多少进度，悬停提示里还有整组能加多少。加得最多的排在最前，单击时列表不会跳动。[/*]
+[*][b]每种物品的上限[/b]：默认情况下，「装篮」对同一种物品最多拿走家中数量的 30%，最后几颗种子会留在家里。她濒死时，食物不受此上限限制。[/*]
+[*][b]只放放得下的[/b]：篮子不收的物品会被跳过，放入的物品不会超过篮子的格子数和承重。[/*]
 [*][b]濒死时只放食物[/b]：她濒死时，「装篮」只放食物。[/*]
-[*][b]提醒[/b]：在她的状态下降一档之前几小时、她遇到的麻烦到期之前、连续赠送快要中断之前，以及她开始挣扎或濒死时显示提醒。每条只弹出一次，最紧急的一条还会留在游戏救助面板的救助进度下方，直到不再需要（鼠标悬停可查看其余提醒）。[/*]
-[*][b]篮子里的东西[/b]：篮子在家且不是空的时，屏幕左上角会有一行显示篮子里有什么，无论是否有救助事件（救助事件进行中时在救助面板上，其他时候在事件列表下方）。鼠标悬停可查看完整清单。[/*]
-[*][b]「邻居」手机应用[/b]：显示她的状况，和篮子工作台相同（状况及何时下降、困境期限、连续赠送、进度和好感），外加剩余挣扎次数、篮子里的东西（没有人需要帮助时也显示），以及按天记录的送出物品、送回物品、每次送出获得的进度和她的心声。[/*]
-[*][b]「拆解」按钮[/b]：把篮子里能手工拆开的回礼（风铃、星星罐、纸条等）按游戏自己的方式拆成材料。[/*]
+[*][b]提醒[/b]：在她的状态下降一档、她遇到的麻烦到期、连续赠送快要中断之前的若干小时会弹出提醒，她开始挣扎或濒死时也会提醒。每条只弹出一次。最紧急的一条还会留在游戏救助面板的救助进度下方，直到不再适用。鼠标悬停可以查看其余提醒。[/*]
+[*][b]篮子里的东西[/b]：篮子在家且不是空的时，屏幕左上角会有一行显示篮子里有什么。救助事件进行中时这一行在救助面板上，其他时候在事件列表下方。鼠标悬停可查看完整清单。[/*]
+[*][b]「邻居」手机应用[/b]：显示和篮子工作台相同的几行（状况及何时下降、困境期限、连续赠送、进度和好感），外加剩余挣扎次数和篮子里的东西，没有人需要帮助时也会显示。它还按天记录送出的物品、送回的物品、每次送出获得的进度和她的心声。[/*]
+[*][b]「拆解」按钮[/b]：把篮子里能手工拆开的回礼（风铃、星星罐、纸条等）拆成材料，和你自己使用它们一样。[/*]
 [*][b]「放进背包」和「放进储物」按钮[/b]：把篮子里的东西（包括她的回礼）放进背包，或在安装储物中心后收进家中储物。[/*]
 [*][b]「召回」按钮[/b]：默认关闭。开启后，篮子不在家时可以让它立刻回来。[/*]
 [*][b]两位邻居都支持[/b]：对你正在帮助的邻居生效。[/*]
 [/list]
-「装篮」不会替你送出篮子：确认放入的物品后，按「送出篮子」。
+「装篮」不会替你送出篮子，确认放入的物品后，再按「送出篮子」。
 
 支持中文和英文。
 
-本模组不会往存档里写入自己的数据；手机应用的记录按存档另存在配置文件夹中。物品的移动是真实的，和你亲手放进篮子一样。你可以随时移除它。
+本模组不会往存档里写入自己的数据。手机应用的记录按存档另存在配置文件夹中。物品的移动是真实的，和你亲手放进篮子一样。你可以随时移除本模组。
 
 [size=5]已知问题[/size]
 [list]
-[*]记录只在游戏运行时看到送出和送回，她主动送来的礼物不会记录。她的短信已在游戏自带的「信息」应用中。[/*]
-[*]没有安装 Stacking 时，「装篮」整组移动，所以可能超过目标。只有她想要的类别不够时才会放入她没要的类别；想留下的点击即可放回。[/*]
+[*]记录只在游戏运行时看到送出和送回，她主动送来的礼物不会记录。她的短信本来就在游戏的「信息」应用里。[/*]
+[*]没有安装 Stacking 时，「装篮」整组移动，所以可能超过目标。[/*]
+[*]只有她想要的类别不够时，「装篮」才会放入她没要的类别。想留下的点击一下就能取回。[/*]
 [*]没有安装 Stacking 时，点击一组物品会整组移动。[/*]
-[*]选择价值最高的食物来尽量喂饱她；本模组不读取每种食物的饱腹程度。[/*]
+[*]她濒死时，「装篮」按价值挑选食物，因为本模组不读取每种食物的饱腹程度。[/*]
 [/list]
 
 [url=https://www.nexusmods.com/survivallog/mods/73]获取 Mod Manager[/url]，在游戏里设置所有模组。[url=https://sldb.core-directive.com/zh/]打开 Survival Log 维基[/url]，物品、配方、地图一查就有。
@@ -115,7 +117,7 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-NeighborB
 [list]
 [*]Survival Log 1.1.20719。游戏更新后模组可能暂时失效，直到模组更新为止。[/*]
 [*][url=https://www.nexusmods.com/survivallog/mods/12]BepInEx for Survival Log[/url]，请先安装。[/*]
-[*][url=https://www.nexusmods.com/survivallog/mods/61]Exiled's Toolkit[/url] 0.19.0 或更新版本。没有它本模组不会加载。它把提示以弹窗显示，把「邻居」手机应用和游戏自带的应用一起放在手机底部的程序栏里，让在 Mod Manager 的「模组」界面修改的设置无需重启游戏即可生效，它的界面大小设置还能调整篮子工作台的大小。还可以用 Neighbor Basket 自己的 UiScale 设置单独调整本模组的大小。[/*]
+[*][url=https://www.nexusmods.com/survivallog/mods/61]Exiled's Toolkit[/url] 0.19.0 或更新版本。没有它本模组不会加载。它把本模组的提示以弹窗显示，把「邻居」手机应用和游戏的其他应用一起放在手机底部的程序栏里，并让你在 Mod Manager 的「模组」界面修改的设置无需重启即可生效。它的界面大小设置也会调整篮子工作台的大小。还可以用 Neighbor Basket 自己的 UiScale 设置单独调整本模组的大小。[/*]
 [*]可选：Stacking。安装后在工作台点击一组物品只放入一件，而不是整组，「装篮」也只拿一组中需要的几件。[/*]
 [*]可选：Info Pack 0.8.13 或更新版本。安装后工作台里的物品会显示 Info Pack 的物品提示，名字下方附有进度。[/*]
 [*]可选：储物中心（Storage Hub）0.13.0 或更新版本。安装后显示「放进储物」按钮。[/*]

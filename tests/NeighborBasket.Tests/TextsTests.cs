@@ -47,7 +47,7 @@ public class TextsTests
     [Fact]
     public void Warnings_carry_the_hours_left()
     {
-        Assert.Equal("About 7 h until her condition drops a step. Send the basket to hold it.", Texts.Warn(new Warning(WarningKind.TierDrop, 7, "k"), false));
+        Assert.Equal("About 7 h until her condition drops a step. Send the basket before then.", Texts.Warn(new Warning(WarningKind.TierDrop, 7, "k"), false));
         Assert.Contains("7", Texts.Warn(new Warning(WarningKind.Struggle, 7, "k"), true));
     }
 

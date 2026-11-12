@@ -36,7 +36,7 @@ public static class Texts
 
     public static readonly Phrase Full = new("The basket is full.", "篮子已经满了。");
 
-    public static readonly Phrase Capped = new("Every stack Fill could use is more than FillShare lets it take. Click stacks in yourself.", "装篮能用的每组物品都超过了 FillShare 允许拿走的数量，请自己点击放入。");
+    public static readonly Phrase Capped = new("The FillShare limit stops Fill from taking any more. Click items in yourself.", "受 FillShare 限制，「装篮」不能再多拿了。请自己点击放入。");
 
     public static readonly Phrase GoalMet = new("The basket already holds enough. Shift-click Fill to pack it full.", "篮子里的东西已经够了。按住 Shift 单击「装篮」可以装满。");
 
@@ -52,13 +52,13 @@ public static class Texts
 
     public static readonly Phrase NotAway = new("The basket is already home.", "篮子已经在家了。");
 
-    public static readonly Phrase Failed = new("Neighbor Basket failed, see BepInEx/neighbor-basket.log.", "邻居篮子出错，详见 BepInEx/neighbor-basket.log。");
+    public static readonly Phrase Failed = new("Neighbor Basket ran into an error. See BepInEx/neighbor-basket.log.", "邻居篮子出错，详见 BepInEx/neighbor-basket.log。");
 
-    public static readonly Phrase TierDrop = new("About {0} h until her condition drops a step. Send the basket to hold it.", "约 {0} 小时后她的状态会下降一档。送出篮子可以保住。");
+    public static readonly Phrase TierDrop = new("About {0} h until her condition drops a step. Send the basket before then.", "约 {0} 小时后她的状态会下降一档。在那之前送出篮子。");
 
-    public static readonly Phrase StruggleSoon = new("About {0} h until she starts to struggle. Send the basket to hold it.", "约 {0} 小时后她会陷入挣扎。送出篮子可以避免。");
+    public static readonly Phrase StruggleSoon = new("About {0} h until she starts to struggle. Send the basket before then.", "约 {0} 小时后她会陷入挣扎。在那之前送出篮子。");
 
-    public static readonly Phrase CrisisDeadline = new("About {0} h left to help with her trouble. One item of the asked kind is enough.", "她遇到的麻烦还剩约 {0} 小时。送一件所需类别的物品就够了。");
+    public static readonly Phrase CrisisDeadline = new("About {0} h left to help with her trouble. One item of the kind she asked for is enough.", "她遇到的麻烦还剩约 {0} 小时。送一件她要的那类物品就够了。");
 
     public static readonly Phrase Struggle = new("She is struggling. About {0} h left to send her food.", "她正在挣扎，还剩约 {0} 小时送食物给她。");
 
@@ -76,7 +76,7 @@ public static class Texts
 
     public static readonly Phrase HudCrisis = new("Trouble runs out in {0} h", "她的麻烦还剩 {0} 小时");
 
-    public static readonly Phrase HudStruggle = new("Struggling: food within {0} h", "挣扎中：{0} 小时内送食物");
+    public static readonly Phrase HudStruggle = new("Struggling: send food within {0} h", "挣扎中：{0} 小时内送食物");
 
     public static readonly Phrase HudDying = new("Dying: send food now", "快不行了：马上送食物");
 
@@ -110,11 +110,11 @@ public static class Texts
 
     public static readonly Phrase BreakButton = new("Break down", "拆解");
 
-    public static readonly Phrase BreakTitle = new("Take apart the gifts in the basket that break down by hand, the way the game's Use does. They go to your bag first; your character does them one by one.", "把篮子里能手工拆开的回礼拆成材料，和游戏里的「使用」一样。它们先放进背包，再由角色逐件拆开。");
+    public static readonly Phrase BreakTitle = new("Take apart the gifts in the basket that break down by hand. They go to your bag first, then your character uses them one at a time, the same as pressing Use.", "把篮子里能手工拆开的回礼拆成材料。它们先放进背包，再由角色逐件「使用」拆开。");
 
     public static readonly Phrase BreakStarted = new("Breaking down {0} by hand.", "正在手工拆解 {0} 件。");
 
-    public static readonly Phrase BreakShort = new("{0} of {1} could not be broken down (bag full, or the game refused). Any that reached your bag are still there.", "有 {0}/{1} 件无法拆解（背包已满或游戏不允许），已移到背包的仍在背包里。");
+    public static readonly Phrase BreakShort = new("{0} of {1} gifts could not be broken down, because your bag was full or the game did not allow it. Any that made it to your bag are still there.", "有 {0}/{1} 件回礼无法拆解，可能是背包满了或游戏不允许。已经放进背包的还在背包里。");
 
     public static readonly Phrase AppTile = new("Neighbor", "邻居");
 
@@ -172,7 +172,7 @@ public static class Texts
 
     public static readonly Phrase CardDue = new("due in {0} h", "剩约 {0} 小时");
 
-    public static readonly Phrase CardStreakToday = new("{0} / {1} days, send today", "{0} / {1} 天，今天还没送");
+    public static readonly Phrase CardStreakToday = new("{0} / {1} days, not sent today", "{0} / {1} 天，今天还没送");
 
     public static readonly Phrase CardStreakSent = new("{0} / {1} days, sent today", "{0} / {1} 天，今天已送");
 
@@ -182,7 +182,7 @@ public static class Texts
 
     public static readonly Phrase CardFillsFood = new("Fill adds {0} food from storage.", "装篮会从储物放入 {0} 组食物。");
 
-    public static readonly Phrase CardFillsNothing = new("Fill finds nothing at hand to add.", "装篮在手边找不到可放的东西。");
+    public static readonly Phrase CardFillsNothing = new("Fill has nothing to add from storage.", "装篮在储物里找不到可放的东西。");
 
     public static readonly Phrase StationButton = new("Basket station", "篮子工作台");
 

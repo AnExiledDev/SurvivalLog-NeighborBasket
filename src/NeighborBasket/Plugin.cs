@@ -20,7 +20,7 @@ namespace NeighborBasket;
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.neighborbasket";
-    private const string Version = "0.8.2";
+    private const string Version = "0.8.3";
 
     /// <summary>Exiled's Toolkit: its shared helpers, toasts, live settings and UI size all come from it.</summary>
     private const string ToolkitGuid = "com.dev.survivallog.exiledtoolkit";
@@ -40,12 +40,12 @@ public sealed class Plugin : BasePlugin
         ModUiSize.Bind(Config, UiSizeName);
 
         var fillButton = Config.Bind("Basket", "FillButton", true,
-            "Shows a Fill button in the basket station. It puts in enough from your home storage to reach FillGoal: one of each kind she wants first (each kind earns a bonus), then more of what you have most of, only as many as it takes. With Stacking it takes part of a stack; without it, whole stacks. Shift-click packs the basket as full as it goes for the most progress, within its grid and weight limit. Your bag is never touched. While she is dying it packs food only.\n" +
+            "Shows a Fill button in the basket station. It puts in enough from your home storage to reach FillGoal: one of each kind she wants first (each kind earns a bonus), then more of what you have most of, only as many as it takes. With Stacking it can take part of a stack, and without it, whole stacks. Shift-click packs the basket as full as it goes for the most progress, within its grid and weight limit. Your bag is never touched. While she is dying it packs food only.\n" +
             "在篮子工作台显示「装篮」按钮。它从家中储物里放入刚好达到「FillGoal」的物品：先放她想要的每一类各一件（每一类都有额外奖励），再放你最多的东西，够了就停。装有堆叠模组时可以只拿一组中的几件，没有时按整组放。按住 Shift 单击会把篮子尽量装满，换取最多的进度，且不超过篮子的格子和承重。不会动你背包里的东西。她濒死时只装食物。");
         var fillGoal = Config.Bind("Basket", "FillGoal", 80,
             new ConfigDescription(
-                "The progress Fill aims for in one basket. A basket worth 40 lifts her condition one step, 80 lifts it two, so 80 gets the most from the least. Fill never aims past what her current stage still needs. 0 makes Fill pack the basket full every time.\n" +
-                "「装篮」每次争取的进度。一篮达到 40 进度能让她状态提升一档，80 提升两档，所以 80 用最少的东西换最多的提升。不会超过她当前阶段还需要的进度。设为 0 则每次都把篮子装满。",
+                "The progress Fill aims for in one basket. A basket worth 40 lifts her condition one step and 80 lifts it two, so 80 gets two steps for the fewest items. Fill never aims past what her current stage still needs. 0 makes Fill pack the basket full every time.\n" +
+                "「装篮」每次争取的进度。一篮达到 40 进度能让她状态提升一档，80 提升两档，所以 80 能用最少的物品提升两档。不会超过她当前阶段还需要的进度。设为 0 则每次都把篮子装满。",
                 new AcceptableValueRange<int>(0, 500)));
         var fillShare = Config.Bind("Basket", "FillShare", 30,
             new ConfigDescription(
@@ -53,26 +53,26 @@ public sealed class Plugin : BasePlugin
                 "「装篮」对同一种物品最多拿走家中数量的百分之几（篮子里已有的也算）。设为 30 时，16 个番茄种子最多拿 4 个，只有 1 到 3 个的物品一个都不拿。按住 Shift 单击「装篮」也遵守此限制。她濒死时不受此限制，「装篮」会放入她需要的食物。自己单击放入物品不受限制。设为 100 表示不限制。",
                 new AcceptableValueRange<int>(1, 100)));
         var putAwayButton = Config.Bind("Basket", "PutAwayButton", true,
-            "Shows a To storage button on the basket while it is home, which puts what the basket holds into your home storage the way Storage Hub puts the bag away. Needs Storage Hub; without it the button does not show.\n" +
+            "Shows a To storage button on the basket while it is home, which puts what the basket holds into your home storage the way Storage Hub puts the bag away. Needs Storage Hub. Without it the button does not show.\n" +
             "篮子在家时显示「放进储物」按钮，把篮子里的东西收进家中储物，方式和储物中心收纳背包相同。需要储物中心模组；没有安装时不显示此按钮。");
         var callBackButton = Config.Bind("Basket", "CallBackButton", false,
-            "Shows a Call back button on the basket while it is away, which brings it home at once with whatever she sends back. Off by default, since it skips the wait the game gives the basket.\n" +
-            "篮子不在家时显示「召回」按钮，按下后篮子立刻带着她的回礼回来。默认关闭，因为这会跳过游戏给篮子设定的等待时间。");
+            "Shows a Call back button on the basket while it is away, which brings it home at once with whatever she sends back. Off by default, since it skips the basket's trip back and makes the game easier.\n" +
+            "篮子不在家时显示「召回」按钮，按下后篮子立刻带着她的回礼回来。默认关闭，因为这会跳过篮子回来的等待时间，让游戏变简单。");
         var basketOnHud = Config.Bind("Basket", "OnHud", true,
             "Shows what the basket holds while it is home and not empty, as a line at the top left of the screen: on the Rescue panel during an aid event, under the other panels otherwise. Hover it to see every item. The Neighbor app on the phone shows the basket either way.\n" +
             "篮子在家且不是空的时，在屏幕左上角显示一行篮子里的东西：救助事件进行中时显示在救助面板上，其他时候显示在其他面板下方。鼠标悬停可查看全部物品。手机上的邻居应用无论如何都会显示篮子。");
         var warningsOn = Config.Bind("Warnings", "Enabled", true,
-            "Shows a warning before her condition drops a step for want of a basket, before her trouble runs out of time, and while she is struggling or dying. Each warning shows once.\n" +
-            "在她因为没收到篮子而状态下降一档之前、她遇到的麻烦快要超时之前，以及她挣扎或濒死时显示提醒。每条提醒只显示一次。");
+            "Shows a warning before her condition drops a step, before her trouble runs out of time, and while she is struggling or dying. Each warning shows once.\n" +
+            "在她的状态下降一档之前、她遇到的麻烦快要超时之前，以及她挣扎或濒死时显示提醒。每条提醒只显示一次。");
         var warnStreak = Config.Bind("Warnings", "Streak", true,
-            "Warns late in the day when sending the basket today would keep the send streak going, and it has not gone out yet.\n" +
+            "Warns late in the day when the basket has not gone out yet and sending it today would keep the send streak going.\n" +
             "当天快结束而篮子还没送出、今天送出就能保住连续赠送时提醒。");
         var hudAlert = Config.Bind("Warnings", "HudAlert", true,
-            "Shows the most urgent warning as a line under Relief Progress on the game's Rescue panel, with the hours left, red when her life is at stake. Hover it to see every warning. Unlike the toasts, it stays up for as long as the warning is due.\n" +
-            "在游戏救助面板的救助进度下方显示一行最紧急的提醒和剩余小时数，危及她性命时为红色。鼠标悬停可查看全部提醒。与弹出提醒不同，这一行会一直显示，直到提醒不再需要。");
+            "Shows the most urgent warning as a line under Relief Progress on the game's Rescue panel, with the hours left, red when her life is at stake. Hover it to see every warning. The line stays up until the warning no longer applies.\n" +
+            "在游戏救助面板的救助进度下方显示一行最紧急的提醒和剩余小时数，危及她性命时为红色。鼠标悬停可查看全部提醒。这一行会一直显示，直到提醒不再适用。");
         var phoneApp = Config.Bind("Phone", "App", true,
-            "Adds a Neighbor app to the phone: her standing (affinity and the good ending's mark, progress, send streak, struggles left) and a log by day of what you sent, what came back, what each send gained, and her thoughts. The log is kept per save in BepInEx/config/com.dev.survivallog.neighborbasket.gifts.\n" +
-            "在手机上添加「邻居」应用：显示她的状态（好感和好结局所需、进度、连续赠送、剩余挣扎次数），以及按天记录的送出物品、送回物品、每次送出获得的进度和她的心声。记录按存档保存在 BepInEx/config/com.dev.survivallog.neighborbasket.gifts。");
+            "Adds a Neighbor app to the phone. It shows her affinity and how much the good ending needs, her progress, send streak and struggles left, and a log by day of what you sent, what came back, what each send gained, and her thoughts. The log is kept per save in BepInEx/config/com.dev.survivallog.neighborbasket.gifts.\n" +
+            "在手机上添加「邻居」应用：显示她的好感和好结局所需的好感、进度、连续赠送、剩余挣扎次数，以及按天记录的送出物品、送回物品、每次送出获得的进度和她的心声。记录按存档保存在 BepInEx/config/com.dev.survivallog.neighborbasket.gifts。");
         var warnHours = Config.Bind("Warnings", "WarnHours", 12,
             new ConfigDescription(
                 "How many game hours ahead the warnings come.\n" +

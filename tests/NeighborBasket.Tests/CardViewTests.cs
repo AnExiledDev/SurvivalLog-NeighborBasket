@@ -62,9 +62,9 @@ public class CardViewTests
     {
         var streak = State() with { StreakDays = 3, ConsecutiveSendDays = 2 };
 
-        Assert.Equal(("2 / 3 days, send today", "warn"), Pick(Rows(streak with { LastSendDay = 1 }), "Send streak"));
+        Assert.Equal(("2 / 3 days, not sent today", "warn"), Pick(Rows(streak with { LastSendDay = 1 }), "Send streak"));
         Assert.Equal(("2 / 3 days, sent today", ""), Pick(Rows(streak with { LastSendDay = 2 }), "Send streak"));
-        Assert.Equal(("0 / 3 days, send today", ""), Pick(Rows(streak with { LastSendDay = 0 }), "Send streak"));
+        Assert.Equal(("0 / 3 days, not sent today", ""), Pick(Rows(streak with { LastSendDay = 0 }), "Send streak"));
         Assert.DoesNotContain(Rows(State()), row => row.Label == "Send streak");
     }
 
@@ -88,7 +88,7 @@ public class CardViewTests
 
         Assert.Equal("Fill adds 2 stacks from storage, about +32 progress.", CardView.PlanText(plan, false));
         Assert.Equal("The basket is full.", CardView.PlanText(full, false));
-        Assert.Equal("Fill finds nothing at hand to add.", CardView.PlanText(new FillResult(new Pick[0], new[] { Tools }, FillStop.None, false), false));
+        Assert.Equal("Fill has nothing to add from storage.", CardView.PlanText(new FillResult(new Pick[0], new[] { Tools }, FillStop.None, false), false));
     }
 
     private static (string Value, string Tone) Pick(CardView.CardRow[] rows, string label)
