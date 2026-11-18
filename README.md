@@ -85,9 +85,9 @@ If the station doesn't show, open the neighbour's gift basket at home. If you pr
 
 ## Feedback and bug reports
 
-Found a bug, have an idea, or something feels off? Come say so on the Core Directive Discord: https://discord.gg/trTsyxUFqg . When reporting a bug, attach `BepInEx\LogOutput.log` and `BepInEx\neighbor-basket.log`.
+Found a bug, have an idea, or something feels off? Come say hi in the [unofficial modding Discord for Survival Log](https://discord.gg/pDrQtqbZgb). When reporting a bug, attach `BepInEx\LogOutput.log` and `BepInEx\neighbor-basket.log`.
 
-To reach me directly, message `exiled.dev` on Discord; you can find me in the [official Survival Log Discord](https://discord.gg/MZGg4gQAUe). I'm also on X as [@AnExiledDev](https://x.com/AnExiledDev).
+To reach me directly, message `exiled.dev` on Discord; you can find me in the [unofficial modding Discord](https://discord.gg/pDrQtqbZgb) and the [official Survival Log Discord](https://discord.gg/MZGg4gQAUe). I'm also on X as [@AnExiledDev](https://x.com/AnExiledDev).
 
 ## Build
 
