@@ -35,7 +35,7 @@ Neighbor Basket adds no data of its own to your save. The phone app's log is kep
 | **To storage** | Basket station while the basket is home, only with Storage Hub installed | Puts what the basket holds into your home storage. |
 | **Call back** | Basket station while the basket is away, only with `CallBackButton` on | Brings the basket home now. |
 | **Game screen** | Basket station | Hides the station and shows the game's basket screen until the basket is closed. |
-| **Basket station** | Top right of the game's basket screen, after you press Game screen | Brings the station back. |
+| **Basket station** | Next to the basket's name on the game's basket screen, after you press Game screen | Brings the station back. |
 
 Fill never sends the basket. Check what went in, then press Send basket.
 
@@ -79,7 +79,7 @@ Settings live in `BepInEx\config\com.dev.survivallog.neighborbasket.cfg`, create
 
 ## Troubleshooting
 
-Check `BepInEx\LogOutput.log` for `===== Neighbor Basket 0.8.5 started`. The same line, plus every press and what it moved or why it moved nothing, is in `BepInEx\neighbor-basket.log`, which survives restarts.
+Check `BepInEx\LogOutput.log` for `===== Neighbor Basket 0.8.6 started`. The same line, plus every press and what it moved or why it moved nothing, is in `BepInEx\neighbor-basket.log`, which survives restarts.
 
 If the station doesn't show, open the neighbour's gift basket at home. If you pressed Game screen, press Basket station at the top right. If the Fill button doesn't show, check that `FillButton` is `true`. If Fill says nothing is in home storage for a kind, then the storage at home has nothing of that kind that can go in the basket.
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.6
+
+- Fixed: the Basket station button on the game's basket screen covered your money in the top right corner. It now sits next to the basket's name.
+- On a smaller screen the station now shrinks to fit, as the game's screens do, so item names in the list no longer disappear. This needs Exiled's Toolkit 0.32.0.
+- Made for Survival Log 1.1.21671.
+
 ## 0.8.5
 
 - The search box at the station now finds every word you type, in any order. "juice apple" finds Apple Juice, and a space before or after a word no longer hides everything.

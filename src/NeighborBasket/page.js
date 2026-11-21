@@ -167,7 +167,10 @@
     '.nbs-tip b{color:#fff;display:block;margin-bottom:3px}',
     '.nbs-tip span{color:#a89a82}',
     '.nbs-fit{position:absolute;left:0;top:0;width:calc(' + FIT_WIDTH + 'px + 4vw);height:calc(' + fitHeight(3) + 'px + 6vh);visibility:hidden;pointer-events:none}',
-    '#' + OPEN_ID + '{position:fixed;right:24px;top:18px;z-index:900;display:none;height:34px;padding:0 14px;border-radius:4px;border:1px solid rgba(255,200,58,.55);background:rgba(36,30,24,.92);color:#FFC83A;font-family:"Microsoft YaHei","PingFang SC",sans-serif;font-size:13px;font-weight:700;cursor:pointer}'
+    '#' + OPEN_ID + '{z-index:900;display:none;height:28px;padding:0 10px;border-radius:4px;border:1px solid rgba(255,200,58,.55);background:rgba(36,30,24,.92);color:#FFC83A;font-family:"Microsoft YaHei","PingFang SC",sans-serif;font-size:12px;font-weight:700;white-space:nowrap;cursor:pointer}',
+    // Out of the header's flex row, so the basket's name stays in the middle.
+    '.header>#' + OPEN_ID + '{position:absolute;left:100%;top:50%;margin-left:12px;transform:translateY(-50%)}',
+    'body>#' + OPEN_ID + '{position:fixed;right:24px;top:104px}'
   ].join('\n');
 
   function send(message) {
@@ -662,12 +665,24 @@
     node.addEventListener('focusin', function () { syncTyping(doc); });
     node.addEventListener('focusout', function () { setTimeout(function () { syncTyping(doc); }, 0); });
     doc.body.appendChild(node);
-    // The station fills the screen at any size, so the fit box is what has to fit.
-    etk.size(node, { mod: UI_SIZE_NAME, fit: node.__fit, onZoom: function () { forgetTip(node); } });
+    // The station fills the screen at any size, so the fit box is what has to fit. On a narrow screen it is drawn
+    // smaller than 100%, like the game's screens are, so the take-from list keeps room for item names.
+    etk.size(node, { mod: UI_SIZE_NAME, fit: node.__fit, fitWidth: true, onZoom: function () { forgetTip(node); } });
 
+    // A button left with an old station would still talk to it, so it goes too; openButton makes a new one.
     var open = doc.getElementById(OPEN_ID);
 
     if (open) open.parentNode.removeChild(open);
+
+    return node;
+  }
+
+  // The button that brings the station back from the game's screen. It is made whenever it is missing, since it sits
+  // in the game's basket header and a redraw of that header takes it away.
+  function openButton(doc) {
+    var open = doc.getElementById(OPEN_ID);
+
+    if (open) return open;
 
     open = doc.createElement('button');
     open.id = OPEN_ID;
@@ -677,11 +692,26 @@
       e.stopPropagation();
       station.isOff = false;
       station.askAt = 0;
-      node.__drawn = '';
+      stationNode(doc).__drawn = '';
     });
-    doc.body.appendChild(open);
 
-    return node;
+    return open;
+  }
+
+  // Next to the basket's name, where the game draws nothing. The top right corner holds the money. Until the game
+  // draws the basket panel the button waits under the money, and once it is in the header it stays there.
+  function placeOpen(doc, open) {
+    if (open.isConnected && open.parentNode !== doc.body) return;
+
+    var panel = doc.querySelector('.is-basket-panel');
+    var home = (panel && panel.querySelector('.header')) || doc.body;
+
+    if (open.parentNode === home) return;
+
+    // The game tells Unity where its buttons are only after a style changes, so the button is hidden while it moves
+    // and shown again, which sends its new spot.
+    open.style.display = 'none';
+    home.appendChild(open);
   }
 
   // Keeps the rows where they were while items go in and out, so a click lands on the row that was under the mouse.
@@ -901,7 +931,6 @@
 
   function patchStation(doc, state) {
     var node = stationNode(doc);
-    var open = doc.getElementById(OPEN_ID);
     var now = Date.now();
 
     station.state = state;
@@ -913,6 +942,9 @@
     }
 
     if (station.isOff) {
+      var open = openButton(doc);
+
+      placeOpen(doc, open);
       show(node, 'none');
       open.textContent = station.labels ? station.labels.station : settings.stationLabel || 'Basket station';
       show(open, 'block');
@@ -920,7 +952,7 @@
       return;
     }
 
-    show(open, 'none');
+    show(doc.getElementById(OPEN_ID), 'none');
 
     // Asks quickly until the first answer, then about once a second; afresh while it holds nothing or a guessed move.
     if (now >= station.askAt) {

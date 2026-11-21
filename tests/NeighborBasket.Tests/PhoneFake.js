@@ -420,6 +420,28 @@ function openBasket() {
   return frame;
 }
 
+// The basket's panel as the game draws it, down to the header with the basket's name; the header is returned.
+function drawBasketPanel(frame) {
+  var doc = frame.contentDocument;
+  var panel = doc.getElementById('app').appendChild(doc.createElement('div'));
+  var slot = panel.appendChild(doc.createElement('div'));
+  var header = slot.appendChild(doc.createElement('div'));
+
+  panel.className = 'bag-panel is-storage is-basket-panel';
+  slot.className = 'header-slot';
+  header.className = 'header';
+  header.appendChild(doc.createElement('div')).className = 'panel-title';
+
+  return header;
+}
+
+// The player clicks the station's Game screen button.
+function goToGameScreen(frame) {
+  var station = stationIn(frame);
+
+  station.listeners.click.forEach(function (callback) { callback({ target: station.__slots.game, shiftKey: false, stopPropagation: function () {} }); });
+}
+
 // The player clicks into the station's search box, or out of it: focus moves, then the station hears focusin or
 // focusout from the box. Like a browser, a box hidden with the station stays the active element.
 function focusSearch(frame) {
